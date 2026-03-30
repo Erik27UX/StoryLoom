@@ -1,0 +1,199 @@
+import SwiftUI
+import SwiftData
+
+struct ReaderHomeView: View {
+    @AppStorage("userName") private var userName = "John"
+    @Query(filter: #Predicate<StoryEntry> { $0.isInVault == true },
+           sort: \StoryEntry.dateCreated, order: .reverse)
+    private var vaultStories: [StoryEntry]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+
+                    // Greeting
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Good morning, \(userName)")
+                            .font(SL.heading(28))
+                            .foregroundColor(SL.textPrimary)
+                        Text("Stories shared with you")
+                            .font(SL.body(16))
+                            .foregroundColor(SL.textSecondary)
+                    }
+
+                    if vaultStories.isEmpty {
+                        ReaderEmptyState()
+                    } else {
+                        ForEach(vaultStories) { story in
+                            NavigationLink(destination: StoryReadingView(story: story)) {
+                                ReaderStoryCard(story: story)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+            }
+            .background(SL.background)
+        }
+    }
+}
+
+struct ReaderStoryCard: View {
+    let story: StoryEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Image placeholder
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(SL.accent.opacity(0.12))
+                    .frame(height: 80)
+                Image(systemName: "photo.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(SL.accent.opacity(0.35))
+            }
+
+            Text(story.title)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(SL.textPrimary)
+
+            Text(story.preview)
+                .font(SL.body(14))
+                .foregroundColor(SL.textSecondary)
+                .lineLimit(2)
+
+            HStack {
+                Text(story.dateFormatted)
+                    .font(SL.body(13))
+                    .foregroundColor(SL.textSecondary)
+                Spacer()
+                HStack(spacing: 4) {
+                    Text("Read")
+                        .font(.system(size: 14, weight: .medium))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(SL.accent)
+            }
+        }
+        .padding(16)
+        .background(SL.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(SL.border, lineWidth: 1)
+        )
+    }
+}
+
+struct StoryReadingView: View {
+    @Environment(\.dismiss) private var dismiss
+    let story: StoryEntry
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(story.title)
+                    .font(SL.heading(26))
+                    .foregroundColor(SL.textPrimary)
+
+                Text(story.dateFormatted)
+                    .font(SL.body(13))
+                    .foregroundColor(SL.textSecondary)
+
+                Rectangle()
+                    .fill(SL.border)
+                    .frame(height: 1)
+
+                Text(story.content)
+                    .font(SL.serif(18))
+                    .foregroundColor(SL.textPrimary)
+                    .lineSpacing(8)
+
+                // Reaction row
+                HStack(spacing: 12) {
+                    ReactionButton(icon: "heart.fill", label: "Loved this")
+                    ReactionButton(icon: "bubble.left.fill", label: "Leave a comment")
+                }
+                .padding(.top, 8)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 40)
+        }
+        .background(SL.background)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Back")
+                    }
+                    .foregroundColor(SL.accent)
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {}) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 17))
+                        .foregroundColor(SL.accent)
+                }
+            }
+        }
+    }
+}
+
+struct ReactionButton: View {
+    let icon: String
+    let label: String
+
+    var body: some View {
+        Button(action: {}) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                Text(label)
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .foregroundColor(SL.textPrimary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(SL.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
+        }
+    }
+}
+
+struct ReaderEmptyState: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "books.vertical")
+                .font(.system(size: 36))
+                .foregroundColor(SL.accent.opacity(0.5))
+            Text("No stories yet")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(SL.textPrimary)
+            Text("When a storyteller adds stories to their vault and shares access with you, they'll appear here.")
+                .font(SL.body(14))
+                .foregroundColor(SL.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity)
+        .background(SL.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+    }
+}
+
+#Preview {
+    ReaderHomeView()
+}

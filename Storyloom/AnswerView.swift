@@ -6,12 +6,17 @@ struct AnswerView: View {
     @State private var answerText = ""
     @State private var isRecording = false
 
+    // For the prototype the "generated" story is the sample text;
+    // swap this out for a real AI call later.
+    private var generatedStory: String { SampleData.sampleStoryText }
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    // Question card
-                    if let prompt = prompt {
+
+                    // Prompt card
+                    if let prompt {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 6) {
                                 Image(systemName: "questionmark.circle")
@@ -23,7 +28,6 @@ struct AnswerView: View {
                                     .textCase(.uppercase)
                                     .foregroundColor(SL.accent)
                             }
-
                             Text(prompt.question)
                                 .font(SL.serifMedium(18))
                                 .foregroundColor(Color(hex: "FDF9F0"))
@@ -67,9 +71,7 @@ struct AnswerView: View {
                             .foregroundColor(SL.textMuted)
 
                         Button(action: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isRecording.toggle()
-                            }
+                            withAnimation(.easeInOut(duration: 0.2)) { isRecording.toggle() }
                         }) {
                             ZStack {
                                 Circle()
@@ -92,9 +94,9 @@ struct AnswerView: View {
                 .padding(.bottom, 100)
             }
 
-            // Bottom button
+            // Bottom button — passes prompt + generated story forward
             VStack {
-                NavigationLink(destination: StoryReadyView()) {
+                NavigationLink(destination: StoryReadyView(prompt: prompt, storyText: generatedStory)) {
                     Text("Turn into a story")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Color(hex: "FDF9F0"))
@@ -121,7 +123,6 @@ struct AnswerView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .medium))
                         Text("Back")
-                            .font(.system(size: 16))
                     }
                     .foregroundColor(SL.accent)
                 }

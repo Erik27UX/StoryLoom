@@ -1,10 +1,25 @@
 import SwiftUI
+import SwiftData
 
 struct StoryReadyView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedImageOption = 0
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.navigationPath) private var navigationPath
 
-    let imageOptions = [
+    let prompt: StoryPrompt?
+    let storyText: String
+
+    @State private var selectedImageOption = 0
+    @State private var editableText: String
+    @State private var savedSuccessfully = false
+
+    init(prompt: StoryPrompt?, storyText: String = SampleData.sampleStoryText) {
+        self.prompt = prompt
+        self.storyText = storyText
+        _editableText = State(initialValue: storyText)
+    }
+
+    private let imageOptions = [
         ("photo.fill", "AI image"),
         ("person.crop.square", "My photo"),
         ("xmark", "None"),
@@ -13,19 +28,19 @@ struct StoryReadyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+
                 // Title
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Your story is ready")
                         .font(SL.heading(28))
                         .foregroundColor(SL.textPrimary)
-
                     Text("Read it, edit if you'd like, then save")
                         .font(SL.body(16))
                         .foregroundColor(SL.textSecondary)
                 }
 
                 // Story text
-                Text(SampleData.sampleStoryText)
+                Text(editableText)
                     .font(SL.serif(17))
                     .foregroundColor(SL.textPrimary)
                     .lineSpacing(6)
@@ -38,29 +53,28 @@ struct StoryReadyView: View {
                             .stroke(SL.border, lineWidth: 1)
                     )
 
-                // Image options
+                // Image option pills
                 HStack(spacing: 10) {
-                    ForEach(0..<3) { index in
+                    ForEach(0..<3) { i in
                         Button(action: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedImageOption = index
-                            }
+                            withAnimation(.easeInOut(duration: 0.2)) { selectedImageOption = i }
                         }) {
                             HStack(spacing: 6) {
-                                Image(systemName: imageOptions[index].0)
+                                Image(systemName: imageOptions[i].0)
                                     .font(.system(size: 14))
-                                Text(imageOptions[index].1)
+                                Text(imageOptions[i].1)
                                     .font(SL.body(13))
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity)
-                            .background(selectedImageOption == index ? SL.surface : SL.background)
-                            .foregroundColor(selectedImageOption == index ? SL.textPrimary : SL.textSecondary)
+                            .background(selectedImageOption == i ? SL.surface : SL.background)
+                            .foregroundColor(selectedImageOption == i ? SL.textPrimary : SL.textSecondary)
                             .clipShape(Capsule())
                             .overlay(
                                 Capsule()
-                                    .stroke(selectedImageOption == index ? SL.accent : SL.border, lineWidth: selectedImageOption == index ? 2 : 1)
+                                    .stroke(selectedImageOption == i ? SL.accent : SL.border,
+                                            lineWidth: selectedImageOption == i ? 2 : 1)
                             )
                         }
                     }
@@ -82,7 +96,11 @@ struct StoryReadyView: View {
 
                 // Buttons
                 HStack(spacing: 12) {
-                    NavigationLink(destination: EditStoryView()) {
+                    NavigationLink(destination: EditStoryView(
+                        story: nil,
+                        initialText: editableText,
+                        onSave: { updated in editableText = updated }
+                    )) {
                         HStack(spacing: 6) {
                             Image(systemName: "pencil")
                                 .font(.system(size: 16))
@@ -100,18 +118,19 @@ struct StoryReadyView: View {
                         )
                     }
 
-                    Button(action: {}) {
+                    Button(action: saveStory) {
                         HStack(spacing: 6) {
-                            Image(systemName: "checkmark.circle.fill")
+                            Image(systemName: savedSuccessfully ? "checkmark.circle.fill" : "checkmark.circle.fill")
                                 .font(.system(size: 16))
-                            Text("Save")
+                            Text(savedSuccessfully ? "Saved!" : "Save")
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(Color(hex: "FDF9F0"))
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(SL.primary)
+                        .background(savedSuccessfully ? SL.accent : SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .animation(.easeInOut, value: savedSuccessfully)
                     }
                 }
             }
@@ -128,17 +147,46 @@ struct StoryReadyView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .medium))
                         Text("Back")
-                            .font(.system(size: 16))
                     }
                     .foregroundColor(SL.accent)
                 }
             }
         }
     }
+
+    private func saveStory() {
+        let title = deriveTitle(from: editableText)
+        let entry = StoryEntry(
+            title: title,
+            content: editableText,
+            category: prompt?.category ?? "Uncategorised",
+            promptQuestion: prompt?.question ?? "",
+            isInVault: false
+        )
+        modelContext.insert(entry)
+        withAnimation { savedSuccessfully = true }
+    }
+
+    private func deriveTitle(from text: String) -> String {
+        let sentence = text.components(separatedBy: ".").first ?? text
+        let words = sentence.components(separatedBy: " ").prefix(7)
+        return words.joined(separator: " ")
+    }
+}
+
+// SwiftUI doesn't expose navigationPath as an env value by default — this is a placeholder
+private struct NavigationPathKey: EnvironmentKey {
+    static let defaultValue: Binding<NavigationPath>? = nil
+}
+extension EnvironmentValues {
+    var navigationPath: Binding<NavigationPath>? {
+        get { self[NavigationPathKey.self] }
+        set { self[NavigationPathKey.self] = newValue }
+    }
 }
 
 #Preview {
     NavigationStack {
-        StoryReadyView()
+        StoryReadyView(prompt: SampleData.prompts.first)
     }
 }

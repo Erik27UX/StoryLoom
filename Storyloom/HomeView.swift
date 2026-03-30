@@ -1,18 +1,22 @@
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
-    @State private var navigateToPrompt = false
+    @AppStorage("userName") private var userName = "John"
+    @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
+
+    private var recentStories: [StoryEntry] { Array(stories.prefix(2)) }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+
                     // Greeting
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Good morning, John")
+                        Text("Good morning, \(userName)")
                             .font(SL.heading(28))
                             .foregroundColor(SL.textPrimary)
-
                         Text("Your story is growing beautifully")
                             .font(SL.body(16))
                             .foregroundColor(SL.textSecondary)
@@ -27,12 +31,13 @@ struct HomeView: View {
                                     .frame(height: 8)
                                 RoundedRectangle(cornerRadius: 6)
                                     .fill(SL.accent)
-                                    .frame(width: geo.size.width * 0.4, height: 8)
+                                    .frame(width: geo.size.width * min(CGFloat(stories.count) / 10.0, 1.0), height: 8)
+                                    .animation(.easeInOut, value: stories.count)
                             }
                         }
                         .frame(height: 8)
 
-                        Text("4 of 10 stories")
+                        Text("\(stories.count) of 10 stories")
                             .font(SL.body(13))
                             .foregroundColor(SL.textSecondary)
                             .fixedSize()
@@ -92,8 +97,15 @@ struct HomeView: View {
                         .textCase(.uppercase)
                         .foregroundColor(SL.textSecondary)
 
-                    ForEach(SampleData.stories) { story in
-                        RecentStoryCard(story: story)
+                    if recentStories.isEmpty {
+                        Text("Your stories will appear here once you've recorded one.")
+                            .font(SL.body(14))
+                            .foregroundColor(SL.textSecondary)
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(recentStories) { story in
+                            RecentStoryCard(story: story)
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -106,7 +118,7 @@ struct HomeView: View {
 }
 
 struct RecentStoryCard: View {
-    let story: Story
+    let story: StoryEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -120,11 +132,11 @@ struct RecentStoryCard: View {
                 .lineLimit(2)
 
             HStack {
-                Text(story.date)
+                Text(story.dateFormatted)
                     .font(SL.body(13))
                     .foregroundColor(SL.textSecondary)
                 Spacer()
-                NavigationLink(destination: EditStoryView()) {
+                NavigationLink(destination: EditStoryView(story: story)) {
                     HStack(spacing: 5) {
                         Image(systemName: "pencil")
                             .font(.system(size: 13, weight: .medium))

@@ -1,6 +1,9 @@
 import SwiftUI
+import SwiftData
 
 struct StoriesLibraryView: View {
+    @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -9,12 +12,15 @@ struct StoriesLibraryView: View {
                         .font(SL.heading(28))
                         .foregroundColor(SL.textPrimary)
 
-                    // Story cards
-                    ForEach(SampleData.stories) { story in
-                        StoryLibraryCard(story: story)
+                    if stories.isEmpty {
+                        LibraryEmptyState()
+                    } else {
+                        ForEach(stories) { story in
+                            StoryLibraryCard(story: story)
+                        }
                     }
 
-                    // Locked card
+                    // Locked upgrade card
                     VStack(spacing: 16) {
                         ZStack {
                             Circle()
@@ -62,7 +68,7 @@ struct StoriesLibraryView: View {
 }
 
 struct StoryLibraryCard: View {
-    let story: Story
+    let story: StoryEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -76,9 +82,25 @@ struct StoryLibraryCard: View {
                     .foregroundColor(SL.accent.opacity(0.4))
             }
 
-            Text(story.title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(SL.textPrimary)
+            HStack(alignment: .top) {
+                Text(story.title)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(SL.textPrimary)
+                Spacer()
+                if story.isInVault {
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.open.fill")
+                            .font(.system(size: 11))
+                        Text("Vault")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(SL.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(SL.accent.opacity(0.1))
+                    .clipShape(Capsule())
+                }
+            }
 
             Text(story.preview)
                 .font(SL.body(14))
@@ -86,11 +108,11 @@ struct StoryLibraryCard: View {
                 .lineLimit(2)
 
             HStack {
-                Text(story.date)
+                Text(story.dateFormatted)
                     .font(SL.body(13))
                     .foregroundColor(SL.textSecondary)
                 Spacer()
-                NavigationLink(destination: EditStoryView()) {
+                NavigationLink(destination: EditStoryView(story: story)) {
                     HStack(spacing: 5) {
                         Image(systemName: "pencil")
                             .font(.system(size: 13, weight: .medium))
@@ -112,6 +134,28 @@ struct StoryLibraryCard: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(SL.border, lineWidth: 1)
         )
+    }
+}
+
+struct LibraryEmptyState: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "square.stack")
+                .font(.system(size: 32))
+                .foregroundColor(SL.accent.opacity(0.5))
+            Text("No stories yet")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(SL.textPrimary)
+            Text("Head to the Home tab to answer your first prompt.")
+                .font(SL.body(14))
+                .foregroundColor(SL.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity)
+        .background(SL.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
     }
 }
 

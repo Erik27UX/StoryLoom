@@ -1,13 +1,13 @@
 import SwiftUI
 
-struct FamilyView: View {
+struct ReadersView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     // Title
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Family")
+                        Text("Readers")
                             .font(SL.heading(28))
                             .foregroundColor(SL.textPrimary)
 
@@ -102,13 +102,13 @@ struct FamilyView: View {
                             Image(systemName: "person.badge.plus")
                                 .font(.system(size: 16))
                                 .foregroundColor(SL.textSecondary)
-                            Text("Invite more family")
+                            Text("Invite more readers")
                                 .font(SL.body(15))
                                 .foregroundColor(SL.textSecondary)
                         }
 
                         Button(action: {}) {
-                            Text("Share family link")
+                            Text("Share reader link")
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(SL.textPrimary)
                                 .frame(maxWidth: .infinity)
@@ -174,5 +174,5 @@ struct ReactionPill: View {
 }
 
 #Preview {
-    FamilyView()
+    ReadersView()
 }

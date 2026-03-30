@@ -1,4 +1,60 @@
-import Foundation
+import SwiftUI
+import SwiftData
+
+// MARK: - Enums
+
+enum UserRole: String, Codable, CaseIterable {
+    case storyteller = "Storyteller"
+    case reader = "Reader"
+}
+
+enum SubscriptionTier: String, Codable {
+    case free = "Free"
+    case premium = "Premium"
+}
+
+// MARK: - SwiftData model
+
+@Model
+class StoryEntry {
+    var title: String
+    var content: String
+    var category: String
+    var promptQuestion: String
+    var dateCreated: Date
+    var isInVault: Bool
+
+    init(
+        title: String,
+        content: String,
+        category: String = "Uncategorised",
+        promptQuestion: String = "",
+        isInVault: Bool = false
+    ) {
+        self.title = title
+        self.content = content
+        self.category = category
+        self.promptQuestion = promptQuestion
+        self.dateCreated = Date()
+        self.isInVault = isInVault
+    }
+
+    var dateFormatted: String {
+        let f = DateFormatter()
+        f.dateStyle = .long
+        return f.string(from: dateCreated)
+    }
+
+    var preview: String {
+        let words = content.components(separatedBy: " ")
+        if words.count > 22 {
+            return words.prefix(22).joined(separator: " ") + "..."
+        }
+        return content
+    }
+}
+
+// MARK: - Prompt / category (non-persisted)
 
 struct StoryPrompt: Identifiable, Equatable {
     let id = UUID()
@@ -6,23 +62,7 @@ struct StoryPrompt: Identifiable, Equatable {
     let category: String
     let eraNote: String?
 
-    static func == (lhs: StoryPrompt, rhs: StoryPrompt) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
-struct Story: Identifiable {
-    let id = UUID()
-    let title: String
-    let preview: String
-    let date: String
-    let fullText: String
-}
-
-struct FamilyMember: Identifiable {
-    let id = UUID()
-    let initial: String
-    let color: String
+    static func == (lhs: StoryPrompt, rhs: StoryPrompt) -> Bool { lhs.id == rhs.id }
 }
 
 enum PromptCategory: String, CaseIterable, Identifiable {
@@ -41,21 +81,21 @@ enum PromptCategory: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .all: return "line.3.horizontal.decrease.circle"
+        case .all:        return "line.3.horizontal.decrease.circle"
         case .coreMemory: return "star.fill"
-        case .love: return "heart.fill"
-        case .work: return "briefcase.fill"
-        case .family: return "person.2.fill"
-        case .money: return "dollarsign.circle"
-        case .adventure: return "airplane"
-        case .childhood: return "house.fill"
-        case .wisdom: return "lightbulb.fill"
-        case .home: return "building.2.fill"
+        case .love:       return "heart.fill"
+        case .work:       return "briefcase.fill"
+        case .family:     return "person.2.fill"
+        case .money:      return "dollarsign.circle"
+        case .adventure:  return "airplane"
+        case .childhood:  return "house.fill"
+        case .wisdom:     return "lightbulb.fill"
+        case .home:       return "building.2.fill"
         }
     }
 }
 
-// MARK: - Sample Data
+// MARK: - Static sample data (used for seeding and prompts)
 
 struct SampleData {
     static let prompts: [StoryPrompt] = [
@@ -81,26 +121,28 @@ struct SampleData {
         ),
     ]
 
-    static let stories: [Story] = [
-        Story(
-            title: "The summer I turned sixteen",
-            preview: "My first job was at a bakery on Elm Street. Mr. Hawthorn had hands like worn leather and a laugh you could hear from the street...",
-            date: "March 28, 2026",
-            fullText: "My first job was at a bakery on Elm Street, the summer I turned sixteen. Mr. Hawthorn had hands like worn leather and a laugh you could hear from the street. He taught me that showing up early meant more than any skill you could ever learn later in life."
-        ),
-        Story(
-            title: "Letters from your mother",
-            preview: "She wrote every Sunday without fail. Even when the news was small, the letters arrived like clockwork...",
-            date: "March 25, 2026",
-            fullText: "She wrote every Sunday without fail. Even when the news was small, the letters arrived like clockwork. I still have the box tied with twine sitting in the hall closet."
-        ),
-    ]
-
     static let sampleStoryText = "My first job was at a bakery on Elm Street, the summer I turned sixteen. Mr. Hawthorn had hands like worn leather and a laugh you could hear from the street. He taught me that showing up early meant more than any skill you could ever learn later in life."
 
-    static let familyMembers: [FamilyMember] = [
-        FamilyMember(initial: "S", color: "champagne"),
-        FamilyMember(initial: "M", color: "sage"),
-        FamilyMember(initial: "T", color: "warm"),
-    ]
+    static func seedStories(in context: ModelContext) {
+        let entries = [
+            StoryEntry(
+                title: "The summer I turned sixteen",
+                content: sampleStoryText,
+                category: "Work",
+                promptQuestion: "What was your first job and what did it teach you?",
+                isInVault: true
+            ),
+            StoryEntry(
+                title: "Letters from your mother",
+                content: "She wrote every Sunday without fail. Even when the news was small, the letters arrived like clockwork. I still have the box tied with twine sitting in the hall closet.",
+                category: "Family",
+                promptQuestion: "",
+                isInVault: true
+            ),
+        ]
+        // Stagger dates so they appear in the right order
+        entries[0].dateCreated = Date().addingTimeInterval(-3 * 86400)
+        entries[1].dateCreated = Date().addingTimeInterval(-6 * 86400)
+        entries.forEach { context.insert($0) }
+    }
 }

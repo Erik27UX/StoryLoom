@@ -1,25 +1,40 @@
 import SwiftUI
+import SwiftData
 
 struct EditStoryView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var storyText = SampleData.sampleStoryText
+    @Environment(\.modelContext) private var modelContext
+
+    // When editing an existing story from the library
+    let story: StoryEntry?
+    // When editing inline from StoryReadyView before saving
+    var initialText: String
+    var onSave: ((String) -> Void)?
+
+    @State private var storyText: String
+
+    init(story: StoryEntry?, initialText: String = "", onSave: ((String) -> Void)? = nil) {
+        self.story = story
+        self.initialText = initialText
+        self.onSave = onSave
+        _storyText = State(initialValue: story?.content ?? initialText)
+    }
 
     let tools = [
-        ("scissors", "Shorten"),
+        ("scissors",          "Shorten"),
         ("plus.magnifyingglass", "More detail"),
-        ("waveform", "My voice"),
+        ("waveform",          "My voice"),
     ]
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    // Title
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Edit your story")
                             .font(SL.heading(28))
                             .foregroundColor(SL.textPrimary)
-
                         Text("Make it sound exactly like you")
                             .font(SL.body(16))
                             .foregroundColor(SL.textSecondary)
@@ -40,10 +55,7 @@ struct EditStoryView: View {
                                 .background(SL.surface)
                                 .foregroundColor(SL.textSecondary)
                                 .clipShape(Capsule())
-                                .overlay(
-                                    Capsule()
-                                        .stroke(SL.border, lineWidth: 1)
-                                )
+                                .overlay(Capsule().stroke(SL.border, lineWidth: 1))
                             }
                         }
                     }
@@ -63,7 +75,6 @@ struct EditStoryView: View {
                                 .stroke(SL.border, lineWidth: 1)
                         )
 
-                    // Buttons
                     HStack(spacing: 12) {
                         Button(action: {}) {
                             HStack(spacing: 6) {
@@ -83,7 +94,7 @@ struct EditStoryView: View {
                             )
                         }
 
-                        Button(action: { dismiss() }) {
+                        Button(action: saveChanges) {
                             HStack(spacing: 6) {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 16))
@@ -112,17 +123,27 @@ struct EditStoryView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .medium))
                         Text("Back")
-                            .font(.system(size: 16))
                     }
                     .foregroundColor(SL.accent)
                 }
             }
         }
     }
+
+    private func saveChanges() {
+        if let story {
+            // Persisted story — update in SwiftData
+            story.content = storyText
+        } else {
+            // Inline edit before saving — pass back via callback
+            onSave?(storyText)
+        }
+        dismiss()
+    }
 }
 
 #Preview {
     NavigationStack {
-        EditStoryView()
+        EditStoryView(story: nil, initialText: SampleData.sampleStoryText)
     }
 }
