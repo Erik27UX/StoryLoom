@@ -147,21 +147,37 @@ struct SampleData {
         // Create sample folders
         let childhoodFolder = Folder(name: "Childhood")
         let workFolder = Folder(name: "Work")
+        let loveFolder = Folder(name: "Love & Family")
+        let travelFolder = Folder(name: "Travel")
 
         context.insert(childhoodFolder)
         context.insert(workFolder)
+        context.insert(loveFolder)
+        context.insert(travelFolder)
 
-        // Create stories and assign to folders
+        // Create stories and assign to folders with years
         let entries = [
+            // Work folder
             StoryEntry(
                 title: "The summer I turned sixteen",
-                content: sampleStoryText,
+                content: "My first job was at a bakery on Elm Street. Mr. Hawthorn had hands like worn leather and a laugh you could hear from the street. He taught me that showing up early meant more than any skill you could ever learn.",
                 category: "Work",
                 promptQuestion: "What was your first job and what did it teach you?",
                 isInVault: true,
                 year: 1972,
                 folder: workFolder
             ),
+            StoryEntry(
+                title: "The startup years",
+                content: "Those three years building the company from a garage were the most exhausting and exhilarating of my life. We had no budget, all ambition, and somehow it worked.",
+                category: "Work",
+                promptQuestion: "What was your proudest professional achievement?",
+                isInVault: true,
+                year: 1995,
+                folder: workFolder
+            ),
+
+            // Childhood folder
             StoryEntry(
                 title: "Letters from your mother",
                 content: "She wrote every Sunday without fail. Even when the news was small, the letters arrived like clockwork. I still have the box tied with twine sitting in the hall closet.",
@@ -171,11 +187,64 @@ struct SampleData {
                 year: 1980,
                 folder: childhoodFolder
             ),
+            StoryEntry(
+                title: "The tree house",
+                content: "We spent entire summers in that oak tree, my brother and I. Three planks and a rope ladder was all we needed to feel like kings of the neighborhood.",
+                category: "Childhood",
+                promptQuestion: "What was your favorite childhood hideaway?",
+                isInVault: true,
+                year: 1968,
+                folder: childhoodFolder
+            ),
+
+            // Love & Family folder
+            StoryEntry(
+                title: "How we met",
+                content: "She was reading in the corner of the library, and I knocked over an entire stack of books trying to get her attention. The most embarrassing moment that turned into the best.",
+                category: "Love",
+                promptQuestion: "Tell me about the moment you knew you were in love",
+                isInVault: true,
+                year: 1985,
+                folder: loveFolder
+            ),
+            StoryEntry(
+                title: "The day our first child was born",
+                content: "Waiting in that hospital room felt like time had stopped. When they placed her in my arms, everything I thought I knew about love changed in an instant.",
+                category: "Family",
+                promptQuestion: "What was the happiest day of your life?",
+                isInVault: true,
+                year: 1988,
+                folder: loveFolder
+            ),
+
+            // Travel folder
+            StoryEntry(
+                title: "Lost in Barcelona",
+                content: "We wandered the Gothic Quarter for hours without a map, completely lost but completely happy. Sometimes the best adventures are the unplanned ones.",
+                category: "Adventure",
+                promptQuestion: "Tell me about a travel adventure that surprised you",
+                isInVault: false,
+                year: 2003,
+                folder: travelFolder
+            ),
+
+            // Unfiled story (no folder)
+            StoryEntry(
+                title: "The wisdom I wish I'd known",
+                content: "If I could go back and tell my younger self anything, it would be that most of the things you worry about never happen. And the things that do happen teach you more than any planning ever could.",
+                category: "Wisdom",
+                promptQuestion: "What's the best advice you'd give to your younger self?",
+                isInVault: true,
+                year: 2020,
+                folder: nil
+            ),
         ]
 
-        // Stagger dates so they appear in the right order
-        entries[0].dateCreated = Date().addingTimeInterval(-3 * 86400)
-        entries[1].dateCreated = Date().addingTimeInterval(-6 * 86400)
-        entries.forEach { context.insert($0) }
+        // Stagger dates so they appear in the right order when sorted by creation date
+        let timeIntervals: [TimeInterval] = [-1, -2, -3, -4, -5, -6, -7, -8]
+        for (index, entry) in entries.enumerated() {
+            entry.dateCreated = Date().addingTimeInterval(TimeInterval(timeIntervals[index] * 86400))
+            context.insert(entry)
+        }
     }
 }

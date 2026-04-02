@@ -165,11 +165,6 @@ struct StoriesLibraryView: View {
     }
 }
 
-enum SortOption {
-    case created
-    case year
-}
-
 struct StoryLibraryCard: View {
     let story: StoryEntry
 
@@ -271,11 +266,6 @@ struct LibraryEmptyState: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
     }
-}
-
-enum SortOption {
-    case created
-    case year
 }
 
 #Preview {
