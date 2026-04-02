@@ -13,7 +13,21 @@ enum SubscriptionTier: String, Codable {
     case premium = "Premium"
 }
 
-// MARK: - SwiftData model
+// MARK: - SwiftData models
+
+@Model
+class Folder {
+    var id: UUID
+    var name: String
+    var dateCreated: Date
+    @Relationship(deleteRule: .cascade, inverse: \StoryEntry.folder) var stories: [StoryEntry] = []
+
+    init(name: String) {
+        self.id = UUID()
+        self.name = name
+        self.dateCreated = Date()
+    }
+}
 
 @Model
 class StoryEntry {
@@ -23,13 +37,17 @@ class StoryEntry {
     var promptQuestion: String
     var dateCreated: Date
     var isInVault: Bool
+    var year: Int?
+    var folder: Folder?
 
     init(
         title: String,
         content: String,
         category: String = "Uncategorised",
         promptQuestion: String = "",
-        isInVault: Bool = false
+        isInVault: Bool = false,
+        year: Int? = nil,
+        folder: Folder? = nil
     ) {
         self.title = title
         self.content = content
@@ -37,6 +55,8 @@ class StoryEntry {
         self.promptQuestion = promptQuestion
         self.dateCreated = Date()
         self.isInVault = isInVault
+        self.year = year
+        self.folder = folder
     }
 
     var dateFormatted: String {
@@ -124,22 +144,35 @@ struct SampleData {
     static let sampleStoryText = "My first job was at a bakery on Elm Street, the summer I turned sixteen. Mr. Hawthorn had hands like worn leather and a laugh you could hear from the street. He taught me that showing up early meant more than any skill you could ever learn later in life."
 
     static func seedStories(in context: ModelContext) {
+        // Create sample folders
+        let childhoodFolder = Folder(name: "Childhood")
+        let workFolder = Folder(name: "Work")
+
+        context.insert(childhoodFolder)
+        context.insert(workFolder)
+
+        // Create stories and assign to folders
         let entries = [
             StoryEntry(
                 title: "The summer I turned sixteen",
                 content: sampleStoryText,
                 category: "Work",
                 promptQuestion: "What was your first job and what did it teach you?",
-                isInVault: true
+                isInVault: true,
+                year: 1972,
+                folder: workFolder
             ),
             StoryEntry(
                 title: "Letters from your mother",
                 content: "She wrote every Sunday without fail. Even when the news was small, the letters arrived like clockwork. I still have the box tied with twine sitting in the hall closet.",
                 category: "Family",
                 promptQuestion: "",
-                isInVault: true
+                isInVault: true,
+                year: 1980,
+                folder: childhoodFolder
             ),
         ]
+
         // Stagger dates so they appear in the right order
         entries[0].dateCreated = Date().addingTimeInterval(-3 * 86400)
         entries[1].dateCreated = Date().addingTimeInterval(-6 * 86400)

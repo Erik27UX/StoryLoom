@@ -4,7 +4,7 @@ import SwiftData
 struct StoryReadyView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.navigationPath) private var navigationPath
+    @Query(sort: \Folder.dateCreated, order: .reverse) var folders: [Folder]
 
     let prompt: StoryPrompt?
     let storyText: String
@@ -12,6 +12,9 @@ struct StoryReadyView: View {
     @State private var selectedImageOption = 0
     @State private var editableText: String
     @State private var savedSuccessfully = false
+    @State private var selectedYear: Int? = nil
+    @State private var selectedFolder: Folder? = nil
+    @State private var yearText: String = ""
 
     init(prompt: StoryPrompt?, storyText: String = SampleData.sampleStoryText) {
         self.prompt = prompt
@@ -94,6 +97,98 @@ struct StoryReadyView: View {
                         .stroke(SL.border, lineWidth: 1)
                 )
 
+                // Year and folder section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Add story details (optional)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .tracking(1)
+                        .textCase(.uppercase)
+                        .foregroundColor(SL.textSecondary)
+
+                    // Year input
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Year")
+                            .font(SL.body(13))
+                            .foregroundColor(SL.textSecondary)
+                        HStack {
+                            Text("📅")
+                                .font(.system(size: 16))
+                            TextField("E.g., 1995", text: $yearText)
+                                .font(SL.body(15))
+                                .keyboardType(.numberPad)
+                                .onChange(of: yearText) { newValue in
+                                    let filtered = newValue.filter { $0.isNumber }
+                                    if filtered.count <= 4 {
+                                        yearText = filtered
+                                        selectedYear = filtered.isEmpty ? nil : Int(filtered)
+                                    } else {
+                                        yearText = String(filtered.prefix(4))
+                                        selectedYear = Int(String(filtered.prefix(4)))
+                                    }
+                                }
+                        }
+                        .padding(12)
+                        .background(SL.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(SL.border, lineWidth: 1)
+                        )
+                    }
+
+                    // Folder picker
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Folder")
+                            .font(SL.body(13))
+                            .foregroundColor(SL.textSecondary)
+                        Menu {
+                            Button(action: { selectedFolder = nil }) {
+                                HStack {
+                                    Text("Unfiled")
+                                    if selectedFolder == nil {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            if !folders.isEmpty {
+                                Divider()
+                                ForEach(folders) { folder in
+                                    Button(action: { selectedFolder = folder }) {
+                                        HStack {
+                                            Text(folder.name)
+                                            if selectedFolder?.id == folder.id {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "folder.fill")
+                                    .font(.system(size: 14))
+                                Text(selectedFolder?.name ?? "Unfiled")
+                                    .font(SL.body(15))
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(SL.background)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(SL.border, lineWidth: 1)
+                            )
+                        }
+                        .foregroundColor(SL.textPrimary)
+                    }
+                }
+                .padding(16)
+                .background(SL.surface.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
                 // Buttons
                 HStack(spacing: 12) {
                     NavigationLink(destination: EditStoryView(
@@ -161,7 +256,9 @@ struct StoryReadyView: View {
             content: editableText,
             category: prompt?.category ?? "Uncategorised",
             promptQuestion: prompt?.question ?? "",
-            isInVault: false
+            isInVault: false,
+            year: selectedYear,
+            folder: selectedFolder
         )
         modelContext.insert(entry)
         withAnimation { savedSuccessfully = true }

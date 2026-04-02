@@ -151,7 +151,7 @@ struct RecentStoryCard: View {
                 }
             }
         }
-        .padding(16)
+        .padding(18)
         .background(SL.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(

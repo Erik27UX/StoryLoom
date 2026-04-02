@@ -2,21 +2,119 @@ import SwiftUI
 import SwiftData
 
 struct StoriesLibraryView: View {
-    @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
+    @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var allStories: [StoryEntry]
+    @Query(sort: \Folder.dateCreated, order: .reverse) private var folders: [Folder]
+    @State private var sortBy: SortOption = .created
+
+    private var groupedStories: [(folder: Folder?, stories: [StoryEntry])] {
+        // Create a dictionary grouped by folder
+        var grouped: [UUID?: [StoryEntry]] = [:]
+
+        for story in allStories {
+            let key = story.folder?.id
+            if grouped[key] == nil {
+                grouped[key] = []
+            }
+            grouped[key]?.append(story)
+        }
+
+        // Sort stories within each group
+        for key in grouped.keys {
+            grouped[key]?.sort { lhs, rhs in
+                switch sortBy {
+                case .created:
+                    return lhs.dateCreated > rhs.dateCreated
+                case .year:
+                    return (lhs.year ?? 0) > (rhs.year ?? 0)
+                }
+            }
+        }
+
+        // Create result array with folder objects
+        var result: [(folder: Folder?, stories: [StoryEntry])] = []
+
+        // Add folders with stories first
+        for folder in folders {
+            if let stories = grouped[folder.id], !stories.isEmpty {
+                result.append((folder, stories))
+            }
+        }
+
+        // Add unfiled stories at the end
+        if let unfiledStories = grouped[nil], !unfiledStories.isEmpty {
+            result.append((nil, unfiledStories))
+        }
+
+        return result
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Your stories")
-                        .font(SL.heading(28))
-                        .foregroundColor(SL.textPrimary)
+                    HStack(alignment: .center, spacing: 12) {
+                        Text("Your stories")
+                            .font(SL.heading(28))
+                            .foregroundColor(SL.textPrimary)
 
-                    if stories.isEmpty {
+                        Spacer()
+
+                        // Sort toggle
+                        Menu {
+                            Button(action: { sortBy = .created }) {
+                                HStack {
+                                    Text("📅 Created")
+                                    if sortBy == .created {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: { sortBy = .year }) {
+                                HStack {
+                                    Text("📆 Year")
+                                    if sortBy == .year {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(SL.accent)
+                                .padding(8)
+                                .background(SL.surface)
+                                .clipShape(Circle())
+                        }
+
+                        // Manage folders button
+                        NavigationLink(destination: FolderManagerView()) {
+                            Image(systemName: "folder.badge.gear")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(SL.accent)
+                                .padding(8)
+                                .background(SL.surface)
+                                .clipShape(Circle())
+                        }
+                    }
+
+                    if allStories.isEmpty {
                         LibraryEmptyState()
                     } else {
-                        ForEach(stories) { story in
-                            StoryLibraryCard(story: story)
+                        // Display grouped stories
+                        ForEach(groupedStories, id: \.folder?.id) { folder, stories in
+                            VStack(alignment: .leading, spacing: 12) {
+                                // Folder header
+                                Text(folder?.name ?? "Unfiled")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .tracking(1)
+                                    .textCase(.uppercase)
+                                    .foregroundColor(SL.textSecondary)
+
+                                // Stories in folder
+                                ForEach(stories) { story in
+                                    StoryLibraryCard(story: story)
+                                }
+                            }
                         }
                     }
 
@@ -67,6 +165,11 @@ struct StoriesLibraryView: View {
     }
 }
 
+enum SortOption {
+    case created
+    case year
+}
+
 struct StoryLibraryCard: View {
     let story: StoryEntry
 
@@ -87,18 +190,29 @@ struct StoryLibraryCard: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(SL.textPrimary)
                 Spacer()
-                if story.isInVault {
-                    HStack(spacing: 4) {
-                        Image(systemName: "lock.open.fill")
-                            .font(.system(size: 11))
-                        Text("Vault")
-                            .font(.system(size: 11, weight: .medium))
+                VStack(alignment: .trailing, spacing: 6) {
+                    if story.isInVault {
+                        HStack(spacing: 4) {
+                            Image(systemName: "lock.open.fill")
+                                .font(.system(size: 11))
+                            Text("Vault")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(SL.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(SL.accent.opacity(0.1))
+                        .clipShape(Capsule())
                     }
-                    .foregroundColor(SL.accent)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(SL.accent.opacity(0.1))
-                    .clipShape(Capsule())
+                    if let year = story.year {
+                        Text("\(year)")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(SL.textSecondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(SL.surface.opacity(0.8))
+                            .clipShape(Capsule())
+                    }
                 }
             }
 
@@ -127,7 +241,7 @@ struct StoryLibraryCard: View {
                 }
             }
         }
-        .padding(16)
+        .padding(18)
         .background(SL.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
@@ -157,6 +271,11 @@ struct LibraryEmptyState: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
     }
+}
+
+enum SortOption {
+    case created
+    case year
 }
 
 #Preview {

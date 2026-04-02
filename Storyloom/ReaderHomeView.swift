@@ -57,9 +57,21 @@ struct ReaderStoryCard: View {
                     .foregroundColor(SL.accent.opacity(0.35))
             }
 
-            Text(story.title)
-                .font(.system(size: 17, weight: .medium))
-                .foregroundColor(SL.textPrimary)
+            HStack(alignment: .top) {
+                Text(story.title)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundColor(SL.textPrimary)
+                Spacer()
+                if let year = story.year {
+                    Text("\(year)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(SL.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(SL.surface.opacity(0.8))
+                        .clipShape(Capsule())
+                }
+            }
 
             Text(story.preview)
                 .font(SL.body(14))

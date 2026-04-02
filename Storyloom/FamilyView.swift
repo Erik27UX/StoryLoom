@@ -49,7 +49,7 @@ struct ReadersView: View {
                             ReactionPill(text: "Want more")
                         }
                     }
-                    .padding(16)
+                    .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(SL.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -87,7 +87,7 @@ struct ReadersView: View {
                                 )
                         }
                     }
-                    .padding(16)
+                    .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(SL.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -121,7 +121,7 @@ struct ReadersView: View {
                                 )
                         }
                     }
-                    .padding(16)
+                    .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(SL.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 14))

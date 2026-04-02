@@ -28,7 +28,8 @@ struct ChoosePromptView: View {
                             .foregroundColor(SL.textSecondary)
                     }
 
-                    // Category pills
+                    // Category pills — negative horizontal padding breaks out of parent
+                    // so pills can scroll edge-to-edge with their own inset
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(PromptCategory.allCases) { category in
@@ -42,7 +43,9 @@ struct ChoosePromptView: View {
                                 }
                             }
                         }
+                        .padding(.horizontal, 20)
                     }
+                    .padding(.horizontal, -20)
 
                     // Prompt cards
                     ForEach(filteredPrompts) { prompt in
@@ -177,7 +180,7 @@ struct PromptCard: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(isSelected ? SL.surface : SL.background)
             .clipShape(RoundedRectangle(cornerRadius: 14))
