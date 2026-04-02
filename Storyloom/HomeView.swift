@@ -75,7 +75,7 @@ struct HomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16))
 
                     // Answer button
-                    NavigationLink(destination: ChoosePromptView()) {
+                    NavigationLink(destination: AnswerView(prompt: SampleData.prompts.first)) {
                         Text("Answer today's question")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(Color(hex: "FDF9F0"))
@@ -83,6 +83,21 @@ struct HomeView: View {
                             .frame(height: 50)
                             .background(SL.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    // Secondary button
+                    NavigationLink(destination: ChoosePromptView()) {
+                        Text("Choose different question")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(SL.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(SL.border, lineWidth: 1.5)
+                            )
                     }
 
                     // Divider

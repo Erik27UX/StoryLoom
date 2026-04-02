@@ -59,25 +59,40 @@ struct ChoosePromptView: View {
                         }
                     }
 
-                    // Own story card
-                    Button(action: {}) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "plus.circle")
-                                .font(.system(size: 20))
+                    // Write your own — prominent card
+                    NavigationLink(destination: WriteYourOwnView()) {
+                        HStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(SL.accent.opacity(0.12))
+                                    .frame(width: 44, height: 44)
+                                Image(systemName: "pencil.line")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(SL.accent)
+                            }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Write your own story")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(SL.textPrimary)
+                                Text("No prompt needed — start from scratch")
+                                    .font(SL.body(13))
+                                    .foregroundColor(SL.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(SL.textSecondary)
-                            Text("Record your own story \u{2014} no prompt needed")
-                                .font(SL.body(15))
-                                .foregroundColor(SL.textSecondary)
-                                .multilineTextAlignment(.leading)
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(SL.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [8]))
-                                .foregroundColor(SL.border)
+                                .stroke(SL.accent.opacity(0.4), lineWidth: 1.5)
                         )
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
