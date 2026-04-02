@@ -106,22 +106,99 @@ struct StoryReadingView: View {
     @Environment(\.dismiss) private var dismiss
     let story: StoryEntry
 
+    @State private var isMuted = false
+    @State private var isPlayingNarration = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text(story.title)
-                    .font(SL.heading(26))
-                    .foregroundColor(SL.textPrimary)
 
-                Text(story.dateFormatted)
-                    .font(SL.body(13))
-                    .foregroundColor(SL.textSecondary)
+                // Title + date
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(story.title)
+                        .font(SL.heading(26))
+                        .foregroundColor(SL.textPrimary)
+
+                    HStack(spacing: 8) {
+                        Text(story.dateFormatted)
+                            .font(SL.body(13))
+                            .foregroundColor(SL.textSecondary)
+                        if let year = story.year {
+                            Text("·")
+                                .foregroundColor(SL.textSecondary)
+                            Text("\(year)")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(SL.accent)
+                        }
+                    }
+                }
+
+                // Narration player — only if published with narration
+                if story.publishNarration {
+                    HStack(spacing: 14) {
+                        Button(action: {
+                            if isMuted {
+                                isMuted = false
+                            } else {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isPlayingNarration.toggle()
+                                }
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(isMuted ? SL.surface : SL.primary)
+                                    .frame(width: 44, height: 44)
+                                Image(systemName: isMuted ? "speaker.slash.fill" : (isPlayingNarration ? "pause.fill" : "play.fill"))
+                                    .font(.system(size: 15))
+                                    .foregroundColor(isMuted ? SL.textSecondary : SL.accent)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(isMuted ? "Narration muted" : (isPlayingNarration ? "Playing narration…" : "Listen to narration"))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(isMuted ? SL.textSecondary : SL.textPrimary)
+
+                            // Simulated waveform
+                            HStack(spacing: 3) {
+                                ForEach([0.5, 0.8, 1.0, 0.6, 0.9, 0.4, 0.7, 0.5, 1.0, 0.6], id: \.self) { h in
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(isPlayingNarration && !isMuted ? SL.accent : SL.border)
+                                        .frame(width: 3, height: 20 * h)
+                                }
+                            }
+                            .frame(height: 20)
+                        }
+
+                        Spacer()
+
+                        // Mute toggle
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                isMuted.toggle()
+                                if isMuted { isPlayingNarration = false }
+                            }
+                        }) {
+                            Image(systemName: isMuted ? "speaker.slash" : "speaker.wave.2")
+                                .font(.system(size: 16))
+                                .foregroundColor(SL.textSecondary)
+                                .padding(8)
+                                .background(SL.surface)
+                                .clipShape(Circle())
+                        }
+                    }
+                    .padding(14)
+                    .background(SL.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+                }
 
                 Rectangle()
                     .fill(SL.border)
                     .frame(height: 1)
 
-                Text(story.content)
+                Text(story.content.isEmpty ? "No story content yet." : story.content)
                     .font(SL.serif(18))
                     .foregroundColor(SL.textPrimary)
                     .lineSpacing(8)

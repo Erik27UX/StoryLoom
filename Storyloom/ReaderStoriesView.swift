@@ -127,11 +127,6 @@ struct ReaderStoriesView: View {
     }
 }
 
-enum SortOption {
-    case created
-    case year
-}
-
 #Preview {
     ReaderStoriesView()
 }

@@ -3,9 +3,23 @@ import SwiftData
 
 struct HomeView: View {
     @AppStorage("userName") private var userName = "John"
+    @AppStorage("subscriptionTier") private var subscriptionTier = SubscriptionTier.free.rawValue
     @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
 
     private var recentStories: [StoryEntry] { Array(stories.prefix(2)) }
+    private var isPremium: Bool { subscriptionTier == SubscriptionTier.premium.rawValue }
+    private var dailyLimit: Int { isPremium ? 30 : 3 }
+
+    private var todayStories: Int {
+        let start = Calendar.current.startOfDay(for: Date())
+        return stories.filter { $0.dateCreated >= start }.count
+    }
+    private var remainingToday: Int { max(0, dailyLimit - todayStories) }
+    private var resetHours: Int {
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1,
+            to: Calendar.current.startOfDay(for: Date()))!
+        return max(1, Calendar.current.dateComponents([.hour], from: Date(), to: tomorrow).hour ?? 1)
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,25 +36,57 @@ struct HomeView: View {
                             .foregroundColor(SL.textSecondary)
                     }
 
-                    // Progress bar
-                    HStack(spacing: 12) {
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(SL.border)
-                                    .frame(height: 8)
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(SL.accent)
-                                    .frame(width: geo.size.width * min(CGFloat(stories.count) / 10.0, 1.0), height: 8)
-                                    .animation(.easeInOut, value: stories.count)
+                    // Daily limit card
+                    VStack(spacing: 12) {
+                        // Progress bar row
+                        HStack(spacing: 12) {
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(SL.border)
+                                        .frame(height: 8)
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(remainingToday == 0 ? Color(hex: "E63946").opacity(0.7) : SL.accent)
+                                        .frame(width: geo.size.width * min(CGFloat(todayStories) / CGFloat(dailyLimit), 1.0), height: 8)
+                                        .animation(.easeInOut, value: todayStories)
+                                }
+                            }
+                            .frame(height: 8)
+
+                            Text("\(remainingToday) left today")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(remainingToday == 0 ? Color(hex: "E63946") : SL.textSecondary)
+                                .fixedSize()
+                        }
+
+                        // Reset info + upgrade
+                        HStack {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .font(.system(size: 12))
+                                Text("Resets in \(resetHours)h")
+                                    .font(SL.body(12))
+                            }
+                            .foregroundColor(SL.textSecondary)
+
+                            Spacer()
+
+                            if !isPremium {
+                                NavigationLink(destination: AccountView()) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "star.fill")
+                                            .font(.system(size: 11))
+                                        Text(remainingToday == 0 ? "Upgrade to keep writing" : "Unlock unlimited stories")
+                                            .font(.system(size: 12, weight: .medium))
+                                    }
+                                    .foregroundColor(Color(hex: "FDF9F0"))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(SL.primary)
+                                    .clipShape(Capsule())
+                                }
                             }
                         }
-                        .frame(height: 8)
-
-                        Text("\(stories.count) of 10 stories")
-                            .font(SL.body(13))
-                            .foregroundColor(SL.textSecondary)
-                            .fixedSize()
                     }
 
                     // Today's question card

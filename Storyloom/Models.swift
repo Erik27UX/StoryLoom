@@ -39,6 +39,8 @@ class StoryEntry {
     var isInVault: Bool
     var year: Int?
     var folder: Folder?
+    var hasNarration: Bool
+    var publishNarration: Bool
 
     init(
         title: String,
@@ -47,7 +49,9 @@ class StoryEntry {
         promptQuestion: String = "",
         isInVault: Bool = false,
         year: Int? = nil,
-        folder: Folder? = nil
+        folder: Folder? = nil,
+        hasNarration: Bool = false,
+        publishNarration: Bool = false
     ) {
         self.title = title
         self.content = content
@@ -57,6 +61,8 @@ class StoryEntry {
         self.isInVault = isInVault
         self.year = year
         self.folder = folder
+        self.hasNarration = hasNarration
+        self.publishNarration = publishNarration
     }
 
     var dateFormatted: String {

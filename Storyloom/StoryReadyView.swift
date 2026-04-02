@@ -8,17 +8,28 @@ struct StoryReadyView: View {
 
     let prompt: StoryPrompt?
     let storyText: String
+    let customTitle: String?
+    let hasRecording: Bool
 
-    @State private var selectedImageOption = 0
     @State private var editableText: String
     @State private var savedSuccessfully = false
     @State private var selectedYear: Int? = nil
     @State private var selectedFolder: Folder? = nil
     @State private var yearText: String = ""
+    @State private var selectedCategory: PromptCategory = .coreMemory
+    @State private var publishNarration: Bool = true
+    @State private var isPlayingNarration: Bool = false
 
-    init(prompt: StoryPrompt?, storyText: String = SampleData.sampleStoryText) {
+    init(
+        prompt: StoryPrompt?,
+        storyText: String = SampleData.sampleStoryText,
+        customTitle: String? = nil,
+        hasRecording: Bool = false
+    ) {
         self.prompt = prompt
         self.storyText = storyText
+        self.customTitle = customTitle
+        self.hasRecording = hasRecording
         _editableText = State(initialValue: storyText)
     }
 
@@ -27,26 +38,27 @@ struct StoryReadyView: View {
         ("person.crop.square", "My photo"),
         ("xmark", "None"),
     ]
+    @State private var selectedImageOption = 0
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
 
-                // Title
+                // Header
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Your story is ready")
                         .font(SL.heading(28))
                         .foregroundColor(SL.textPrimary)
-                    Text("Read it, edit if you'd like, then save")
+                    Text("Review, add details, then publish or save")
                         .font(SL.body(16))
                         .foregroundColor(SL.textSecondary)
                 }
 
                 // Story text
-                Text(editableText)
+                Text(editableText.isEmpty ? storyText : editableText)
                     .font(SL.serif(17))
                     .foregroundColor(SL.textPrimary)
-                    .lineSpacing(6)
+                    .lineSpacing(7)
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(SL.surface)
@@ -57,19 +69,19 @@ struct StoryReadyView: View {
                     )
 
                 // Image option pills
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     ForEach(0..<3) { i in
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.2)) { selectedImageOption = i }
                         }) {
                             HStack(spacing: 6) {
                                 Image(systemName: imageOptions[i].0)
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 13))
                                 Text(imageOptions[i].1)
-                                    .font(SL.body(13))
+                                    .font(.system(size: 13, weight: .medium))
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
                             .frame(maxWidth: .infinity)
                             .background(selectedImageOption == i ? SL.surface : SL.background)
                             .foregroundColor(selectedImageOption == i ? SL.textPrimary : SL.textSecondary)
@@ -87,34 +99,124 @@ struct StoryReadyView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
                         .fill(SL.surface)
-                        .frame(height: 100)
+                        .frame(height: 90)
                     Image(systemName: "photo.on.rectangle")
-                        .font(.system(size: 28))
-                        .foregroundColor(SL.accent.opacity(0.6))
+                        .font(.system(size: 26))
+                        .foregroundColor(SL.accent.opacity(0.5))
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(SL.border, lineWidth: 1)
-                )
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
 
-                // Year and folder section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Add story details (optional)")
+                // Narration section — only if user recorded
+                if hasRecording {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Voice narration")
+                            .font(.system(size: 13, weight: .semibold))
+                            .tracking(0.5)
+                            .textCase(.uppercase)
+                            .foregroundColor(SL.textSecondary)
+
+                        // Playback row
+                        HStack(spacing: 14) {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) { isPlayingNarration.toggle() }
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(SL.primary)
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: isPlayingNarration ? "pause.fill" : "play.fill")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(SL.accent)
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                // Simulated waveform
+                                HStack(spacing: 3) {
+                                    ForEach([0.4, 0.7, 1.0, 0.6, 0.9, 0.5, 0.8, 0.3, 0.7, 1.0, 0.5, 0.6], id: \.self) { h in
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(isPlayingNarration ? SL.accent : SL.border)
+                                            .frame(width: 3, height: 24 * h)
+                                            .animation(.easeInOut(duration: 0.4).repeatForever(), value: isPlayingNarration)
+                                    }
+                                }
+                                .frame(height: 24)
+
+                                Text(isPlayingNarration ? "Playing…" : "Your recording")
+                                    .font(SL.body(12))
+                                    .foregroundColor(SL.textSecondary)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(14)
+                        .background(SL.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+
+                        // Publish narration toggle
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Publish with narration")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(SL.textPrimary)
+                                Text("Readers can listen to your voice")
+                                    .font(SL.body(13))
+                                    .foregroundColor(SL.textSecondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $publishNarration)
+                                .labelsHidden()
+                                .tint(SL.accent)
+                        }
+                        .padding(14)
+                        .background(SL.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                    }
+                }
+
+                // Optional details
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Story details")
                         .font(.system(size: 13, weight: .semibold))
-                        .tracking(1)
+                        .tracking(0.5)
                         .textCase(.uppercase)
                         .foregroundColor(SL.textSecondary)
 
+                    // Category (only for write-your-own, prompt flow already has category)
+                    if prompt == nil {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Category")
+                                .font(SL.body(13))
+                                .foregroundColor(SL.textSecondary)
+                            Menu {
+                                ForEach(PromptCategory.allCases.filter { $0 != .all }) { cat in
+                                    Button(action: { selectedCategory = cat }) {
+                                        HStack {
+                                            Text(cat.rawValue)
+                                            if selectedCategory == cat { Image(systemName: "checkmark") }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                menuLabel(icon: selectedCategory.icon, text: selectedCategory.rawValue)
+                            }
+                        }
+                    }
+
                     // Year input
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Year")
+                        Text("Year this took place")
                             .font(SL.body(13))
                             .foregroundColor(SL.textSecondary)
-                        HStack {
-                            Text("📅")
-                                .font(.system(size: 16))
+                        HStack(spacing: 10) {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 14))
+                                .foregroundColor(SL.textSecondary)
                             TextField("E.g., 1995", text: $yearText)
                                 .font(SL.body(15))
+                                .foregroundColor(SL.textPrimary)
                                 .keyboardType(.numberPad)
                                 .onChange(of: yearText) { newValue in
                                     let filtered = newValue.filter { $0.isNumber }
@@ -130,10 +232,7 @@ struct StoryReadyView: View {
                         .padding(12)
                         .background(SL.background)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(SL.border, lineWidth: 1)
-                        )
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
                     }
 
                     // Folder picker
@@ -145,9 +244,7 @@ struct StoryReadyView: View {
                             Button(action: { selectedFolder = nil }) {
                                 HStack {
                                     Text("Unfiled")
-                                    if selectedFolder == nil {
-                                        Image(systemName: "checkmark")
-                                    }
+                                    if selectedFolder == nil { Image(systemName: "checkmark") }
                                 }
                             }
                             if !folders.isEmpty {
@@ -156,77 +253,36 @@ struct StoryReadyView: View {
                                     Button(action: { selectedFolder = folder }) {
                                         HStack {
                                             Text(folder.name)
-                                            if selectedFolder?.id == folder.id {
-                                                Image(systemName: "checkmark")
-                                            }
+                                            if selectedFolder?.id == folder.id { Image(systemName: "checkmark") }
                                         }
                                     }
                                 }
                             }
                         } label: {
-                            HStack {
-                                Image(systemName: "folder.fill")
-                                    .font(.system(size: 14))
-                                Text(selectedFolder?.name ?? "Unfiled")
-                                    .font(SL.body(15))
-                                Spacer()
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 12, weight: .medium))
-                            }
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(SL.background)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(SL.border, lineWidth: 1)
-                            )
+                            menuLabel(icon: "folder.fill", text: selectedFolder?.name ?? "Unfiled")
                         }
-                        .foregroundColor(SL.textPrimary)
                     }
                 }
                 .padding(16)
-                .background(SL.surface.opacity(0.5))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(SL.surface.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
 
-                // Edit button
-                NavigationLink(destination: EditStoryView(
-                    story: nil,
-                    initialText: editableText,
-                    onSave: { updated in editableText = updated }
-                )) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 16))
-                        Text("Edit story")
-                            .font(.system(size: 16, weight: .medium))
-                    }
-                    .foregroundColor(SL.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(SL.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(SL.border, lineWidth: 1)
-                    )
-                }
-
-                // Publish / draft buttons
+                // Publish / draft
                 VStack(spacing: 10) {
                     Button(action: { saveStory(publish: true) }) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.open.fill")
                                 .font(.system(size: 15))
                             Text(savedSuccessfully ? "Published!" : "Publish to vault")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: 16, weight: .semibold))
                         }
                         .foregroundColor(Color(hex: "FDF9F0"))
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
+                        .frame(height: 52)
                         .background(savedSuccessfully ? SL.accent : SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .animation(.easeInOut, value: savedSuccessfully)
+                        .animation(.easeInOut(duration: 0.2), value: savedSuccessfully)
                     }
                     .disabled(savedSuccessfully)
 
@@ -239,20 +295,17 @@ struct StoryReadyView: View {
                         }
                         .foregroundColor(SL.textPrimary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
+                        .frame(height: 52)
                         .background(SL.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(SL.border, lineWidth: 1)
-                        )
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1.5))
                     }
                     .disabled(savedSuccessfully)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            .padding(.bottom, 32)
+            .padding(.bottom, 40)
         }
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
@@ -267,19 +320,66 @@ struct StoryReadyView: View {
                     .foregroundColor(SL.accent)
                 }
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                NavigationLink(destination: EditStoryView(
+                    story: nil,
+                    initialText: editableText,
+                    onSave: { updated in editableText = updated }
+                )) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 13, weight: .medium))
+                        Text("Edit")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(SL.textPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(SL.surface)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(SL.border, lineWidth: 1))
+                }
+            }
         }
     }
 
+    @ViewBuilder
+    private func menuLabel(icon: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(SL.textSecondary)
+            Text(text)
+                .font(SL.body(15))
+                .foregroundColor(SL.textPrimary)
+            Spacer()
+            Image(systemName: "chevron.down")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(SL.textSecondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SL.background)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
+    }
+
     private func saveStory(publish: Bool) {
-        let title = deriveTitle(from: editableText)
+        let title = customTitle ?? deriveTitle(from: editableText)
+        let category: String = {
+            if let p = prompt { return p.category }
+            return selectedCategory.rawValue
+        }()
         let entry = StoryEntry(
             title: title,
             content: editableText,
-            category: prompt?.category ?? "Uncategorised",
+            category: category,
             promptQuestion: prompt?.question ?? "",
             isInVault: publish,
             year: selectedYear,
-            folder: selectedFolder
+            folder: selectedFolder,
+            hasNarration: hasRecording,
+            publishNarration: hasRecording && publishNarration
         )
         modelContext.insert(entry)
         withAnimation { savedSuccessfully = true }
@@ -292,19 +392,11 @@ struct StoryReadyView: View {
     }
 }
 
-// SwiftUI doesn't expose navigationPath as an env value by default — this is a placeholder
-private struct NavigationPathKey: EnvironmentKey {
-    static let defaultValue: Binding<NavigationPath>? = nil
-}
-extension EnvironmentValues {
-    var navigationPath: Binding<NavigationPath>? {
-        get { self[NavigationPathKey.self] }
-        set { self[NavigationPathKey.self] = newValue }
-    }
-}
-
 #Preview {
-    NavigationStack {
-        StoryReadyView(prompt: SampleData.prompts.first)
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: StoryEntry.self, Folder.self, configurations: config)
+    return NavigationStack {
+        StoryReadyView(prompt: SampleData.prompts.first, hasRecording: true)
     }
+    .modelContainer(container)
 }

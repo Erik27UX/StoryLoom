@@ -96,22 +96,26 @@ struct AnswerView: View {
 
             // Bottom button — passes prompt + generated story forward
             VStack {
-                NavigationLink(destination: StoryReadyView(prompt: prompt, storyText: generatedStory)) {
+                NavigationLink(destination: StoryReadyView(
+                    prompt: prompt,
+                    storyText: generatedStory,
+                    hasRecording: isRecording
+                )) {
                     Text("Turn into a story")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Color(hex: "FDF9F0"))
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
+                        .frame(height: 52)
                         .background(SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .padding(.bottom, 24)
             .padding(.top, 12)
             .background(
                 SL.background
-                    .shadow(color: .black.opacity(0.05), radius: 8, y: -4)
+                    .shadow(color: .black.opacity(0.06), radius: 8, y: -4)
             )
         }
         .background(SL.background)
