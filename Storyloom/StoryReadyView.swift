@@ -189,17 +189,52 @@ struct StoryReadyView: View {
                 .background(SL.surface.opacity(0.5))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                // Buttons
-                HStack(spacing: 12) {
-                    NavigationLink(destination: EditStoryView(
-                        story: nil,
-                        initialText: editableText,
-                        onSave: { updated in editableText = updated }
-                    )) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "pencil")
-                                .font(.system(size: 16))
-                            Text("Edit story")
+                // Edit button
+                NavigationLink(destination: EditStoryView(
+                    story: nil,
+                    initialText: editableText,
+                    onSave: { updated in editableText = updated }
+                )) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 16))
+                        Text("Edit story")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    .foregroundColor(SL.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(SL.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(SL.border, lineWidth: 1)
+                    )
+                }
+
+                // Publish / draft buttons
+                VStack(spacing: 10) {
+                    Button(action: { saveStory(publish: true) }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.open.fill")
+                                .font(.system(size: 15))
+                            Text(savedSuccessfully ? "Published!" : "Publish to vault")
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        .foregroundColor(Color(hex: "FDF9F0"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(savedSuccessfully ? SL.accent : SL.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .animation(.easeInOut, value: savedSuccessfully)
+                    }
+                    .disabled(savedSuccessfully)
+
+                    Button(action: { saveStory(publish: false) }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "tray.fill")
+                                .font(.system(size: 15))
+                            Text(savedSuccessfully ? "Saved!" : "Save as draft")
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(SL.textPrimary)
@@ -212,21 +247,7 @@ struct StoryReadyView: View {
                                 .stroke(SL.border, lineWidth: 1)
                         )
                     }
-
-                    Button(action: saveStory) {
-                        HStack(spacing: 6) {
-                            Image(systemName: savedSuccessfully ? "checkmark.circle.fill" : "checkmark.circle.fill")
-                                .font(.system(size: 16))
-                            Text(savedSuccessfully ? "Saved!" : "Save")
-                                .font(.system(size: 16, weight: .medium))
-                        }
-                        .foregroundColor(Color(hex: "FDF9F0"))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(savedSuccessfully ? SL.accent : SL.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .animation(.easeInOut, value: savedSuccessfully)
-                    }
+                    .disabled(savedSuccessfully)
                 }
             }
             .padding(.horizontal, 20)
@@ -249,14 +270,14 @@ struct StoryReadyView: View {
         }
     }
 
-    private func saveStory() {
+    private func saveStory(publish: Bool) {
         let title = deriveTitle(from: editableText)
         let entry = StoryEntry(
             title: title,
             content: editableText,
             category: prompt?.category ?? "Uncategorised",
             promptQuestion: prompt?.question ?? "",
-            isInVault: false,
+            isInVault: publish,
             year: selectedYear,
             folder: selectedFolder
         )
