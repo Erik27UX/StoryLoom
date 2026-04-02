@@ -7,6 +7,6 @@ struct StoryloomApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: StoryEntry.self)
+        .modelContainer(for: [StoryEntry.self, Folder.self])
     }
 }
