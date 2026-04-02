@@ -150,10 +150,12 @@ struct SampleData {
         let loveFolder = Folder(name: "Love & Family")
         let travelFolder = Folder(name: "Travel")
 
+        print("📁 Creating folders...")
         context.insert(childhoodFolder)
         context.insert(workFolder)
         context.insert(loveFolder)
         context.insert(travelFolder)
+        print("✅ Folders created")
 
         // Create stories and assign to folders with years
         let entries = [
@@ -242,9 +244,12 @@ struct SampleData {
 
         // Stagger dates so they appear in the right order when sorted by creation date
         let timeIntervals: [TimeInterval] = [-1, -2, -3, -4, -5, -6, -7, -8]
+        print("📖 Creating \(entries.count) stories...")
         for (index, entry) in entries.enumerated() {
             entry.dateCreated = Date().addingTimeInterval(TimeInterval(timeIntervals[index] * 86400))
             context.insert(entry)
+            print("   - \(entry.title) (\(entry.folder?.name ?? "Unfiled"))")
         }
+        print("✅ \(entries.count) stories created")
     }
 }

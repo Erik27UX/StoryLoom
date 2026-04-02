@@ -59,13 +59,19 @@ struct ContentView: View {
         .onAppear(perform: seedIfNeeded)
     }
 
-    // Seeds two sample stories on first launch.
+    // Seeds sample stories on first launch.
     // Uses story count (not a flag) so it's safe even if AppStorage was corrupted.
     private func seedIfNeeded() {
         let descriptor = FetchDescriptor<StoryEntry>()
         let count = (try? modelContext.fetchCount(descriptor)) ?? 0
-        guard count == 0 else { return }
+        print("📊 Current story count: \(count)")
+        guard count == 0 else {
+            print("✅ Data already seeded, skipping")
+            return
+        }
+        print("🌱 Seeding data...")
         SampleData.seedStories(in: modelContext)
+        print("✅ Seeding complete")
     }
 }
 
