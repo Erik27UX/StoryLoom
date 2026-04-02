@@ -269,5 +269,11 @@ struct LibraryEmptyState: View {
 }
 
 #Preview {
-    StoriesLibraryView()
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: StoryEntry.self, Folder.self, configurations: config)
+    SampleData.seedStories(in: container.mainContext)
+    return NavigationStack {
+        StoriesLibraryView()
+    }
+    .modelContainer(container)
 }
