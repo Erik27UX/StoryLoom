@@ -110,5 +110,7 @@ struct RolePickerView: View {
 }
 
 #Preview {
-    RolePickerView()
+    NavigationStack {
+        RolePickerView()
+    }
 }

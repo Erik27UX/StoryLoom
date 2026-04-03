@@ -4,9 +4,12 @@ import SwiftData
 struct StoryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var audio = AudioManager.shared
+    @ObservedObject var authManager = AuthManager.shared
     let story: StoryEntry
 
     @State private var isEditingMode = false
+    @State private var audioProgress: Double = 0
+    @State private var selectedPlaybackSpeed: Float = 1.0
 
     var body: some View {
         if isEditingMode {
@@ -72,53 +75,108 @@ struct StoryDetailView: View {
 
                     // Narration player — show if story has a recording
                     if story.hasNarration, let fileName = story.narrationFileName {
-                        HStack(spacing: 14) {
-                            Button(action: {
-                                if audio.isPlaying {
-                                    audio.stop()
-                                } else {
-                                    audio.play(fileName: fileName)
-                                }
-                            }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(SL.primary)
-                                        .frame(width: 44, height: 44)
-                                    Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.system(size: 15))
-                                        .foregroundColor(SL.accent)
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(audio.isPlaying ? "Playing narration…" : "Listen to narration")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(SL.textPrimary)
-
-                                HStack(spacing: 3) {
-                                    ForEach([0.5, 0.8, 1.0, 0.6, 0.9, 0.4, 0.7, 0.5, 1.0, 0.6], id: \.self) { h in
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(audio.isPlaying ? SL.accent : SL.border)
-                                            .frame(width: 3, height: 20 * h)
+                        VStack(spacing: 12) {
+                            // Player controls
+                            HStack(spacing: 14) {
+                                Button(action: {
+                                    if audio.isPlaying {
+                                        audio.stop()
+                                    } else {
+                                        audio.play(fileName: fileName)
+                                    }
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(SL.primary)
+                                            .frame(width: 44, height: 44)
+                                        Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
+                                            .font(.system(size: 15))
+                                            .foregroundColor(SL.accent)
                                     }
                                 }
-                                .frame(height: 20)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(audio.isPlaying ? "Playing narration…" : "Listen to narration")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(SL.textPrimary)
+
+                                    HStack(spacing: 3) {
+                                        ForEach([0.5, 0.8, 1.0, 0.6, 0.9, 0.4, 0.7, 0.5, 1.0, 0.6], id: \.self) { h in
+                                            RoundedRectangle(cornerRadius: 2)
+                                                .fill(audio.isPlaying ? SL.accent : SL.border)
+                                                .frame(width: 3, height: 20 * h)
+                                        }
+                                    }
+                                    .frame(height: 20)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: audio.isPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(audio.isPlaying ? SL.accent : SL.textSecondary)
+                                    .padding(8)
+                                    .background(SL.surface)
+                                    .clipShape(Circle())
+                            }
+                            .padding(14)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(audio.isPlaying ? SL.accent.opacity(0.4) : SL.border, lineWidth: audio.isPlaying ? 1.5 : 1))
+
+                            // Audio progress bar
+                            VStack(spacing: 8) {
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(SL.border)
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(SL.accent)
+                                            .frame(width: geo.size.width * audioProgress)
+                                    }
+                                }
+                                .frame(height: 6)
+                                .gesture(DragGesture().onChanged { value in
+                                    let percentage = value.location.x / 200
+                                    audioProgress = min(max(percentage, 0), 1)
+                                })
+
+                                HStack {
+                                    Text("Remaining")
+                                        .font(SL.body(12))
+                                        .foregroundColor(SL.textSecondary)
+                                    Spacer()
+                                    Text(formatTime(duration: 180, progress: audioProgress))
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(SL.textSecondary)
+                                }
                             }
 
-                            Spacer()
-
-                            // Active indicator
-                            Image(systemName: audio.isPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
-                                .font(.system(size: 16))
-                                .foregroundColor(audio.isPlaying ? SL.accent : SL.textSecondary)
-                                .padding(8)
+                            // Playback speed (reader only)
+                            if authManager.currentUser?.role == .reader {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Playback speed")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(SL.textSecondary)
+                                    HStack(spacing: 8) {
+                                        ForEach([0.75, 1.0, 1.25], id: \.self) { speed in
+                                            Button(action: { selectedPlaybackSpeed = Float(speed) }) {
+                                                Text("\(String(format: "%.2f", speed))x")
+                                                    .font(.system(size: 13, weight: .medium))
+                                                    .foregroundColor(selectedPlaybackSpeed == Float(speed) ? Color(hex: "FDF9F0") : SL.textPrimary)
+                                                    .frame(maxWidth: .infinity)
+                                                    .padding(.vertical, 6)
+                                                    .background(selectedPlaybackSpeed == Float(speed) ? SL.accent : SL.background)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(12)
                                 .background(SL.surface)
-                                .clipShape(Circle())
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
                         }
-                        .padding(14)
-                        .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(audio.isPlaying ? SL.accent.opacity(0.4) : SL.border, lineWidth: audio.isPlaying ? 1.5 : 1))
                     }
 
                     // Content
@@ -144,20 +202,22 @@ struct StoryDetailView: View {
                         .foregroundColor(SL.accent)
                     }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { isEditingMode = true }) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "pencil")
-                                .font(.system(size: 13, weight: .medium))
-                            Text("Edit")
-                                .font(.system(size: 14, weight: .medium))
+                if authManager.currentUser?.role == .storyteller {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: { isEditingMode = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 13, weight: .medium))
+                                Text("Edit")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(SL.textPrimary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(SL.surface)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(SL.border, lineWidth: 1))
                         }
-                        .foregroundColor(SL.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(SL.surface)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(SL.border, lineWidth: 1))
                     }
                 }
             }
@@ -169,6 +229,13 @@ struct StoryDetailView: View {
         formatter.groupingSeparator = ""
         formatter.usesGroupingSeparator = false
         return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
+    }
+
+    private func formatTime(duration: Int, progress: Double) -> String {
+        let remaining = Int(Double(duration) * (1 - progress))
+        let minutes = remaining / 60
+        let seconds = remaining % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 

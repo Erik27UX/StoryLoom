@@ -4,10 +4,21 @@ struct OnboardingView: View {
     @ObservedObject var authManager = AuthManager.shared
     @State private var currentStep = 0
 
-    private let steps: [(title: String, description: String, icon: String)] = [
-        ("Write or record", "Capture your stories with text or voice narration", "mic.circle.fill"),
-        ("Share with care", "Invite specific people to read and listen", "person.badge.plus.fill"),
-    ]
+    private var steps: [(title: String, description: String, icon: String)] {
+        let isReader = authManager.currentUser?.role == .reader
+
+        if isReader {
+            return [
+                ("Read and listen", "Explore stories shared with you by friends and family", "book.circle.fill"),
+                ("Engage and connect", "Like stories, leave comments, and dive deeper into narratives", "heart.circle.fill"),
+            ]
+        } else {
+            return [
+                ("Write or record", "Capture your stories with text or voice narration", "mic.circle.fill"),
+                ("Share with care", "Invite specific people to read and listen", "person.badge.plus.fill"),
+            ]
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -86,5 +97,7 @@ struct OnboardingView: View {
 }
 
 #Preview {
-    OnboardingView()
+    NavigationStack {
+        OnboardingView()
+    }
 }

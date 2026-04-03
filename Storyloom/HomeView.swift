@@ -182,43 +182,32 @@ struct RecentStoryCard: View {
     let story: StoryEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(story.title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(SL.textPrimary)
+        NavigationLink(destination: StoryDetailView(story: story)) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(story.title)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(SL.textPrimary)
 
-            Text(story.preview)
-                .font(SL.body(14))
-                .foregroundColor(SL.textSecondary)
-                .lineLimit(2)
-
-            HStack {
-                Text(story.dateFormatted)
-                    .font(SL.body(13))
+                Text(story.preview)
+                    .font(SL.body(14))
                     .foregroundColor(SL.textSecondary)
-                Spacer()
-                NavigationLink(destination: EditStoryView(story: story)) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 13, weight: .medium))
-                        Text("Edit")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(Color(hex: "FDF9F0"))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(SL.primary)
-                    .clipShape(Capsule())
+                    .lineLimit(2)
+
+                HStack {
+                    Text(story.dateFormatted)
+                        .font(SL.body(13))
+                        .foregroundColor(SL.textSecondary)
+                    Spacer()
                 }
             }
+            .padding(18)
+            .background(SL.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(SL.border, lineWidth: 1)
+            )
         }
-        .padding(18)
-        .background(SL.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(SL.border, lineWidth: 1)
-        )
     }
 }
 

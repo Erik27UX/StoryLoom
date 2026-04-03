@@ -143,5 +143,7 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
+    NavigationStack {
+        LoginView()
+    }
 }

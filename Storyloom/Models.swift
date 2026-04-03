@@ -18,7 +18,7 @@ enum SubscriptionTier: String, Codable {
 // MARK: - SwiftData models
 
 @Model
-class User {
+final class User: Codable {
     var id: UUID
     var email: String
     var name: String
@@ -35,6 +35,36 @@ class User {
         self.role = role
         self.subscriptionTier = role == .storyteller ? .premium : .free
         self.dateCreated = Date()
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, email, name, birthYear, role, subscriptionTier, profilePhotoURL, dateCreated
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(email, forKey: .email)
+        try container.encode(name, forKey: .name)
+        try container.encode(birthYear, forKey: .birthYear)
+        try container.encode(role.rawValue, forKey: .role)
+        try container.encode(subscriptionTier.rawValue, forKey: .subscriptionTier)
+        try container.encode(profilePhotoURL, forKey: .profilePhotoURL)
+        try container.encode(dateCreated, forKey: .dateCreated)
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.email = try container.decode(String.self, forKey: .email)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.birthYear = try container.decodeIfPresent(Int.self, forKey: .birthYear)
+        let roleString = try container.decode(String.self, forKey: .role)
+        self.role = UserRole(rawValue: roleString) ?? .reader
+        let tierString = try container.decode(String.self, forKey: .subscriptionTier)
+        self.subscriptionTier = SubscriptionTier(rawValue: tierString) ?? .free
+        self.profilePhotoURL = try container.decodeIfPresent(String.self, forKey: .profilePhotoURL)
+        self.dateCreated = try container.decode(Date.self, forKey: .dateCreated)
     }
 }
 

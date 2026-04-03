@@ -95,6 +95,15 @@ struct ContentView: View {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: StoryEntry.self, Folder.self, configurations: config)
     SampleData.seedStories(in: container.mainContext)
+
+    // Mock logged-in user for preview
+    let authManager = AuthManager.shared
+    let mockUser = User(email: "preview@test.com", name: "Preview User", role: .storyteller)
+    authManager.currentUser = mockUser
+    authManager.isLoggedIn = true
+    authManager.hasCompletedOnboarding = true
+
     return ContentView()
         .modelContainer(container)
+        .environmentObject(authManager)
 }

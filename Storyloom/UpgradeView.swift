@@ -187,5 +187,7 @@ struct PlanCard: View {
 }
 
 #Preview {
-    UpgradeView()
+    NavigationStack {
+        UpgradeView()
+    }
 }

@@ -83,39 +83,3 @@ class AuthManager: ObservableObject {
         }
     }
 }
-
-// Extension to make User Codable
-extension User: Codable {
-    enum CodingKeys: String, CodingKey {
-        case id, email, name, birthYear, role, subscriptionTier, profilePhotoURL, dateCreated
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(email, forKey: .email)
-        try container.encode(name, forKey: .name)
-        try container.encode(birthYear, forKey: .birthYear)
-        try container.encode(role.rawValue, forKey: .role)
-        try container.encode(subscriptionTier.rawValue, forKey: .subscriptionTier)
-        try container.encode(profilePhotoURL, forKey: .profilePhotoURL)
-        try container.encode(dateCreated, forKey: .dateCreated)
-    }
-
-    required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let email = try container.decode(String.self, forKey: .email)
-        let name = try container.decode(String.self, forKey: .name)
-        let roleString = try container.decode(String.self, forKey: .role)
-        let role = UserRole(rawValue: roleString) ?? .reader
-
-        self.init(email: email, name: name, role: role)
-
-        self.id = try container.decode(UUID.self, forKey: .id)
-        self.birthYear = try container.decodeIfPresent(Int.self, forKey: .birthYear)
-        let tierString = try container.decode(String.self, forKey: .subscriptionTier)
-        self.subscriptionTier = SubscriptionTier(rawValue: tierString) ?? .free
-        self.profilePhotoURL = try container.decodeIfPresent(String.self, forKey: .profilePhotoURL)
-        self.dateCreated = try container.decode(Date.self, forKey: .dateCreated)
-    }
-}
