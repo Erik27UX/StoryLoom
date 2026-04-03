@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AVFoundation
+import Combine
 
 // MARK: - Enums
 
@@ -17,6 +18,27 @@ enum SubscriptionTier: String, Codable {
 // MARK: - SwiftData models
 
 @Model
+class User {
+    var id: UUID
+    var email: String
+    var name: String
+    var birthYear: Int?
+    var role: UserRole
+    var subscriptionTier: SubscriptionTier
+    var profilePhotoURL: String?
+    var dateCreated: Date
+
+    init(email: String, name: String = "", role: UserRole = .reader) {
+        self.id = UUID()
+        self.email = email
+        self.name = name
+        self.role = role
+        self.subscriptionTier = role == .storyteller ? .premium : .free
+        self.dateCreated = Date()
+    }
+}
+
+@Model
 class Folder {
     var id: UUID
     var name: String
@@ -26,6 +48,82 @@ class Folder {
     init(name: String) {
         self.id = UUID()
         self.name = name
+        self.dateCreated = Date()
+    }
+}
+
+@Model
+class StoryAccess {
+    var id: UUID
+    var storyId: UUID
+    var userId: UUID
+    var userEmail: String
+    var accessLevel: String // "view" or "edit"
+    var dateGranted: Date
+
+    init(storyId: UUID, userEmail: String, accessLevel: String = "view") {
+        self.id = UUID()
+        self.storyId = storyId
+        self.userId = UUID()
+        self.userEmail = userEmail
+        self.accessLevel = accessLevel
+        self.dateGranted = Date()
+    }
+}
+
+@Model
+class StoryInvite {
+    var id: UUID
+    var storyId: UUID
+    var code: String
+    var expiresAt: Date
+    var maxUses: Int?
+    var uses: Int
+    var dateCreated: Date
+
+    init(storyId: UUID, maxUses: Int? = nil) {
+        self.id = UUID()
+        self.storyId = storyId
+        self.code = UUID().uuidString.prefix(8).uppercased() + UUID().uuidString.prefix(4).uppercased()
+        self.expiresAt = Date().addingTimeInterval(30 * 24 * 60 * 60) // 30 days
+        self.maxUses = maxUses
+        self.uses = 0
+        self.dateCreated = Date()
+    }
+}
+
+@Model
+class StoryComment {
+    var id: UUID
+    var storyId: UUID
+    var userId: UUID
+    var userName: String
+    var text: String
+    var dateCreated: Date
+
+    init(storyId: UUID, userName: String, text: String) {
+        self.id = UUID()
+        self.storyId = storyId
+        self.userId = UUID()
+        self.userName = userName
+        self.text = text
+        self.dateCreated = Date()
+    }
+}
+
+@Model
+class StoryReaction {
+    var id: UUID
+    var storyId: UUID
+    var userId: UUID
+    var type: String // "heart", "like", etc
+    var dateCreated: Date
+
+    init(storyId: UUID, type: String = "heart") {
+        self.id = UUID()
+        self.storyId = storyId
+        self.userId = UUID()
+        self.type = type
         self.dateCreated = Date()
     }
 }

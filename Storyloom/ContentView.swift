@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @AppStorage("userRole") private var userRole = UserRole.storyteller.rawValue
+    @StateObject private var authManager = AuthManager.shared
     @Environment(\.modelContext) private var modelContext
     @State private var selectedTab = 0
 
@@ -24,9 +24,27 @@ struct ContentView: View {
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
 
-    var isStoryteller: Bool { userRole == UserRole.storyteller.rawValue }
-
     var body: some View {
+        if !authManager.isLoggedIn {
+            // Not logged in → show LoginView
+            NavigationStack {
+                LoginView()
+            }
+        } else if !authManager.hasCompletedOnboarding {
+            // Logged in but no onboarding → show Welcome flow
+            NavigationStack {
+                WelcomeView()
+            }
+        } else {
+            // Fully onboarded → show main app
+            mainApp
+        }
+    }
+
+    @ViewBuilder
+    private var mainApp: some View {
+        let isStoryteller = authManager.currentUser?.role == .storyteller
+
         TabView(selection: $selectedTab) {
             if isStoryteller {
                 HomeView()
@@ -38,7 +56,7 @@ struct ContentView: View {
                 ReadersView()
                     .tabItem { Image(systemName: "person.2.fill");    Text("Readers") }
                     .tag(2)
-                AccountView()
+                SettingsView()
                     .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
                     .tag(3)
             } else {
@@ -51,7 +69,7 @@ struct ContentView: View {
                 ReaderActivityView()
                     .tabItem { Image(systemName: "bubble.left.and.bubble.right.fill"); Text("Activity") }
                     .tag(2)
-                AccountView()
+                SettingsView()
                     .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
                     .tag(3)
             }
@@ -59,8 +77,6 @@ struct ContentView: View {
         .onAppear(perform: seedIfNeeded)
     }
 
-    // Seeds sample stories on first launch.
-    // Uses story count (not a flag) so it's safe even if AppStorage was corrupted.
     private func seedIfNeeded() {
         let descriptor = FetchDescriptor<StoryEntry>()
         let count = (try? modelContext.fetchCount(descriptor)) ?? 0
