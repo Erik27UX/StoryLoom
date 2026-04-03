@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AVFoundation
 
 // MARK: - Enums
 
@@ -41,6 +42,7 @@ class StoryEntry {
     var folder: Folder?
     var hasNarration: Bool
     var publishNarration: Bool
+    var narrationFileName: String?
 
     init(
         title: String,
@@ -51,7 +53,8 @@ class StoryEntry {
         year: Int? = nil,
         folder: Folder? = nil,
         hasNarration: Bool = false,
-        publishNarration: Bool = false
+        publishNarration: Bool = false,
+        narrationFileName: String? = nil
     ) {
         self.title = title
         self.content = content
@@ -63,6 +66,7 @@ class StoryEntry {
         self.folder = folder
         self.hasNarration = hasNarration
         self.publishNarration = publishNarration
+        self.narrationFileName = narrationFileName
     }
 
     var dateFormatted: String {
@@ -248,6 +252,14 @@ struct SampleData {
             ),
         ]
 
+        // Attach a sample narration to the first story (bakery)
+        if let narrationStory = entries.first,
+           let fileName = SampleData.createSampleNarration() {
+            narrationStory.hasNarration = true
+            narrationStory.narrationFileName = fileName
+            narrationStory.publishNarration = true
+        }
+
         // Stagger dates so they appear in the right order when sorted by creation date
         let timeIntervals: [TimeInterval] = [-1, -2, -3, -4, -5, -6, -7, -8]
         print("📖 Creating \(entries.count) stories...")
@@ -257,5 +269,52 @@ struct SampleData {
             print("   - \(entry.title) (\(entry.folder?.name ?? "Unfiled"))")
         }
         print("✅ \(entries.count) stories created")
+    }
+
+    /// Generates a short 4-second audio file (spoken-style warm tone) and returns its filename.
+    @discardableResult
+    static func createSampleNarration() -> String? {
+        let fileName = "sample_narration_demo.m4a"
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let url = docs.appendingPathComponent(fileName)
+
+        // Reuse existing file
+        if FileManager.default.fileExists(atPath: url.path) { return fileName }
+
+        let sampleRate: Double = 44100
+        let duration: Double = 4.0
+        let totalFrames = AVAudioFrameCount(sampleRate * duration)
+
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: totalFrames) else {
+            return nil
+        }
+        buffer.frameLength = totalFrames
+
+        let channelData = buffer.floatChannelData![0]
+        // Layered tones to simulate a warm voice-like narration sample
+        let tones: [(freq: Float, amp: Float)] = [(180, 0.18), (360, 0.10), (540, 0.06)]
+        for i in 0..<Int(totalFrames) {
+            let t = Float(i) / Float(sampleRate)
+            // Fade in/out envelope
+            let fade: Float = {
+                let fi = t / 0.3
+                let fo = (Float(duration) - t) / 0.5
+                return min(1, min(fi, fo))
+            }()
+            var sample: Float = 0
+            for tone in tones {
+                sample += sin(2 * .pi * tone.freq * t) * tone.amp
+            }
+            channelData[i] = sample * fade
+        }
+
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: format.settings)
+            try file.write(from: buffer)
+            return fileName
+        } catch {
+            return nil
+        }
     }
 }

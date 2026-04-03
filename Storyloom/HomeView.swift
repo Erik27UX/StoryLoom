@@ -63,9 +63,9 @@ struct HomeView: View {
                         HStack {
                             HStack(spacing: 4) {
                                 Image(systemName: "clock")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 14))
                                 Text("Resets in \(resetHours)h")
-                                    .font(SL.body(12))
+                                    .font(SL.body(14))
                             }
                             .foregroundColor(SL.textSecondary)
 
@@ -76,12 +76,12 @@ struct HomeView: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "star.fill")
                                             .font(.system(size: 11))
-                                        Text(remainingToday == 0 ? "Upgrade to keep writing" : "Unlock unlimited stories")
-                                            .font(.system(size: 12, weight: .medium))
+                                        Text(remainingToday == 0 ? "Upgrade to keep writing" : "Unlock more stories")
+                                            .font(.system(size: 14, weight: .medium))
                                     }
                                     .foregroundColor(Color(hex: "FDF9F0"))
                                     .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
+                                    .padding(.vertical, 10)
                                     .background(SL.primary)
                                     .clipShape(Capsule())
                                 }

@@ -63,7 +63,7 @@ struct ReaderStoryCard: View {
                     .foregroundColor(SL.textPrimary)
                 Spacer()
                 if let year = story.year {
-                    Text("\(year)")
+                    Text(formatCardYear(year))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(SL.textSecondary)
                         .padding(.horizontal, 8)
@@ -100,14 +100,19 @@ struct ReaderStoryCard: View {
                 .stroke(SL.border, lineWidth: 1)
         )
     }
+
+    private func formatCardYear(_ year: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.groupingSeparator = ""
+        formatter.usesGroupingSeparator = false
+        return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
+    }
 }
 
 struct StoryReadingView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var audio = AudioManager.shared
     let story: StoryEntry
-
-    @State private var isMuted = false
-    @State private var isPlayingNarration = false
 
     var body: some View {
         ScrollView {
@@ -126,7 +131,7 @@ struct StoryReadingView: View {
                         if let year = story.year {
                             Text("·")
                                 .foregroundColor(SL.textSecondary)
-                            Text("\(year)")
+                            Text(formatYear(year))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(SL.accent)
                         }
@@ -134,37 +139,34 @@ struct StoryReadingView: View {
                 }
 
                 // Narration player — only if published with narration
-                if story.publishNarration {
+                if story.publishNarration, let fileName = story.narrationFileName {
                     HStack(spacing: 14) {
                         Button(action: {
-                            if isMuted {
-                                isMuted = false
+                            if audio.isPlaying {
+                                audio.stop()
                             } else {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isPlayingNarration.toggle()
-                                }
+                                audio.play(fileName: fileName)
                             }
                         }) {
                             ZStack {
                                 Circle()
-                                    .fill(isMuted ? SL.surface : SL.primary)
+                                    .fill(SL.primary)
                                     .frame(width: 44, height: 44)
-                                Image(systemName: isMuted ? "speaker.slash.fill" : (isPlayingNarration ? "pause.fill" : "play.fill"))
+                                Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
                                     .font(.system(size: 15))
-                                    .foregroundColor(isMuted ? SL.textSecondary : SL.accent)
+                                    .foregroundColor(SL.accent)
                             }
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(isMuted ? "Narration muted" : (isPlayingNarration ? "Playing narration…" : "Listen to narration"))
+                            Text(audio.isPlaying ? "Playing narration…" : "Listen to narration")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(isMuted ? SL.textSecondary : SL.textPrimary)
+                                .foregroundColor(SL.textPrimary)
 
-                            // Simulated waveform
                             HStack(spacing: 3) {
                                 ForEach([0.5, 0.8, 1.0, 0.6, 0.9, 0.4, 0.7, 0.5, 1.0, 0.6], id: \.self) { h in
                                     RoundedRectangle(cornerRadius: 2)
-                                        .fill(isPlayingNarration && !isMuted ? SL.accent : SL.border)
+                                        .fill(audio.isPlaying ? SL.accent : SL.border)
                                         .frame(width: 3, height: 20 * h)
                                 }
                             }
@@ -173,25 +175,17 @@ struct StoryReadingView: View {
 
                         Spacer()
 
-                        // Mute toggle
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                isMuted.toggle()
-                                if isMuted { isPlayingNarration = false }
-                            }
-                        }) {
-                            Image(systemName: isMuted ? "speaker.slash" : "speaker.wave.2")
-                                .font(.system(size: 16))
-                                .foregroundColor(SL.textSecondary)
-                                .padding(8)
-                                .background(SL.surface)
-                                .clipShape(Circle())
-                        }
+                        Image(systemName: audio.isPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
+                            .font(.system(size: 16))
+                            .foregroundColor(audio.isPlaying ? SL.accent : SL.textSecondary)
+                            .padding(8)
+                            .background(SL.surface)
+                            .clipShape(Circle())
                     }
                     .padding(14)
                     .background(SL.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(audio.isPlaying ? SL.accent.opacity(0.4) : SL.border, lineWidth: audio.isPlaying ? 1.5 : 1))
                 }
 
                 Rectangle()
@@ -235,6 +229,13 @@ struct StoryReadingView: View {
                 }
             }
         }
+    }
+
+    private func formatYear(_ year: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.groupingSeparator = ""
+        formatter.usesGroupingSeparator = false
+        return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
     }
 }
 

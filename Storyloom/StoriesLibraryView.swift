@@ -112,7 +112,10 @@ struct StoriesLibraryView: View {
 
                                 // Stories in folder
                                 ForEach(stories) { story in
-                                    StoryLibraryCard(story: story)
+                                    NavigationLink(destination: StoryDetailView(story: story)) {
+                                        StoryLibraryCard(story: story)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -200,7 +203,7 @@ struct StoryLibraryCard: View {
                         .clipShape(Capsule())
                     }
                     if let year = story.year {
-                        Text("\(year)")
+                        Text(formatYear(year))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(SL.textSecondary)
                             .padding(.horizontal, 8)
@@ -216,25 +219,9 @@ struct StoryLibraryCard: View {
                 .foregroundColor(SL.textSecondary)
                 .lineLimit(2)
 
-            HStack {
-                Text(story.dateFormatted)
-                    .font(SL.body(13))
-                    .foregroundColor(SL.textSecondary)
-                Spacer()
-                NavigationLink(destination: EditStoryView(story: story)) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 13, weight: .medium))
-                        Text("Edit")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(Color(hex: "FDF9F0"))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(SL.primary)
-                    .clipShape(Capsule())
-                }
-            }
+            Text(story.dateFormatted)
+                .font(SL.body(13))
+                .foregroundColor(SL.textSecondary)
         }
         .padding(18)
         .background(SL.surface)
@@ -243,6 +230,13 @@ struct StoryLibraryCard: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(SL.border, lineWidth: 1)
         )
+    }
+
+    private func formatYear(_ year: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.groupingSeparator = ""
+        formatter.usesGroupingSeparator = false
+        return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
     }
 }
 
