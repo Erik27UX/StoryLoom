@@ -236,6 +236,36 @@ struct StorytellerSettingsContent: View {
             .padding(.top, 4)
         }
 
+        // Subscription Tier Testing (for development)
+        SectionCard(title: "Subscription Tier (Testing)") {
+            VStack(spacing: 8) {
+                ForEach([SubscriptionTier.free, .premium, .family], id: \.self) { tier in
+                    Button(action: { authManager.updateSubscriptionTier(tier) }) {
+                        HStack {
+                            Text(tier.rawValue)
+                                .font(.system(size: 15, weight: .medium))
+                            Spacer()
+                            if authManager.currentUser?.subscriptionTier == tier {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(SL.accent)
+                            }
+                        }
+                        .foregroundColor(authManager.currentUser?.subscriptionTier == tier ? SL.accent : SL.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        .background(authManager.currentUser?.subscriptionTier == tier ? SL.accent.opacity(0.1) : SL.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(authManager.currentUser?.subscriptionTier == tier ? SL.accent : SL.border, lineWidth: 1)
+                        )
+                    }
+                }
+            }
+        }
+
         // Story Settings
         SectionCard(title: "Story Settings") {
             VStack(spacing: 12) {
@@ -378,6 +408,7 @@ struct AudioSpeedSelector: View {
 #Preview {
     let authManager = AuthManager.shared
     let mockUser = User(email: "preview@test.com", name: "Preview User", role: .storyteller)
+    mockUser.subscriptionTier = .family
     authManager.currentUser = mockUser
     authManager.isLoggedIn = true
     authManager.hasCompletedOnboarding = true

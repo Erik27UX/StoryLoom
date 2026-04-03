@@ -72,6 +72,78 @@ struct StoryDetailView: View {
                         .fill(SL.border)
                         .frame(height: 1)
 
+                    // Comments & Questions section (readers only)
+                    if authManager.currentUser?.role == .reader {
+                        VStack(spacing: 12) {
+                            NavigationLink(destination: CommentsView(story: story)) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "bubble.left.fill")
+                                        .font(.system(size: 16))
+                                    Text("View comments")
+                                        .font(.system(size: 14, weight: .medium))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14))
+                                }
+                                .foregroundColor(SL.accent)
+                                .padding(12)
+                                .background(SL.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+
+                            NavigationLink(destination: QuestionsView(story: story)) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "questionmark.circle.fill")
+                                        .font(.system(size: 16))
+                                    Text("View questions")
+                                        .font(.system(size: 14, weight: .medium))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14))
+                                }
+                                .foregroundColor(SL.accent)
+                                .padding(12)
+                                .background(SL.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                    } else {
+                        // Storyteller view
+                        VStack(spacing: 12) {
+                            NavigationLink(destination: CommentsView(story: story)) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "bubble.left.fill")
+                                        .font(.system(size: 16))
+                                    Text("View comments")
+                                        .font(.system(size: 14, weight: .medium))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14))
+                                }
+                                .foregroundColor(SL.accent)
+                                .padding(12)
+                                .background(SL.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+
+                            NavigationLink(destination: QuestionsView(story: story)) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "questionmark.circle.fill")
+                                        .font(.system(size: 16))
+                                    Text("View questions")
+                                        .font(.system(size: 14, weight: .medium))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14))
+                                }
+                                .foregroundColor(SL.accent)
+                                .padding(12)
+                                .background(SL.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                    }
+
                     // Narration player — show if story has a recording
                     if story.hasNarration, let fileName = story.narrationFileName {
                         VStack(spacing: 12) {

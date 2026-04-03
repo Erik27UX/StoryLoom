@@ -13,6 +13,7 @@ enum UserRole: String, Codable, CaseIterable {
 enum SubscriptionTier: String, Codable {
     case free = "Free"
     case premium = "Premium"
+    case family = "Family"
 }
 
 // MARK: - SwiftData models
@@ -142,6 +143,34 @@ class StoryComment {
 }
 
 @Model
+class StoryQuestion {
+    var id: UUID
+    var storyId: UUID
+    var userId: UUID
+    var userName: String
+    var text: String
+    var isAudio: Bool
+    var audioFileName: String?
+    var answerText: String?
+    var answerAudioFileName: String?
+    var isAnswered: Bool
+    var dateCreated: Date
+    var answeredDate: Date?
+
+    init(storyId: UUID, userName: String, text: String, isAudio: Bool = false, audioFileName: String? = nil) {
+        self.id = UUID()
+        self.storyId = storyId
+        self.userId = UUID()
+        self.userName = userName
+        self.text = text
+        self.isAudio = isAudio
+        self.audioFileName = audioFileName
+        self.isAnswered = false
+        self.dateCreated = Date()
+    }
+}
+
+@Model
 class StoryReaction {
     var id: UUID
     var storyId: UUID
@@ -160,6 +189,7 @@ class StoryReaction {
 
 @Model
 class StoryEntry {
+    var uuid: UUID
     var title: String
     var content: String
     var category: String
@@ -171,6 +201,7 @@ class StoryEntry {
     var hasNarration: Bool
     var publishNarration: Bool
     var narrationFileName: String?
+    var authorSubscriptionTier: SubscriptionTier = SubscriptionTier.premium
 
     init(
         title: String,
@@ -182,8 +213,10 @@ class StoryEntry {
         folder: Folder? = nil,
         hasNarration: Bool = false,
         publishNarration: Bool = false,
-        narrationFileName: String? = nil
+        narrationFileName: String? = nil,
+        authorSubscriptionTier: SubscriptionTier = .premium
     ) {
+        self.uuid = UUID()
         self.title = title
         self.content = content
         self.category = category
@@ -195,6 +228,7 @@ class StoryEntry {
         self.hasNarration = hasNarration
         self.publishNarration = publishNarration
         self.narrationFileName = narrationFileName
+        self.authorSubscriptionTier = authorSubscriptionTier
     }
 
     var dateFormatted: String {
@@ -305,7 +339,8 @@ struct SampleData {
                 promptQuestion: "What was your first job and what did it teach you?",
                 isInVault: true,
                 year: 1972,
-                folder: workFolder
+                folder: workFolder,
+                authorSubscriptionTier: .family
             ),
             StoryEntry(
                 title: "The startup years",
@@ -314,7 +349,8 @@ struct SampleData {
                 promptQuestion: "What was your proudest professional achievement?",
                 isInVault: true,
                 year: 1995,
-                folder: workFolder
+                folder: workFolder,
+                authorSubscriptionTier: .family
             ),
 
             // Childhood folder
@@ -325,7 +361,8 @@ struct SampleData {
                 promptQuestion: "",
                 isInVault: true,
                 year: 1980,
-                folder: childhoodFolder
+                folder: childhoodFolder,
+                authorSubscriptionTier: .family
             ),
             StoryEntry(
                 title: "The tree house",
@@ -334,7 +371,8 @@ struct SampleData {
                 promptQuestion: "What was your favorite childhood hideaway?",
                 isInVault: true,
                 year: 1968,
-                folder: childhoodFolder
+                folder: childhoodFolder,
+                authorSubscriptionTier: .family
             ),
 
             // Love & Family folder
@@ -345,7 +383,8 @@ struct SampleData {
                 promptQuestion: "Tell me about the moment you knew you were in love",
                 isInVault: true,
                 year: 1985,
-                folder: loveFolder
+                folder: loveFolder,
+                authorSubscriptionTier: .family
             ),
             StoryEntry(
                 title: "The day our first child was born",
@@ -354,7 +393,8 @@ struct SampleData {
                 promptQuestion: "What was the happiest day of your life?",
                 isInVault: true,
                 year: 1988,
-                folder: loveFolder
+                folder: loveFolder,
+                authorSubscriptionTier: .family
             ),
 
             // Travel folder
@@ -365,7 +405,8 @@ struct SampleData {
                 promptQuestion: "Tell me about a travel adventure that surprised you",
                 isInVault: false,
                 year: 2003,
-                folder: travelFolder
+                folder: travelFolder,
+                authorSubscriptionTier: .family
             ),
 
             // Unfiled story (no folder)
@@ -376,7 +417,8 @@ struct SampleData {
                 promptQuestion: "What's the best advice you'd give to your younger self?",
                 isInVault: true,
                 year: 2020,
-                folder: nil
+                folder: nil,
+                authorSubscriptionTier: .family
             ),
         ]
 

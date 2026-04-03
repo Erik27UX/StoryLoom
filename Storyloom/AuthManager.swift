@@ -60,6 +60,11 @@ class AuthManager: ObservableObject {
         saveUser()
     }
 
+    func updateSubscriptionTier(_ tier: SubscriptionTier) {
+        currentUser?.subscriptionTier = tier
+        saveUser()
+    }
+
     // MARK: - Persistence
 
     private func saveUser() {

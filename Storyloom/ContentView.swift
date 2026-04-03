@@ -47,31 +47,61 @@ struct ContentView: View {
 
         TabView(selection: $selectedTab) {
             if isStoryteller {
-                HomeView()
-                    .tabItem { Image(systemName: "house.fill");       Text("Home") }
-                    .tag(0)
-                StoriesLibraryView()
-                    .tabItem { Image(systemName: "square.stack.fill"); Text("Stories") }
-                    .tag(1)
-                ReadersView()
-                    .tabItem { Image(systemName: "person.2.fill");    Text("Readers") }
-                    .tag(2)
-                SettingsView()
-                    .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
-                    .tag(3)
+                NavigationStack {
+                    HomeView()
+                }
+                .id("home-\(selectedTab)")
+                .tabItem { Image(systemName: "house.fill");       Text("Home") }
+                .tag(0)
+
+                NavigationStack {
+                    StoriesLibraryView()
+                }
+                .id("stories-\(selectedTab)")
+                .tabItem { Image(systemName: "square.stack.fill"); Text("Stories") }
+                .tag(1)
+
+                NavigationStack {
+                    ReadersView()
+                }
+                .id("readers-\(selectedTab)")
+                .tabItem { Image(systemName: "person.2.fill");    Text("Readers") }
+                .tag(2)
+
+                NavigationStack {
+                    SettingsView()
+                }
+                .id("account-\(selectedTab)")
+                .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
+                .tag(3)
             } else {
-                ReaderHomeView()
-                    .tabItem { Image(systemName: "house.fill");       Text("Home") }
-                    .tag(0)
-                ReaderStoriesView()
-                    .tabItem { Image(systemName: "square.stack.fill"); Text("Stories") }
-                    .tag(1)
-                ReaderActivityView()
-                    .tabItem { Image(systemName: "bubble.left.and.bubble.right.fill"); Text("Activity") }
-                    .tag(2)
-                SettingsView()
-                    .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
-                    .tag(3)
+                NavigationStack {
+                    ReaderHomeView()
+                }
+                .id("home-\(selectedTab)")
+                .tabItem { Image(systemName: "house.fill");       Text("Home") }
+                .tag(0)
+
+                NavigationStack {
+                    ReaderStoriesView()
+                }
+                .id("stories-\(selectedTab)")
+                .tabItem { Image(systemName: "square.stack.fill"); Text("Stories") }
+                .tag(1)
+
+                NavigationStack {
+                    ReaderActivityView()
+                }
+                .id("activity-\(selectedTab)")
+                .tabItem { Image(systemName: "bubble.left.and.bubble.right.fill"); Text("Activity") }
+                .tag(2)
+
+                NavigationStack {
+                    SettingsView()
+                }
+                .id("account-\(selectedTab)")
+                .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
+                .tag(3)
             }
         }
         .onAppear(perform: seedIfNeeded)
