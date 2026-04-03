@@ -102,7 +102,7 @@ extension User: Codable {
         try container.encode(dateCreated, forKey: .dateCreated)
     }
 
-    convenience init(from decoder: Decoder) throws {
+    required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let email = try container.decode(String.self, forKey: .email)
         let name = try container.decode(String.self, forKey: .name)

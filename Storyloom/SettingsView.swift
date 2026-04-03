@@ -281,7 +281,7 @@ struct AccountSettingsItem: View {
 
 struct ToggleSettingItem: View {
     let label: String
-    @State var isOn: Bool
+    @Binding var isOn: Bool
 
     var body: some View {
         HStack {
