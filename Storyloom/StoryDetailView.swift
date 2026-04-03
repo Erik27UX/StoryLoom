@@ -72,76 +72,56 @@ struct StoryDetailView: View {
                         .fill(SL.border)
                         .frame(height: 1)
 
-                    // Comments & Questions section (readers only)
-                    if authManager.currentUser?.role == .reader {
-                        VStack(spacing: 12) {
-                            NavigationLink(destination: CommentsView(story: story)) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "bubble.left.fill")
-                                        .font(.system(size: 16))
-                                    Text("View comments")
-                                        .font(.system(size: 14, weight: .medium))
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14))
-                                }
-                                .foregroundColor(SL.accent)
-                                .padding(12)
-                                .background(SL.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                    // Comments & Questions — visible to both roles
+                    VStack(spacing: 10) {
+                        // Comments: always available
+                        NavigationLink(destination: CommentsView(story: story)) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "bubble.left.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(SL.accent)
+                                Text("Comments")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(SL.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(SL.textMuted)
                             }
-
-                            NavigationLink(destination: QuestionsView(story: story)) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "questionmark.circle.fill")
-                                        .font(.system(size: 16))
-                                    Text("View questions")
-                                        .font(.system(size: 14, weight: .medium))
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14))
-                                }
-                                .foregroundColor(SL.accent)
-                                .padding(12)
-                                .background(SL.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
+                            .padding(14)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                         }
-                    } else {
-                        // Storyteller view
-                        VStack(spacing: 12) {
-                            NavigationLink(destination: CommentsView(story: story)) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "bubble.left.fill")
-                                        .font(.system(size: 16))
-                                    Text("View comments")
-                                        .font(.system(size: 14, weight: .medium))
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14))
-                                }
-                                .foregroundColor(SL.accent)
-                                .padding(12)
-                                .background(SL.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
 
-                            NavigationLink(destination: QuestionsView(story: story)) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "questionmark.circle.fill")
-                                        .font(.system(size: 16))
-                                    Text("View questions")
+                        // Questions: only if storyteller has Family tier
+                        let questionsUnlocked = story.authorSubscriptionTier == .family
+                        NavigationLink(destination: QuestionsView(story: story)) {
+                            HStack(spacing: 12) {
+                                Image(systemName: questionsUnlocked ? "questionmark.circle.fill" : "lock.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(questionsUnlocked ? SL.accent : SL.textMuted)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Questions")
                                         .font(.system(size: 14, weight: .medium))
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14))
+                                        .foregroundColor(questionsUnlocked ? SL.textPrimary : SL.textSecondary)
+                                    if !questionsUnlocked {
+                                        Text("Family plan required")
+                                            .font(SL.body(11))
+                                            .foregroundColor(SL.textMuted)
+                                    }
                                 }
-                                .foregroundColor(SL.accent)
-                                .padding(12)
-                                .background(SL.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(SL.textMuted)
                             }
+                            .padding(14)
+                            .background(questionsUnlocked ? SL.surface : SL.surface.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                         }
+                        .disabled(!questionsUnlocked)
                     }
 
                     // Narration player — show if story has a recording

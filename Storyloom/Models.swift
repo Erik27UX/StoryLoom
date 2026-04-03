@@ -131,14 +131,18 @@ class StoryComment {
     var userName: String
     var text: String
     var dateCreated: Date
+    var parentCommentId: UUID?
+    var replyToUserName: String?
 
-    init(storyId: UUID, userName: String, text: String) {
+    init(storyId: UUID, userName: String, text: String, parentCommentId: UUID? = nil, replyToUserName: String? = nil) {
         self.id = UUID()
         self.storyId = storyId
         self.userId = UUID()
         self.userName = userName
         self.text = text
         self.dateCreated = Date()
+        self.parentCommentId = parentCommentId
+        self.replyToUserName = replyToUserName
     }
 }
 

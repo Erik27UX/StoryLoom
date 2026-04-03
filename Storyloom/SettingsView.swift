@@ -71,7 +71,7 @@ struct SettingsView: View {
                                         )
                                 }
                             } else {
-                                if authManager.currentUser?.subscriptionTier == .premium {
+                                if authManager.currentUser?.subscriptionTier != .free {
                                     Button(action: { authManager.updateUserRole(.storyteller) }) {
                                         Text("Switch to Storyteller")
                                             .font(.system(size: 15, weight: .medium))
@@ -286,6 +286,28 @@ struct StorytellerSettingsContent: View {
                     Toggle("", isOn: .constant(true))
                         .labelsHidden()
                         .tint(SL.accent)
+                }
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Questions from readers")
+                            .font(SL.body(15))
+                            .foregroundColor(authManager.currentUser?.subscriptionTier == .family ? SL.textPrimary : SL.textSecondary)
+                        if authManager.currentUser?.subscriptionTier != .family {
+                            Text("Requires Family plan")
+                                .font(SL.body(11))
+                                .foregroundColor(SL.accent)
+                        }
+                    }
+                    Spacer()
+                    if authManager.currentUser?.subscriptionTier == .family {
+                        Toggle("", isOn: .constant(true))
+                            .labelsHidden()
+                            .tint(SL.accent)
+                    } else {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(SL.textMuted)
+                    }
                 }
             }
         }

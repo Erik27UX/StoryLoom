@@ -38,75 +38,97 @@ struct QuestionsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                SL.background.ignoresSafeArea()
+        ZStack {
+            SL.background.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    ScrollView {
-                        if filteredQuestions.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "questionmark.circle")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(SL.textSecondary)
-                                Text("No questions yet")
-                                    .font(SL.heading(18))
-                                    .foregroundColor(SL.textPrimary)
-                                Text("Ask the storyteller anything about their story")
-                                    .font(SL.body(14))
-                                    .foregroundColor(SL.textSecondary)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                            .padding(40)
-                        } else {
-                            VStack(spacing: 12) {
-                                ForEach(filteredQuestions) { question in
-                                    QuestionCard(question: question, isStorytellerView: authManager.currentUser?.role == .storyteller)
+            VStack(spacing: 0) {
+                ScrollView {
+                    if authManager.currentUser?.role == .storyteller && isQuestionsLocked {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(SL.accent)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Questions not enabled")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(SL.textPrimary)
+                                    Text("Upgrade to Family plan to let readers ask you questions about your stories.")
+                                        .font(SL.body(12))
+                                        .foregroundColor(SL.textSecondary)
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                            .padding(14)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
                     }
 
-                    Divider().background(SL.border)
-
-                    // Ask question button
-                    if authManager.currentUser?.role == .reader {
-                        if isQuestionsLocked {
-                            VStack(spacing: 8) {
-                                Text("Questions only available for storytellers with Family subscription")
-                                    .font(SL.body(12))
-                                    .foregroundColor(SL.textSecondary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        } else {
-                            Button(action: { showAskQuestion = true }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 16))
-                                    Text("Ask a question")
-                                        .font(.system(size: 15, weight: .medium))
-                                }
-                                .foregroundColor(Color(hex: "FDF9F0"))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(SL.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                    if filteredQuestions.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 40))
+                                .foregroundColor(SL.textSecondary)
+                            Text("No questions yet")
+                                .font(SL.heading(18))
+                                .foregroundColor(SL.textPrimary)
+                            Text("Ask the storyteller anything about their story")
+                                .font(SL.body(14))
+                                .foregroundColor(SL.textSecondary)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .padding(40)
+                    } else {
+                        VStack(spacing: 12) {
+                            ForEach(filteredQuestions) { question in
+                                QuestionCard(question: question, isStorytellerView: authManager.currentUser?.role == .storyteller)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+                }
+
+                Divider().background(SL.border)
+
+                // Ask question button
+                if authManager.currentUser?.role == .reader {
+                    if isQuestionsLocked {
+                        VStack(spacing: 8) {
+                            Text("Questions only available for storytellers with Family subscription")
+                                .font(SL.body(12))
+                                .foregroundColor(SL.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    } else {
+                        Button(action: { showAskQuestion = true }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 16))
+                                Text("Ask a question")
+                                    .font(.system(size: 15, weight: .medium))
+                            }
+                            .foregroundColor(Color(hex: "FDF9F0"))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(SL.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
                 }
             }
-            .navigationTitle("Questions")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showAskQuestion) {
-                AskQuestionSheet(isPresented: $showAskQuestion, story: story, authManager: authManager)
-            }
+        }
+        .navigationTitle("Questions")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showAskQuestion) {
+            AskQuestionSheet(isPresented: $showAskQuestion, story: story, authManager: authManager)
         }
     }
 }

@@ -5,6 +5,7 @@ struct ContentView: View {
     @StateObject private var authManager = AuthManager.shared
     @Environment(\.modelContext) private var modelContext
     @State private var selectedTab = 0
+    @State private var tabIds: [Int: UUID] = [0: UUID(), 1: UUID(), 2: UUID(), 3: UUID()]
 
     init() {
         let appearance = UITabBarAppearance()
@@ -50,58 +51,64 @@ struct ContentView: View {
                 NavigationStack {
                     HomeView()
                 }
-                .id("home-\(selectedTab)")
+                .id(tabIds[0])
                 .tabItem { Image(systemName: "house.fill");       Text("Home") }
                 .tag(0)
 
                 NavigationStack {
                     StoriesLibraryView()
                 }
-                .id("stories-\(selectedTab)")
+                .id(tabIds[1])
                 .tabItem { Image(systemName: "square.stack.fill"); Text("Stories") }
                 .tag(1)
 
                 NavigationStack {
                     ReadersView()
                 }
-                .id("readers-\(selectedTab)")
+                .id(tabIds[2])
                 .tabItem { Image(systemName: "person.2.fill");    Text("Readers") }
                 .tag(2)
 
                 NavigationStack {
                     SettingsView()
                 }
-                .id("account-\(selectedTab)")
+                .id(tabIds[3])
                 .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
                 .tag(3)
             } else {
                 NavigationStack {
                     ReaderHomeView()
                 }
-                .id("home-\(selectedTab)")
+                .id(tabIds[0])
                 .tabItem { Image(systemName: "house.fill");       Text("Home") }
                 .tag(0)
 
                 NavigationStack {
                     ReaderStoriesView()
                 }
-                .id("stories-\(selectedTab)")
+                .id(tabIds[1])
                 .tabItem { Image(systemName: "square.stack.fill"); Text("Stories") }
                 .tag(1)
 
                 NavigationStack {
                     ReaderActivityView()
                 }
-                .id("activity-\(selectedTab)")
+                .id(tabIds[2])
                 .tabItem { Image(systemName: "bubble.left.and.bubble.right.fill"); Text("Activity") }
                 .tag(2)
 
                 NavigationStack {
                     SettingsView()
                 }
-                .id("account-\(selectedTab)")
+                .id(tabIds[3])
                 .tabItem { Image(systemName: "person.circle.fill"); Text("Account") }
                 .tag(3)
+            }
+        }
+        .onChange(of: selectedTab) { oldTab, newTab in
+            // Delay reset until after tab-switch animation (~0.3s) to avoid black flash
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                tabIds[oldTab] = UUID()
             }
         }
         .onAppear(perform: seedIfNeeded)

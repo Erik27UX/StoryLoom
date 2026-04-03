@@ -1,146 +1,144 @@
 import SwiftUI
 
-// The activity tab shown to Reader accounts —
-// displays their reactions, comments, and questions on shared stories.
 struct ReaderActivityView: View {
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Activity")
-                            .font(SL.heading(28))
-                            .foregroundColor(SL.textPrimary)
-                        Text("Your reactions and questions")
-                            .font(SL.body(16))
-                            .foregroundColor(SL.textSecondary)
-                    }
-
-                    // Loved reaction
-                    ActivityCard(
-                        icon: "heart.fill",
-                        iconColor: SL.accent,
-                        headline: "You loved a story",
-                        subtext: "The summer I turned sixteen",
-                        date: "2 days ago",
-                        action: nil
-                    )
-
-                    // Question sent
-                    ActivityCard(
-                        icon: "bubble.left.fill",
-                        iconColor: SL.accent,
-                        headline: "You asked a question",
-                        subtext: "Dad, what happened next with the car?",
-                        date: "5 days ago",
-                        action: nil
-                    )
-
-                    // Answer received
-                    ActivityCard(
-                        icon: "bubble.left.and.bubble.right.fill",
-                        iconColor: Color(hex: "7A9E87"),
-                        headline: "Your question was answered",
-                        subtext: "Letters from your mother",
-                        date: "1 day ago",
-                        actionLabel: "Read the answer",
-                        action: {}
-                    )
-
-                    // Divider + new question prompt
-                    Rectangle()
-                        .fill(SL.border)
-                        .frame(height: 1)
-
-                    Text("Ask a question")
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(1)
-                        .textCase(.uppercase)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Header
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Activity")
+                        .font(SL.heading(28))
+                    Text("Updates from your storytellers")
+                        .font(SL.body(15))
                         .foregroundColor(SL.textSecondary)
-
-                    Button(action: {}) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "plus.circle")
-                                .font(.system(size: 20))
-                                .foregroundColor(SL.textSecondary)
-                            Text("Ask about a story you've read")
-                                .font(SL.body(15))
-                                .foregroundColor(SL.textSecondary)
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [8]))
-                                .foregroundColor(SL.border)
-                        )
-                    }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 32)
+                .padding(.top, 4)
+
+                // FOR YOU section
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("FOR YOU", systemImage: "person.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(SL.accent)
+                        .tracking(1)
+
+                    ActivityItemCard(
+                        icon: "checkmark.bubble.fill",
+                        iconColor: Color(hex: "7A9E87"),
+                        title: "Your question was answered",
+                        subtitle: "\"The summer I turned sixteen\"",
+                        detail: "Margaret replied to your question about the bakery job.",
+                        timeAgo: "1 day ago",
+                        actionLabel: "Read answer"
+                    )
+
+                    ActivityItemCard(
+                        icon: "book.fill",
+                        iconColor: SL.accent,
+                        title: "New story published",
+                        subtitle: "\"The wisdom I wish I'd known\"",
+                        detail: "A new memory was shared just for you.",
+                        timeAgo: "3 days ago",
+                        actionLabel: "Read now"
+                    )
+                }
+
+                Divider().background(SL.border)
+
+                // STORY UPDATES section
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("STORY UPDATES", systemImage: "bell.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(SL.textSecondary)
+                        .tracking(1)
+
+                    ActivityItemCard(
+                        icon: "bubble.left.and.bubble.right.fill",
+                        iconColor: SL.accent.opacity(0.7),
+                        title: "Another question was answered",
+                        subtitle: "\"Letters from your mother\"",
+                        detail: "Marcus T. asked about life lessons — and got a beautiful reply.",
+                        timeAgo: "2 days ago",
+                        actionLabel: "See answer"
+                    )
+
+                    ActivityItemCard(
+                        icon: "bubble.left.fill",
+                        iconColor: SL.textSecondary,
+                        title: "New comment on a story",
+                        subtitle: "\"The tree house\"",
+                        detail: "Elena R. left a comment on this memory.",
+                        timeAgo: "4 days ago",
+                        actionLabel: nil
+                    )
+                }
             }
-            .background(SL.background)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .padding(.bottom, 32)
         }
+        .background(SL.background)
+        .navigationTitle("Activity")
+        .navigationBarTitleDisplayMode(.large)
     }
 }
 
-struct ActivityCard: View {
+struct ActivityItemCard: View {
     let icon: String
     let iconColor: Color
-    let headline: String
-    let subtext: String
-    let date: String
-    var actionLabel: String? = nil
-    var action: (() -> Void)? = nil
+    let title: String
+    let subtitle: String
+    let detail: String
+    let timeAgo: String
+    var actionLabel: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(iconColor)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(headline)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(SL.textPrimary)
-                    Text(date)
-                        .font(SL.body(12))
-                        .foregroundColor(SL.textMuted)
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.12))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: icon)
+                        .font(.system(size: 16))
+                        .foregroundColor(iconColor)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text(title)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(SL.textPrimary)
+                        Spacer()
+                        Text(timeAgo)
+                            .font(SL.body(11))
+                            .foregroundColor(SL.textMuted)
+                    }
+                    Text(subtitle)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(SL.accent)
+                        .italic()
+                    Text(detail)
+                        .font(SL.body(13))
+                        .foregroundColor(SL.textSecondary)
+                        .lineSpacing(3)
                 }
             }
-
-            Text(subtext)
-                .font(SL.body(14))
-                .foregroundColor(SL.textSecondary)
-                .italic()
-
-            if let label = actionLabel, let action {
-                Button(action: action) {
+            if let label = actionLabel {
+                Button(action: {}) {
                     Text(label)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(SL.textPrimary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 40)
+                        .padding(.vertical, 9)
                         .background(SL.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(SL.border, lineWidth: 1)
-                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(SL.border, lineWidth: 1))
                 }
-                .padding(.top, 2)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(SL.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(SL.border, lineWidth: 1)
-        )
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
     }
 }
 
