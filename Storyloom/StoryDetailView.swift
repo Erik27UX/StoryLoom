@@ -8,7 +8,6 @@ struct StoryDetailView: View {
     let story: StoryEntry
 
     @State private var isEditingMode = false
-    @State private var audioProgress: Double = 0
     @State private var selectedPlaybackSpeed: Float = 1.0
 
     var body: some View {
@@ -80,9 +79,13 @@ struct StoryDetailView: View {
                             HStack(spacing: 14) {
                                 Button(action: {
                                     if audio.isPlaying {
-                                        audio.stop()
+                                        audio.pause()
                                     } else {
-                                        audio.play(fileName: fileName)
+                                        if audio.currentTime > 0 {
+                                            audio.resume()
+                                        } else {
+                                            audio.play(fileName: fileName)
+                                        }
                                     }
                                 }) {
                                     ZStack {
@@ -130,15 +133,16 @@ struct StoryDetailView: View {
                                     ZStack(alignment: .leading) {
                                         RoundedRectangle(cornerRadius: 4)
                                             .fill(SL.border)
+                                        let progress = audio.duration > 0 ? audio.currentTime / audio.duration : 0
                                         RoundedRectangle(cornerRadius: 4)
                                             .fill(SL.accent)
-                                            .frame(width: geo.size.width * audioProgress)
+                                            .frame(width: geo.size.width * progress)
                                     }
                                 }
                                 .frame(height: 6)
                                 .gesture(DragGesture().onChanged { value in
-                                    let percentage = value.location.x / 200
-                                    audioProgress = min(max(percentage, 0), 1)
+                                    let percentage = min(max(value.location.x / 200, 0), 1)
+                                    audio.seek(to: percentage * audio.duration)
                                 })
 
                                 HStack {
@@ -146,7 +150,8 @@ struct StoryDetailView: View {
                                         .font(SL.body(12))
                                         .foregroundColor(SL.textSecondary)
                                     Spacer()
-                                    Text(formatTime(duration: 180, progress: audioProgress))
+                                    let remaining = max(0, audio.duration - audio.currentTime)
+                                    Text(formatTime(remaining))
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(SL.textSecondary)
                                 }
@@ -231,10 +236,10 @@ struct StoryDetailView: View {
         return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
     }
 
-    private func formatTime(duration: Int, progress: Double) -> String {
-        let remaining = Int(Double(duration) * (1 - progress))
-        let minutes = remaining / 60
-        let seconds = remaining % 60
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let totalSeconds = Int(timeInterval)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
 }

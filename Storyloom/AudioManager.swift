@@ -6,10 +6,14 @@ class AudioManager: NSObject, ObservableObject {
     @Published var isRecording = false
     @Published var isPlaying = false
     @Published var recordingDuration: TimeInterval = 0
+    @Published var currentTime: TimeInterval = 0
+    @Published var duration: TimeInterval = 0
 
     private var audioRecorder: AVAudioRecorder?
     private var audioPlayer: AVAudioPlayer?
     private var durationTimer: Timer?
+    private var playbackTimer: Timer?
+    private var currentFileName: String?
 
     static let shared = AudioManager()
 
@@ -101,12 +105,26 @@ class AudioManager: NSObject, ObservableObject {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
-            audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.delegate = self
-            audioPlayer?.play()
+
+            // If already playing this file, resume; otherwise create new player
+            if currentFileName == fileName && audioPlayer != nil {
+                audioPlayer?.play()
+            } else {
+                audioPlayer = try AVAudioPlayer(contentsOf: url)
+                audioPlayer?.delegate = self
+                audioPlayer?.play()
+                currentFileName = fileName
+                DispatchQueue.main.async {
+                    self.duration = self.audioPlayer?.duration ?? 0
+                    self.currentTime = 0
+                }
+            }
+
             DispatchQueue.main.async {
                 self.isPlaying = true
             }
+
+            startPlaybackTimer()
         } catch {
             DispatchQueue.main.async {
                 self.isPlaying = false
@@ -114,10 +132,46 @@ class AudioManager: NSObject, ObservableObject {
         }
     }
 
-    func stop() {
-        audioPlayer?.stop()
+    func pause() {
+        audioPlayer?.pause()
+        playbackTimer?.invalidate()
         DispatchQueue.main.async {
             self.isPlaying = false
+        }
+    }
+
+    func resume() {
+        audioPlayer?.play()
+        startPlaybackTimer()
+        DispatchQueue.main.async {
+            self.isPlaying = true
+        }
+    }
+
+    func stop() {
+        audioPlayer?.stop()
+        audioPlayer = nil
+        currentFileName = nil
+        playbackTimer?.invalidate()
+        DispatchQueue.main.async {
+            self.isPlaying = false
+            self.currentTime = 0
+        }
+    }
+
+    func seek(to time: TimeInterval) {
+        audioPlayer?.currentTime = time
+        DispatchQueue.main.async {
+            self.currentTime = time
+        }
+    }
+
+    private func startPlaybackTimer() {
+        playbackTimer?.invalidate()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.currentTime = self?.audioPlayer?.currentTime ?? 0
+            }
         }
     }
 
