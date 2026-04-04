@@ -35,23 +35,7 @@ struct ReadersView: View {
                     // Reader avatars + Invite button
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 14) {
-                            ForEach(mockReaders) { reader in
-                                VStack(spacing: 6) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(reader.bgColor)
-                                            .frame(width: 52, height: 52)
-                                        Text(reader.initial)
-                                            .font(.system(size: 20, weight: .medium))
-                                            .foregroundColor(SL.primary)
-                                    }
-                                    Text(reader.name)
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(SL.textSecondary)
-                                }
-                            }
-
-                            // Invite button — sits at end of avatar row
+                            // Invite button — sits at start of avatar row
                             Button(action: { showInviteSheet = true }) {
                                 VStack(spacing: 6) {
                                     ZStack {
@@ -66,6 +50,22 @@ struct ReadersView: View {
                                     Text("Invite")
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(SL.accent)
+                                }
+                            }
+
+                            ForEach(mockReaders) { reader in
+                                VStack(spacing: 6) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(reader.bgColor)
+                                            .frame(width: 52, height: 52)
+                                        Text(reader.initial)
+                                            .font(.system(size: 20, weight: .medium))
+                                            .foregroundColor(SL.primary)
+                                    }
+                                    Text(reader.name)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(SL.textSecondary)
                                 }
                             }
                         }
@@ -108,7 +108,7 @@ struct ReadersView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showManageSheet = true }) {
-                        Text("Edit")
+                        Text("Manage Readers")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(SL.accent)
                     }
@@ -131,10 +131,45 @@ struct ManageReadersSheet: View {
     @Binding var isPresented: Bool
     @State private var readerToRemove: MockReader? = nil
     @State private var showRemoveConfirm = false
+    @State private var showInviteFromManage = false
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Button(action: { showInviteFromManage = true }) {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(SL.accent.opacity(0.1))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(SL.accent)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Invite a new reader")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(SL.accent)
+                                Text("Share a private link to grant access")
+                                    .font(SL.body(12))
+                                    .foregroundColor(SL.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13))
+                                .foregroundColor(SL.textMuted)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                } header: {
+                    Text("Invite")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(SL.textSecondary)
+                        .textCase(.uppercase)
+                }
+
                 Section {
                     ForEach(readers) { reader in
                         HStack(spacing: 14) {
@@ -202,6 +237,9 @@ struct ManageReadersSheet: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("They will no longer be able to read your stories.")
+        }
+        .sheet(isPresented: $showInviteFromManage) {
+            InviteReadersSheet(isPresented: $showInviteFromManage)
         }
     }
 }
