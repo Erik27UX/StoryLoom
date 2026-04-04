@@ -93,9 +93,9 @@ struct EditStoryView: View {
                                 HStack(spacing: 10) {
                                     Button(action: { isVault = false }) {
                                         HStack(spacing: 6) {
-                                            Image(systemName: "tray.fill")
+                                            Image(systemName: "lock.fill")
                                                 .font(.system(size: 13))
-                                            Text("Draft")
+                                            Text("Private")
                                                 .font(.system(size: 14, weight: .medium))
                                         }
                                         .frame(maxWidth: .infinity)
@@ -341,19 +341,30 @@ struct EditStoryView: View {
 
                     Spacer()
 
-                    Button(action: startRecording) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 12))
-                            Text("Re-record")
-                                .font(.system(size: 13, weight: .medium))
+                    HStack(spacing: 8) {
+                        Button(action: deleteNarration) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color.red.opacity(0.7))
+                                .padding(8)
+                                .background(Color.red.opacity(0.07))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.red.opacity(0.2), lineWidth: 1))
                         }
-                        .foregroundColor(SL.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(SL.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(SL.border, lineWidth: 1))
+                        Button(action: startRecording) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 12))
+                                Text("Re-record")
+                                    .font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(SL.textSecondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(SL.background)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(SL.border, lineWidth: 1))
+                        }
                     }
                 }
                 .padding(14)
@@ -421,6 +432,20 @@ struct EditStoryView: View {
         } else {
             audio.play(fileName: fileName)
         }
+    }
+
+    private func deleteNarration() {
+        audio.stop()
+        if let pending = pendingNarrationFileName {
+            AudioManager.shared.deleteRecording(fileName: pending)
+            pendingNarrationFileName = nil
+        } else if let existing = story?.narrationFileName {
+            AudioManager.shared.deleteRecording(fileName: existing)
+            story?.narrationFileName = nil
+            story?.hasNarration = false
+            story?.publishNarration = false
+        }
+        publishNarration = false
     }
 
     private func saveChanges() {
