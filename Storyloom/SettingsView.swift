@@ -35,13 +35,18 @@ struct SettingsView: View {
                             .padding(4)
                         }
 
-                        Text(authManager.currentUser?.name ?? "User")
+                        VStack(spacing: 8) {
+                            TextField("Your name", text: Binding(
+                                get: { authManager.currentUser?.name ?? "" },
+                                set: { authManager.updateUserProfile(name: $0, birthYear: nil, profilePhotoURL: nil) }
+                            ))
                             .font(SL.heading(22))
                             .foregroundColor(SL.textPrimary)
-
-                        Text(authManager.currentUser?.email ?? "")
-                            .font(SL.body(13))
-                            .foregroundColor(SL.textSecondary)
+                            
+                            Text(authManager.currentUser?.email ?? "")
+                                .font(SL.body(13))
+                                .foregroundColor(SL.textSecondary)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 8)

@@ -46,9 +46,9 @@ struct StoryDetailView: View {
 
                             if story.isInVault {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "lock.open.fill")
+                                    Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 10))
-                                    Text("Vault")
+                                    Text("Published")
                                         .font(.system(size: 11, weight: .medium))
                                 }
                                 .foregroundColor(SL.accent)
@@ -57,7 +57,7 @@ struct StoryDetailView: View {
                                 .background(SL.accent.opacity(0.1))
                                 .clipShape(Capsule())
                             } else {
-                                Text("Draft")
+                                Text("Private")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(SL.textSecondary)
                                     .padding(.horizontal, 8)

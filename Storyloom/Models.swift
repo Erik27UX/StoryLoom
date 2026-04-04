@@ -206,6 +206,7 @@ class StoryEntry {
     var publishNarration: Bool
     var narrationFileName: String?
     var authorSubscriptionTier: SubscriptionTier = SubscriptionTier.premium
+    var authorName: String?
 
     init(
         title: String,
@@ -218,7 +219,8 @@ class StoryEntry {
         hasNarration: Bool = false,
         publishNarration: Bool = false,
         narrationFileName: String? = nil,
-        authorSubscriptionTier: SubscriptionTier = .premium
+        authorSubscriptionTier: SubscriptionTier = .premium,
+        authorName: String? = nil
     ) {
         self.uuid = UUID()
         self.title = title
@@ -233,6 +235,7 @@ class StoryEntry {
         self.publishNarration = publishNarration
         self.narrationFileName = narrationFileName
         self.authorSubscriptionTier = authorSubscriptionTier
+        self.authorName = authorName
     }
 
     var dateFormatted: String {
@@ -344,7 +347,8 @@ struct SampleData {
                 isInVault: true,
                 year: 1972,
                 folder: workFolder,
-                authorSubscriptionTier: .family
+                authorSubscriptionTier: .family,
+                authorName: "Margaret"
             ),
             StoryEntry(
                 title: "The startup years",
@@ -354,7 +358,8 @@ struct SampleData {
                 isInVault: true,
                 year: 1995,
                 folder: workFolder,
-                authorSubscriptionTier: .family
+                authorSubscriptionTier: .family,
+                authorName: "James"
             ),
 
             // Childhood folder
@@ -366,7 +371,8 @@ struct SampleData {
                 isInVault: true,
                 year: 1980,
                 folder: childhoodFolder,
-                authorSubscriptionTier: .family
+                authorSubscriptionTier: .family,
+                authorName: "Margaret"
             ),
             StoryEntry(
                 title: "The tree house",
