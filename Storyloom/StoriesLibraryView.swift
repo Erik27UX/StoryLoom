@@ -190,10 +190,10 @@ struct StoryLibraryCard: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     if story.isInVault {
-                        HStack(spacing: 4) {
-                            Image(systemName: "lock.open.fill")
-                                .font(.system(size: 11))
-                            Text("Vault")
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 10))
+                            Text("Published")
                                 .font(.system(size: 11, weight: .medium))
                         }
                         .foregroundColor(SL.accent)
@@ -201,6 +201,14 @@ struct StoryLibraryCard: View {
                         .padding(.vertical, 4)
                         .background(SL.accent.opacity(0.1))
                         .clipShape(Capsule())
+                    } else {
+                        Text("Private")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(SL.textSecondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(SL.border.opacity(0.5))
+                            .clipShape(Capsule())
                     }
                     if let year = story.year {
                         Text(formatYear(year))
@@ -219,9 +227,41 @@ struct StoryLibraryCard: View {
                 .foregroundColor(SL.textSecondary)
                 .lineLimit(2)
 
-            Text(story.dateFormatted)
-                .font(SL.body(13))
-                .foregroundColor(SL.textSecondary)
+            HStack {
+                Text(story.dateFormatted)
+                    .font(SL.body(13))
+                    .foregroundColor(SL.textSecondary)
+                Spacer()
+                // Engagement stats (mock counts)
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "C17B6A"))
+                        Text("7")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(SL.textSecondary)
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "bubble.left.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(SL.accent)
+                        Text("3")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(SL.textSecondary)
+                    }
+                    if story.authorSubscriptionTier == .family {
+                        HStack(spacing: 4) {
+                            Image(systemName: "questionmark.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(SL.accent)
+                            Text("2")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(SL.textSecondary)
+                        }
+                    }
+                }
+            }
         }
         .padding(18)
         .background(SL.surface)

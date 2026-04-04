@@ -30,7 +30,7 @@ struct StoryDetailView: View {
                             .font(SL.heading(26))
                             .foregroundColor(SL.textPrimary)
 
-                        HStack(spacing: 12) {
+                        HStack(spacing: 8) {
                             HStack(spacing: 8) {
                                 Text(story.dateFormatted)
                                     .font(SL.body(13))
@@ -65,6 +65,18 @@ struct StoryDetailView: View {
                                     .background(SL.surface)
                                     .clipShape(Capsule())
                             }
+
+                            Spacer()
+
+                            // Likes
+                            HStack(spacing: 4) {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Color(hex: "C17B6A"))
+                                Text("7")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(SL.textSecondary)
+                            }
                         }
                     }
 
@@ -84,6 +96,9 @@ struct StoryDetailView: View {
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(SL.textPrimary)
                                 Spacer()
+                                Text("3")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(SL.textSecondary)
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13))
                                     .foregroundColor(SL.textMuted)
@@ -112,6 +127,11 @@ struct StoryDetailView: View {
                                     }
                                 }
                                 Spacer()
+                                if questionsUnlocked {
+                                    Text("2")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(SL.textSecondary)
+                                }
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13))
                                     .foregroundColor(SL.textMuted)
