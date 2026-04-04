@@ -13,35 +13,30 @@ struct SettingsView: View {
                 VStack(spacing: 24) {
                     // Avatar + name + Edit button
                     VStack(spacing: 12) {
-                        ZStack {
+                        ZStack(alignment: .bottomTrailing) {
                             Circle()
                                 .fill(SL.surface)
                                 .frame(width: 80, height: 80)
                                 .overlay(Circle().stroke(SL.border, lineWidth: 1))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             Text(String(authManager.currentUser?.name.prefix(1) ?? "U").uppercased())
                                 .font(.system(size: 32, weight: .medium))
                                 .foregroundColor(SL.primary)
-                            VStack {
-                                HStack {
-                                    Spacer()
-                                    Button(action: { showImagePicker = true }) {
-                                        ZStack {
-                                            Circle()
-                                                .fill(SL.background)
-                                                .frame(width: 26, height: 26)
-                                            Circle()
-                                                .stroke(SL.border, lineWidth: 1)
-                                                .frame(width: 26, height: 26)
-                                            Image(systemName: "camera.fill")
-                                                .font(.system(size: 11))
-                                                .foregroundColor(SL.accent)
-                                        }
-                                    }
-                                    .offset(x: 2, y: 2)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                            Button(action: { showImagePicker = true }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(SL.background)
+                                        .frame(width: 26, height: 26)
+                                    Circle()
+                                        .stroke(SL.border, lineWidth: 1)
+                                        .frame(width: 26, height: 26)
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(SL.accent)
                                 }
-                                Spacer()
                             }
-                            .padding(4)
+                            .offset(x: 2, y: 2)
                         }
 
                         VStack(spacing: 6) {
