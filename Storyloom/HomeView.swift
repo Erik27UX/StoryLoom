@@ -184,21 +184,42 @@ struct RecentStoryCard: View {
     var body: some View {
         NavigationLink(destination: StoryDetailView(story: story)) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(story.title)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(SL.textPrimary)
+                HStack(alignment: .top) {
+                    Text(story.title)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(SL.textPrimary)
+                    Spacer()
+                    if story.isInVault {
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 10))
+                            Text("Published")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(SL.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(SL.accent.opacity(0.1))
+                        .clipShape(Capsule())
+                    } else {
+                        Text("Private")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(SL.textSecondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(SL.border.opacity(0.5))
+                            .clipShape(Capsule())
+                    }
+                }
 
                 Text(story.preview)
                     .font(SL.body(14))
                     .foregroundColor(SL.textSecondary)
                     .lineLimit(2)
 
-                HStack {
-                    Text(story.dateFormatted)
-                        .font(SL.body(13))
-                        .foregroundColor(SL.textSecondary)
-                    Spacer()
-                }
+                Text(story.dateFormatted)
+                    .font(SL.body(13))
+                    .foregroundColor(SL.textSecondary)
             }
             .padding(18)
             .background(SL.surface)

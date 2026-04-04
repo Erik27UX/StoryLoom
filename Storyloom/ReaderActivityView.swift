@@ -6,8 +6,6 @@ struct ReaderActivityView: View {
             VStack(alignment: .leading, spacing: 24) {
                 // Header
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Activity")
-                        .font(SL.heading(28))
                     Text("Updates from your storytellers")
                         .font(SL.body(15))
                         .foregroundColor(SL.textSecondary)
@@ -79,6 +77,7 @@ struct ReaderActivityView: View {
         .background(SL.background)
         .navigationTitle("Activity")
         .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(SL.background, for: .navigationBar)
     }
 }
 

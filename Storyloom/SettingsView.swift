@@ -4,6 +4,8 @@ struct SettingsView: View {
     @ObservedObject var authManager = AuthManager.shared
     @State private var showUpgradeForRole = false
     @State private var showImagePicker = false
+    @State private var isEditingName = false
+    @State private var editedName = ""
 
     var body: some View {
         NavigationStack {
@@ -35,14 +37,40 @@ struct SettingsView: View {
                             .padding(4)
                         }
 
-                        VStack(spacing: 8) {
-                            TextField("Your name", text: Binding(
-                                get: { authManager.currentUser?.name ?? "" },
-                                set: { authManager.updateUserProfile(name: $0, birthYear: nil, profilePhotoURL: nil) }
-                            ))
-                            .font(SL.heading(22))
-                            .foregroundColor(SL.textPrimary)
-                            
+                        VStack(spacing: 6) {
+                            if isEditingName {
+                                HStack(spacing: 8) {
+                                    TextField("Your name", text: $editedName)
+                                        .font(SL.heading(20))
+                                        .foregroundColor(SL.textPrimary)
+                                        .multilineTextAlignment(.center)
+                                    Button(action: {
+                                        authManager.updateUserProfile(name: editedName, birthYear: nil, profilePhotoURL: nil)
+                                        isEditingName = false
+                                    }) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 22))
+                                            .foregroundColor(SL.accent)
+                                    }
+                                }
+                            } else {
+                                HStack(spacing: 6) {
+                                    Text(authManager.currentUser?.name ?? "Your Name")
+                                        .font(SL.heading(22))
+                                        .foregroundColor(SL.textPrimary)
+                                    Button(action: {
+                                        editedName = authManager.currentUser?.name ?? ""
+                                        isEditingName = true
+                                    }) {
+                                        Image(systemName: "pencil.circle.fill")
+                                            .font(.system(size: 20))
+                                            .foregroundColor(SL.accent)
+                                    }
+                                }
+                            }
+                            Text("Visible to your readers")
+                                .font(SL.body(11))
+                                .foregroundColor(SL.textSecondary)
                             Text(authManager.currentUser?.email ?? "")
                                 .font(SL.body(13))
                                 .foregroundColor(SL.textSecondary)

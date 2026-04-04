@@ -38,6 +38,7 @@ struct ReaderStoriesView: View {
                             .foregroundColor(SL.textSecondary)
                     }
                     .padding(.top, 8)
+                    .padding(.horizontal, 20)
 
                     // Author filter pills (only if 2+ storytellers)
                     if showAuthorFilter {
@@ -47,6 +48,7 @@ struct ReaderStoriesView: View {
                                 .foregroundColor(SL.textSecondary)
                                 .tracking(0.5)
                                 .textCase(.uppercase)
+                                .padding(.horizontal, 20)
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
@@ -63,8 +65,8 @@ struct ReaderStoriesView: View {
                                             .foregroundColor(
                                                 (selectedAuthors.contains(author) || selectedAuthors.isEmpty) ? .white : SL.textSecondary
                                             )
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 7)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 8)
                                             .background(
                                                 (selectedAuthors.contains(author) || selectedAuthors.isEmpty) ? SL.accent : SL.surface
                                             )
@@ -79,12 +81,13 @@ struct ReaderStoriesView: View {
                                     }
                                 }
                                 .padding(.horizontal, 20)
+                                .padding(.vertical, 2)
                             }
                         }
-                        .padding(.top, 8)
+                        .padding(.top, 4)
                     }
 
-                    // Stories grid
+                    // Stories list
                     if filteredStories.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "book.closed")
@@ -111,6 +114,7 @@ struct ReaderStoriesView: View {
                         .padding(.bottom, 24)
                     }
                 }
+                .padding(.top, 4)
             }
             .background(SL.background)
             .navigationBarTitleDisplayMode(.inline)
