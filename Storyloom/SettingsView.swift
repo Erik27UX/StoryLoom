@@ -18,11 +18,9 @@ struct SettingsView: View {
                                 .fill(SL.surface)
                                 .frame(width: 80, height: 80)
                                 .overlay(Circle().stroke(SL.border, lineWidth: 1))
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             Text(String(authManager.currentUser?.name.prefix(1) ?? "U").uppercased())
                                 .font(.system(size: 32, weight: .medium))
                                 .foregroundColor(SL.primary)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             Button(action: { showImagePicker = true }) {
                                 ZStack {
                                     Circle()
@@ -33,8 +31,9 @@ struct SettingsView: View {
                                         .foregroundColor(Color(hex: "FDF9F0"))
                                 }
                             }
-                            .offset(x: -8, y: -8)
+                            .offset(x: 8, y: 8)
                         }
+                        .frame(width: 80, height: 80)
 
                         VStack(spacing: 6) {
                             if isEditingName {
