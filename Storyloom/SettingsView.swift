@@ -26,17 +26,14 @@ struct SettingsView: View {
                             Button(action: { showImagePicker = true }) {
                                 ZStack {
                                     Circle()
-                                        .fill(SL.background)
-                                        .frame(width: 26, height: 26)
-                                    Circle()
-                                        .stroke(SL.border, lineWidth: 1)
-                                        .frame(width: 26, height: 26)
+                                        .fill(SL.accent)
+                                        .frame(width: 28, height: 28)
                                     Image(systemName: "camera.fill")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(SL.accent)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FDF9F0"))
                                 }
                             }
-                            .offset(x: 8, y: 8)
+                            .offset(x: -8, y: -8)
                         }
 
                         VStack(spacing: 6) {
