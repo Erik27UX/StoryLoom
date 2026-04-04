@@ -9,6 +9,8 @@ struct StoryDetailView: View {
 
     @State private var isEditingMode = false
     @State private var selectedPlaybackSpeed: Float = 1.0
+    @State private var isLiked = false
+    @State private var likeCount = 7
 
     var body: some View {
         if isEditingMode {
@@ -68,14 +70,32 @@ struct StoryDetailView: View {
 
                             Spacer()
 
-                            // Likes
-                            HStack(spacing: 4) {
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Color(hex: "C17B6A"))
-                                Text("7")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(SL.textSecondary)
+                            // Likes — interactive for readers
+                            if authManager.currentUser?.role == .reader {
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                        isLiked.toggle()
+                                        likeCount += isLiked ? 1 : -1
+                                    }
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: isLiked ? "heart.fill" : "heart")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(isLiked ? Color(hex: "C17B6A") : SL.textSecondary)
+                                        Text("\(likeCount)")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(SL.textSecondary)
+                                    }
+                                }
+                            } else {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "heart.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Color(hex: "C17B6A"))
+                                    Text("\(likeCount)")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(SL.textSecondary)
+                                }
                             }
                         }
                     }
@@ -101,7 +121,7 @@ struct StoryDetailView: View {
                                     .foregroundColor(SL.textSecondary)
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13))
-                                    .foregroundColor(SL.textMuted)
+                                    .foregroundColor(SL.textSecondary)
                             }
                             .padding(14)
                             .background(SL.surface)
@@ -115,7 +135,7 @@ struct StoryDetailView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: questionsUnlocked ? "questionmark.circle.fill" : "lock.fill")
                                     .font(.system(size: 16))
-                                    .foregroundColor(questionsUnlocked ? SL.accent : SL.textMuted)
+                                    .foregroundColor(questionsUnlocked ? SL.accent : SL.textSecondary)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Questions")
                                         .font(.system(size: 14, weight: .medium))
@@ -123,7 +143,7 @@ struct StoryDetailView: View {
                                     if !questionsUnlocked {
                                         Text("Family plan required")
                                             .font(SL.body(11))
-                                            .foregroundColor(SL.textMuted)
+                                            .foregroundColor(SL.textSecondary)
                                     }
                                 }
                                 Spacer()
@@ -134,7 +154,7 @@ struct StoryDetailView: View {
                                 }
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13))
-                                    .foregroundColor(SL.textMuted)
+                                    .foregroundColor(SL.textSecondary)
                             }
                             .padding(14)
                             .background(questionsUnlocked ? SL.surface : SL.surface.opacity(0.5))

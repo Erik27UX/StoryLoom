@@ -1,6 +1,13 @@
 import SwiftUI
+import SwiftData
 
 struct ReaderActivityView: View {
+    @Query private var allStories: [StoryEntry]
+
+    func story(titled title: String) -> StoryEntry? {
+        allStories.first { $0.title == title }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -26,7 +33,8 @@ struct ReaderActivityView: View {
                         subtitle: "\"The summer I turned sixteen\"",
                         detail: "Margaret replied to your question about the bakery job.",
                         timeAgo: "1 day ago",
-                        actionLabel: "Read answer"
+                        actionLabel: "Read answer",
+                        destination: story(titled: "The summer I turned sixteen")
                     )
 
                     ActivityItemCard(
@@ -36,7 +44,8 @@ struct ReaderActivityView: View {
                         subtitle: "\"The wisdom I wish I'd known\"",
                         detail: "A new memory was shared just for you.",
                         timeAgo: "3 days ago",
-                        actionLabel: "Read now"
+                        actionLabel: "Read now",
+                        destination: story(titled: "The wisdom I wish I'd known")
                     )
                 }
 
@@ -56,7 +65,8 @@ struct ReaderActivityView: View {
                         subtitle: "\"Letters from your mother\"",
                         detail: "Marcus T. asked about life lessons — and got a beautiful reply.",
                         timeAgo: "2 days ago",
-                        actionLabel: "See answer"
+                        actionLabel: "See answer",
+                        destination: story(titled: "Letters from your mother")
                     )
 
                     ActivityItemCard(
@@ -66,7 +76,8 @@ struct ReaderActivityView: View {
                         subtitle: "\"The tree house\"",
                         detail: "Elena R. left a comment on this memory.",
                         timeAgo: "4 days ago",
-                        actionLabel: nil
+                        actionLabel: nil,
+                        destination: nil
                     )
                 }
             }
@@ -89,6 +100,7 @@ struct ActivityItemCard: View {
     let detail: String
     let timeAgo: String
     var actionLabel: String?
+    var destination: StoryEntry?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -109,7 +121,7 @@ struct ActivityItemCard: View {
                         Spacer()
                         Text(timeAgo)
                             .font(SL.body(11))
-                            .foregroundColor(SL.textMuted)
+                            .foregroundColor(SL.textSecondary)
                     }
                     Text(subtitle)
                         .font(.system(size: 13, weight: .medium))
@@ -122,15 +134,28 @@ struct ActivityItemCard: View {
                 }
             }
             if let label = actionLabel {
-                Button(action: {}) {
-                    Text(label)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(SL.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(SL.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 9))
-                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(SL.border, lineWidth: 1))
+                if let story = destination {
+                    NavigationLink(destination: StoryDetailView(story: story)) {
+                        Text(label)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(SL.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background(SL.background)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(SL.border, lineWidth: 1))
+                    }
+                } else {
+                    Button(action: {}) {
+                        Text(label)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(SL.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                            .background(SL.background)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(SL.border, lineWidth: 1))
+                    }
                 }
             }
         }

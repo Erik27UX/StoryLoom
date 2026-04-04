@@ -158,7 +158,7 @@ struct ManageReadersSheet: View {
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 13))
-                                .foregroundColor(SL.textMuted)
+                                .foregroundColor(SL.textSecondary)
                         }
                         .padding(.vertical, 4)
                     }

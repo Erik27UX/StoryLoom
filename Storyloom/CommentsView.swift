@@ -159,7 +159,7 @@ struct CommentRow: View {
                         .foregroundColor(SL.textPrimary)
                     Text(formatDate(comment.dateCreated))
                         .font(SL.body(11))
-                        .foregroundColor(SL.textMuted)
+                        .foregroundColor(SL.textSecondary)
                 }
                 Text(comment.text)
                     .font(SL.body(13))
