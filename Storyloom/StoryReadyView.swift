@@ -6,11 +6,13 @@ struct StoryReadyView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Folder.dateCreated, order: .reverse) var folders: [Folder]
 
+    @ObservedObject private var audio = AudioManager.shared
+
     let prompt: StoryPrompt?
     let storyText: String
     let customTitle: String?
-    let hasRecording: Bool
 
+    @State private var pendingNarrationFileName: String?
     @State private var editableText: String
     @State private var savedSuccessfully = false
     @State private var selectedYear: Int? = nil
@@ -18,18 +20,17 @@ struct StoryReadyView: View {
     @State private var yearText: String = ""
     @State private var selectedCategory: PromptCategory = .coreMemory
     @State private var publishNarration: Bool = true
-    @State private var isPlayingNarration: Bool = false
 
     init(
         prompt: StoryPrompt?,
         storyText: String = SampleData.sampleStoryText,
         customTitle: String? = nil,
-        hasRecording: Bool = false
+        narrationFileName: String? = nil
     ) {
         self.prompt = prompt
         self.storyText = storyText
         self.customTitle = customTitle
-        self.hasRecording = hasRecording
+        _pendingNarrationFileName = State(initialValue: narrationFileName)
         _editableText = State(initialValue: storyText)
     }
 
@@ -107,7 +108,7 @@ struct StoryReadyView: View {
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
 
                 // Narration section — only if user recorded
-                if hasRecording {
+                if pendingNarrationFileName != nil || audio.isRecording {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Voice narration")
                             .font(.system(size: 13, weight: .semibold))
@@ -115,44 +116,120 @@ struct StoryReadyView: View {
                             .textCase(.uppercase)
                             .foregroundColor(SL.textSecondary)
 
-                        // Playback row
-                        HStack(spacing: 14) {
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.2)) { isPlayingNarration.toggle() }
-                            }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(SL.primary)
-                                        .frame(width: 44, height: 44)
-                                    Image(systemName: isPlayingNarration ? "pause.fill" : "play.fill")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(SL.accent)
+                        if audio.isRecording {
+                            // Recording in progress
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 10, height: 10)
+                                Text(audio.formatDuration(audio.recordingDuration))
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(SL.textPrimary)
+                                    .monospacedDigit()
+                                Spacer()
+                                Button(action: { AudioManager.shared.stopRecording() }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "stop.fill")
+                                            .font(.system(size: 12))
+                                        Text("Stop")
+                                            .font(.system(size: 14, weight: .medium))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 9)
+                                    .background(Color.red)
+                                    .clipShape(Capsule())
                                 }
                             }
+                            .padding(14)
+                            .background(Color.red.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.3), lineWidth: 1))
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Simulated waveform
-                                HStack(spacing: 3) {
-                                    ForEach([0.4, 0.7, 1.0, 0.6, 0.9, 0.5, 0.8, 0.3, 0.7, 1.0, 0.5, 0.6], id: \.self) { h in
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(isPlayingNarration ? SL.accent : SL.border)
-                                            .frame(width: 3, height: 24 * h)
-                                            .animation(.easeInOut(duration: 0.4).repeatForever(), value: isPlayingNarration)
+                        } else {
+                            // Playback row
+                            HStack(spacing: 12) {
+                                Button(action: {
+                                    guard let fileName = pendingNarrationFileName else { return }
+                                    if audio.isPlaying { audio.stop() } else { audio.play(fileName: fileName) }
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(SL.primary)
+                                            .frame(width: 44, height: 44)
+                                        Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(SL.accent)
                                     }
                                 }
-                                .frame(height: 24)
 
-                                Text(isPlayingNarration ? "Playing…" : "Your recording")
-                                    .font(SL.body(12))
-                                    .foregroundColor(SL.textSecondary)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 3) {
+                                        ForEach([0.4, 0.7, 1.0, 0.6, 0.9, 0.5, 0.8, 0.3, 0.7, 1.0, 0.5, 0.6], id: \.self) { h in
+                                            RoundedRectangle(cornerRadius: 2)
+                                                .fill(audio.isPlaying ? SL.accent : SL.border)
+                                                .frame(width: 3, height: 24 * h)
+                                        }
+                                    }
+                                    .frame(height: 24)
+                                    Text(audio.isPlaying ? "Playing…" : "Your recording")
+                                        .font(SL.body(12))
+                                        .foregroundColor(SL.textSecondary)
+                                }
+
+                                Spacer()
+
+                                HStack(spacing: 8) {
+                                    Button(action: {
+                                        audio.stop()
+                                        if let pending = pendingNarrationFileName {
+                                            AudioManager.shared.deleteRecording(fileName: pending)
+                                            pendingNarrationFileName = nil
+                                        }
+                                        publishNarration = false
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 13))
+                                            .foregroundColor(Color.red.opacity(0.7))
+                                            .padding(8)
+                                            .background(Color.red.opacity(0.07))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                                    }
+                                    Button(action: {
+                                        audio.stop()
+                                        if let pending = pendingNarrationFileName {
+                                            AudioManager.shared.deleteRecording(fileName: pending)
+                                            pendingNarrationFileName = nil
+                                        }
+                                        Task {
+                                            let granted = await AudioManager.shared.requestMicrophonePermission()
+                                            guard granted else { return }
+                                            await MainActor.run {
+                                                pendingNarrationFileName = AudioManager.shared.startRecording()
+                                            }
+                                        }
+                                    }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.system(size: 12))
+                                            Text("Re-record")
+                                                .font(.system(size: 13, weight: .medium))
+                                        }
+                                        .foregroundColor(SL.textSecondary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 7)
+                                        .background(SL.background)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(SL.border, lineWidth: 1))
+                                    }
+                                }
                             }
-
-                            Spacer()
+                            .padding(14)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                         }
-                        .padding(14)
-                        .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
 
                         // Publish narration toggle
                         HStack(spacing: 12) {
@@ -288,9 +365,9 @@ struct StoryReadyView: View {
 
                     Button(action: { saveStory(publish: false) }) {
                         HStack(spacing: 8) {
-                            Image(systemName: "tray.fill")
+                            Image(systemName: "lock.fill")
                                 .font(.system(size: 15))
-                            Text(savedSuccessfully ? "Saved!" : "Save as draft")
+                            Text(savedSuccessfully ? "Saved!" : "Save as private")
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(SL.textPrimary)
@@ -311,7 +388,10 @@ struct StoryReadyView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { dismiss() }) {
+                Button(action: {
+                    audio.stop()
+                    dismiss()
+                }) {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .medium))
@@ -378,8 +458,9 @@ struct StoryReadyView: View {
             isInVault: publish,
             year: selectedYear,
             folder: selectedFolder,
-            hasNarration: hasRecording,
-            publishNarration: hasRecording && publishNarration
+            hasNarration: pendingNarrationFileName != nil,
+            publishNarration: pendingNarrationFileName != nil && publishNarration,
+            narrationFileName: pendingNarrationFileName
         )
         modelContext.insert(entry)
         withAnimation { savedSuccessfully = true }
@@ -395,8 +476,8 @@ struct StoryReadyView: View {
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: StoryEntry.self, Folder.self, configurations: config)
-    return NavigationStack {
-        StoryReadyView(prompt: SampleData.prompts.first, hasRecording: true)
+    NavigationStack {
+        StoryReadyView(prompt: SampleData.prompts.first)
     }
     .modelContainer(container)
 }

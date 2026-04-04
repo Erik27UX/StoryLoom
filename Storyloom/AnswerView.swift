@@ -98,8 +98,7 @@ struct AnswerView: View {
             VStack {
                 NavigationLink(destination: StoryReadyView(
                     prompt: prompt,
-                    storyText: generatedStory,
-                    hasRecording: isRecording
+                    storyText: generatedStory
                 )) {
                     Text("Turn into a story")
                         .font(.system(size: 16, weight: .medium))
