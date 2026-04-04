@@ -36,7 +36,7 @@ struct SettingsView: View {
                                         .foregroundColor(SL.accent)
                                 }
                             }
-                            .offset(x: 2, y: 2)
+                            .offset(x: 8, y: 8)
                         }
 
                         VStack(spacing: 6) {
