@@ -391,6 +391,7 @@ struct AskQuestionSheet: View {
             audioFileName: pendingAudioFileName
         )
         modelContext.insert(question)
+        SyncManager.shared.pushQuestion(question)
         questionText = ""
         pendingAudioFileName = nil
         isPresented = false

@@ -127,6 +127,7 @@ struct CommentsView: View {
         guard !newComment.isEmpty else { return }
         let comment = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Reader", text: newComment)
         modelContext.insert(comment)
+        SyncManager.shared.pushComment(comment)
         newComment = ""
     }
 
@@ -134,6 +135,7 @@ struct CommentsView: View {
         guard !replyText.isEmpty, let parent = replyingTo else { return }
         let reply = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Storyteller", text: replyText, parentCommentId: parent.id)
         modelContext.insert(reply)
+        SyncManager.shared.pushComment(reply)
         replyText = ""
         replyingTo = nil
     }

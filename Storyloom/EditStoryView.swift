@@ -463,6 +463,8 @@ struct EditStoryView: View {
                 story.narrationFileName = pending
                 story.hasNarration = true
             }
+            // Push updated story to Supabase
+            SyncManager.shared.pushStory(story)
         } else {
             onSave?(storyText)
         }

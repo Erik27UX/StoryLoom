@@ -76,6 +76,12 @@ struct StoryDetailView: View {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                         isLiked.toggle()
                                         story.likeCount += isLiked ? 1 : -1
+                                        // Sync like state to Supabase
+                                        if isLiked {
+                                            SyncManager.shared.pushLike(storyUUID: story.uuid)
+                                        } else {
+                                            SyncManager.shared.removeLike(storyUUID: story.uuid)
+                                        }
                                     }
                                 }) {
                                     HStack(spacing: 6) {

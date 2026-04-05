@@ -463,6 +463,8 @@ struct StoryReadyView: View {
             narrationFileName: pendingNarrationFileName
         )
         modelContext.insert(entry)
+        // Push to Supabase
+        SyncManager.shared.pushStory(entry)
         withAnimation { savedSuccessfully = true }
     }
 

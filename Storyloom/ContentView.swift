@@ -26,21 +26,41 @@ struct ContentView: View {
     }
 
     var body: some View {
-        if !authManager.isLoggedIn {
-            // Not logged in → show LoginView
+        if authManager.isCheckingAuth {
+            // Checking for an existing session — show splash to avoid login flash
+            splashView
+        } else if !authManager.isLoggedIn {
+            // No session found — show login
             NavigationStack {
                 LoginView()
             }
         } else if !authManager.hasCompletedOnboarding {
-            // Logged in but no onboarding → show Welcome flow
+            // Logged in but onboarding not done — show welcome flow
             NavigationStack {
                 WelcomeView()
             }
         } else {
-            // Fully onboarded → show main app
+            // Fully authenticated and onboarded
             mainApp
         }
     }
+
+    // MARK: - Splash Screen
+
+    private var splashView: some View {
+        ZStack {
+            SL.background.ignoresSafeArea()
+            VStack(spacing: 16) {
+                Image(systemName: "book.closed.fill")
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundColor(SL.accent)
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: SL.accent))
+            }
+        }
+    }
+
+    // MARK: - Main App
 
     @ViewBuilder
     private var mainApp: some View {
@@ -106,7 +126,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: selectedTab) { oldTab, newTab in
-            // Delay reset until after tab-switch animation (~0.3s) to avoid black flash
+            // Delay reset until after tab-switch animation to avoid black flash
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 tabIds[oldTab] = UUID()
             }
@@ -114,17 +134,13 @@ struct ContentView: View {
         .onAppear(perform: seedIfNeeded)
     }
 
+    // MARK: - Sample Data Seeding (dev / first-launch only)
+
     private func seedIfNeeded() {
         let descriptor = FetchDescriptor<StoryEntry>()
         let count = (try? modelContext.fetchCount(descriptor)) ?? 0
-        print("📊 Current story count: \(count)")
-        guard count == 0 else {
-            print("✅ Data already seeded, skipping")
-            return
-        }
-        print("🌱 Seeding data...")
+        guard count == 0 else { return }
         SampleData.seedStories(in: modelContext)
-        print("✅ Seeding complete")
     }
 }
 
@@ -133,12 +149,12 @@ struct ContentView: View {
     let container = try! ModelContainer(for: StoryEntry.self, Folder.self, configurations: config)
     SampleData.seedStories(in: container.mainContext)
 
-    // Mock logged-in user for preview
     let authManager = AuthManager.shared
     let mockUser = User(email: "preview@test.com", name: "Preview User", role: .storyteller)
     authManager.currentUser = mockUser
     authManager.isLoggedIn = true
     authManager.hasCompletedOnboarding = true
+    authManager.isCheckingAuth = false
 
     return ContentView()
         .modelContainer(container)

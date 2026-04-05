@@ -125,10 +125,14 @@ struct FolderManagerView: View {
 
         let folder = Folder(name: trimmed)
         modelContext.insert(folder)
+        // Push to Supabase
+        SyncManager.shared.pushFolder(folder)
         newFolderName = ""
     }
 
     private func deleteFolder(_ folder: Folder) {
+        // Delete from Supabase (stories move to Unfiled via ON DELETE SET NULL)
+        SyncManager.shared.deleteFolder(id: folder.id)
         modelContext.delete(folder)
     }
 }

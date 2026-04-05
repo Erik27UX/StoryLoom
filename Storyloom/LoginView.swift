@@ -7,6 +7,11 @@ struct LoginView: View {
     @State private var isSignup = false
     @State private var name = ""
     @State private var errorMessage = ""
+    @State private var isLoading = false
+
+    private var canSubmit: Bool {
+        !email.isEmpty && !password.isEmpty && !(isSignup && name.isEmpty) && !isLoading
+    }
 
     var body: some View {
         ZStack {
@@ -79,23 +84,33 @@ struct LoginView: View {
 
                     // Submit button
                     Button(action: submit) {
-                        Text(isSignup ? "Create account" : "Sign in")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "FDF9F0"))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(SL.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        HStack(spacing: 8) {
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "FDF9F0")))
+                                    .scaleEffect(0.85)
+                            }
+                            Text(isLoading ? "Please wait…" : (isSignup ? "Create account" : "Sign in"))
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color(hex: "FDF9F0"))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(SL.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .opacity(canSubmit ? 1 : 0.5)
                     }
-                    .disabled(email.isEmpty || password.isEmpty || (isSignup && name.isEmpty))
-                    .opacity(email.isEmpty || password.isEmpty || (isSignup && name.isEmpty) ? 0.5 : 1)
+                    .disabled(!canSubmit)
 
                     // Toggle between signin/signup
                     HStack(spacing: 6) {
                         Text(isSignup ? "Already have an account?" : "Don't have an account?")
                             .font(SL.body(14))
                             .foregroundColor(SL.textSecondary)
-                        Button(action: { isSignup.toggle(); errorMessage = "" }) {
+                        Button(action: {
+                            isSignup.toggle()
+                            errorMessage = ""
+                        }) {
                             Text(isSignup ? "Sign in" : "Create one")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(SL.accent)
@@ -112,6 +127,8 @@ struct LoginView: View {
         }
     }
 
+    // MARK: - Submit
+
     private func submit() {
         errorMessage = ""
 
@@ -119,26 +136,53 @@ struct LoginView: View {
             errorMessage = "Please fill in all fields"
             return
         }
-
         guard email.contains("@") else {
             errorMessage = "Please enter a valid email"
             return
         }
-
         guard password.count >= 6 else {
             errorMessage = "Password must be at least 6 characters"
             return
         }
-
         if isSignup {
             guard !name.isEmpty else {
                 errorMessage = "Please enter your name"
                 return
             }
-            authManager.signup(email: email, password: password, name: name, role: .reader)
-        } else {
-            authManager.login(email: email, password: password, role: .reader)
         }
+
+        isLoading = true
+        Task {
+            do {
+                if isSignup {
+                    try await authManager.signup(email: email, password: password, name: name)
+                } else {
+                    try await authManager.login(email: email, password: password)
+                }
+                // Auth state listener handles setting isLoggedIn
+            } catch {
+                await MainActor.run {
+                    errorMessage = friendlyError(error)
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Error Formatting
+
+    private func friendlyError(_ error: Error) -> String {
+        let message = error.localizedDescription.lowercased()
+        if message.contains("invalid login credentials") || message.contains("invalid_credentials") {
+            return "Incorrect email or password. Please try again."
+        } else if message.contains("email already") || message.contains("already registered") {
+            return "An account with this email already exists. Try signing in."
+        } else if message.contains("rate limit") {
+            return "Too many attempts. Please wait a moment and try again."
+        } else if message.contains("network") || message.contains("connection") {
+            return "No internet connection. Please check your network."
+        }
+        return error.localizedDescription
     }
 }
 
