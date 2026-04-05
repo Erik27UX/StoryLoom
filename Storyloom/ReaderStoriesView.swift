@@ -179,10 +179,11 @@ struct StoryCardForReader: View {
                         HStack(spacing: 3) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 10))
+                                .foregroundColor(SL.accent)
                             Text("Published")
                                 .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(SL.textPrimary)
                         }
-                        .foregroundColor(SL.accent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(SL.accent.opacity(0.1))
