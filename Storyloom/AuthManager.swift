@@ -41,8 +41,10 @@ final class AuthManager: ObservableObject {
     private func startAuthListener() {
         authListenerTask = Task { @MainActor in
             for await (event, session) in SupabaseManager.shared.client.auth.authStateChanges {
+                print("AuthManager: auth event: \(event)")
                 switch event {
                 case .initialSession:
+                    print("AuthManager: initialSession event, session exists: \(session != nil)")
                     if let session {
                         await self.handleSession(session)
                     } else {
@@ -50,21 +52,25 @@ final class AuthManager: ObservableObject {
                     }
 
                 case .signedIn:
+                    print("AuthManager: signedIn event, session exists: \(session != nil)")
                     if let session {
                         await self.handleSession(session)
                     }
                     self.isCheckingAuth = false
 
                 case .signedOut:
+                    print("AuthManager: signedOut event")
                     self.clearUser()
                     self.isCheckingAuth = false
 
                 case .tokenRefreshed:
+                    print("AuthManager: tokenRefreshed event")
                     if let session {
                         self.supabaseUserId = session.user.id
                     }
 
                 default:
+                    print("AuthManager: unknown auth event")
                     break
                 }
             }
@@ -75,9 +81,11 @@ final class AuthManager: ObservableObject {
 
     @MainActor
     private func handleSession(_ session: Session) async {
+        print("AuthManager: handleSession called for user \(session.user.id.uuidString)")
         supabaseUserId = session.user.id
 
         do {
+            print("AuthManager: fetching profile...")
             let profile: SupabaseProfile = try await SupabaseManager.shared.client
                 .from("profiles")
                 .select()
@@ -86,6 +94,7 @@ final class AuthManager: ObservableObject {
                 .execute()
                 .value
 
+            print("AuthManager: profile fetched successfully")
             let user = buildUser(from: profile, session: session)
             currentUser = user
             isLoggedIn = true
@@ -96,6 +105,7 @@ final class AuthManager: ObservableObject {
             SyncManager.shared.pullAllUserData()
 
         } catch {
+            print("AuthManager: handleSession error fetching profile - \(error.localizedDescription)")
             // Profile may not exist yet (race on new signup) — fall back to cached
             if let user = loadCachedUser(session: session) {
                 currentUser = user
@@ -128,7 +138,9 @@ final class AuthManager: ObservableObject {
     }
 
     func signup(email: String, password: String, name: String, role: UserRole = .reader) async throws {
-        try await SupabaseManager.shared.client.auth.signUp(
+        print("AuthManager: signup starting for email: \(email)")
+
+        let authResponse = try await SupabaseManager.shared.client.auth.signUp(
             email: email,
             password: password,
             data: [
@@ -136,7 +148,41 @@ final class AuthManager: ObservableObject {
                 "role": .string(role.rawValue)
             ]
         )
+
+        print("AuthManager: auth signup succeeded, user id: \(authResponse.user?.id.uuidString ?? "unknown")")
+
+        // Explicitly insert the profile row after successful auth signup
+        // This is more reliable than relying on a database trigger
+        guard let userId = authResponse.user?.id else {
+            print("AuthManager: ERROR - no user ID in signup response")
+            throw NSError(domain: "AuthManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get user ID from signup response"])
+        }
+
+        let profile = SupabaseProfile(
+            id: userId,
+            email: email,
+            name: name,
+            birthYear: nil,
+            role: role.rawValue,
+            subscriptionTier: role == .storyteller ? "Premium" : "Free",
+            profilePhotoURL: nil
+        )
+
+        print("AuthManager: inserting profile for user: \(userId.uuidString)")
+
+        do {
+            try await SupabaseManager.shared.client
+                .from("profiles")
+                .insert(profile)
+                .execute()
+            print("AuthManager: profile insert succeeded")
+        } catch {
+            print("AuthManager: ERROR inserting profile - \(error.localizedDescription)")
+            throw error
+        }
+
         // handleSession is called automatically by the auth state listener
+        print("AuthManager: signup complete, waiting for auth listener...")
     }
 
     // MARK: - Fire-and-Forget Auth Methods (synchronous public API)
