@@ -203,8 +203,11 @@ final class AuthManager: ObservableObject {
     }
 
     func updateUserRole(_ role: UserRole) {
-        currentUser?.role = role
-        currentUser?.subscriptionTier = role == .storyteller ? .premium : .free
+        guard var user = currentUser else { return }
+        user.role = role
+        user.subscriptionTier = role == .storyteller ? .premium : .free
+        currentUser = user
+
         guard let uid = supabaseUserId else { return }
         Task {
             try? await SupabaseManager.shared.client
@@ -216,9 +219,12 @@ final class AuthManager: ObservableObject {
     }
 
     func updateUserProfile(name: String, birthYear: Int?, profilePhotoURL: String?) {
-        currentUser?.name = name
-        currentUser?.birthYear = birthYear
-        currentUser?.profilePhotoURL = profilePhotoURL
+        guard var user = currentUser else { return }
+        user.name = name
+        user.birthYear = birthYear
+        user.profilePhotoURL = profilePhotoURL
+        currentUser = user
+
         guard let uid = supabaseUserId else { return }
         Task {
             try? await SupabaseManager.shared.client
@@ -230,7 +236,10 @@ final class AuthManager: ObservableObject {
     }
 
     func updateSubscriptionTier(_ tier: SubscriptionTier) {
-        currentUser?.subscriptionTier = tier
+        guard var user = currentUser else { return }
+        user.subscriptionTier = tier
+        currentUser = user
+
         guard let uid = supabaseUserId else { return }
         Task {
             try? await SupabaseManager.shared.client
