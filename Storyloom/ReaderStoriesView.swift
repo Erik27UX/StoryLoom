@@ -140,64 +140,51 @@ struct StoryCardForReader: View {
     let story: StoryEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(story.title)
-                        .font(SL.heading(16))
-                        .foregroundColor(SL.textPrimary)
-                        .lineLimit(2)
+        VStack(alignment: .leading, spacing: 12) {
+            // Image placeholder — matches ReaderStoryCard style
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(SL.accent.opacity(0.12))
+                    .frame(height: 80)
+                Image(systemName: "photo.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(SL.accent.opacity(0.35))
+            }
 
-                    Text(story.content)
-                        .font(SL.body(13))
-                        .foregroundColor(SL.textSecondary)
-                        .lineLimit(2)
-                }
-
+            HStack(alignment: .top) {
+                Text(story.title)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundColor(SL.textPrimary)
+                    .lineLimit(2)
                 Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    if let year = story.year {
-                        Text(String(year))
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(SL.accent)
-                    }
+                if let year = story.year {
+                    Text(String(year))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(SL.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(SL.surface.opacity(0.8))
+                        .clipShape(Capsule())
                 }
             }
 
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    Text(story.dateFormatted)
-                        .font(SL.body(12))
-                        .foregroundColor(SL.textSecondary)
-                }
+            Text(story.content)
+                .font(SL.body(14))
+                .foregroundColor(SL.textSecondary)
+                .lineLimit(2)
 
+            HStack {
+                Text(story.dateFormatted)
+                    .font(SL.body(13))
+                    .foregroundColor(SL.textSecondary)
                 Spacer()
-
-                HStack(spacing: 6) {
-                    if story.isInVault {
-                        HStack(spacing: 3) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(SL.accent)
-                            Text("Published")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(SL.textPrimary)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(SL.accent.opacity(0.1))
-                        .clipShape(Capsule())
-                    } else {
-                        Text("Private")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(SL.textSecondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(SL.surface)
-                            .clipShape(Capsule())
-                    }
+                HStack(spacing: 4) {
+                    Text("Read")
+                        .font(.system(size: 14, weight: .medium))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
                 }
+                .foregroundColor(SL.accent)
             }
         }
         .padding(16)

@@ -26,7 +26,7 @@ struct ReaderHomeView: View {
                         ReaderEmptyState()
                     } else {
                         ForEach(vaultStories) { story in
-                            NavigationLink(destination: StoryReadingView(story: story)) {
+                            NavigationLink(destination: StoryDetailView(story: story)) {
                                 ReaderStoryCard(story: story)
                             }
                             .buttonStyle(.plain)

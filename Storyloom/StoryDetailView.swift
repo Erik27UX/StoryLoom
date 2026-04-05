@@ -10,6 +10,7 @@ struct StoryDetailView: View {
     @State private var isEditingMode = false
     @State private var selectedPlaybackSpeed: Float = 1.0
     @State private var isLiked = false
+    @State private var isImageExpanded = false
 
     var body: some View {
         if isEditingMode {
@@ -120,64 +121,90 @@ struct StoryDetailView: View {
                         .fill(SL.border)
                         .frame(height: 1)
 
-                    // Comments & Questions — visible to both roles
-                    VStack(spacing: 10) {
-                        // Comments: always available
-                        NavigationLink(destination: CommentsView(story: story)) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "bubble.left.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(SL.accent)
-                                Text("Comments")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(SL.textPrimary)
-                                Spacer()
-                                Text("3")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(SL.textSecondary)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(SL.textSecondary)
+                    // Image thumbnail + Comments & Questions side by side
+                    HStack(alignment: .top, spacing: 12) {
+
+                        // Tappable image thumbnail on the left
+                        Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
+                            ZStack(alignment: .bottomTrailing) {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(SL.accent.opacity(0.12))
+                                Image(systemName: "photo.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(SL.accent.opacity(0.4))
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(SL.accent.opacity(0.7))
+                                    .padding(5)
+                                    .background(SL.surface.opacity(0.85))
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .padding(6)
                             }
-                            .padding(14)
-                            .background(SL.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .frame(width: 68)
+                            .frame(maxHeight: .infinity)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                         }
+                        .buttonStyle(.plain)
 
-                        // Questions: only if storyteller has Family tier
-                        let questionsUnlocked = story.authorSubscriptionTier == .family
-                        NavigationLink(destination: QuestionsView(story: story)) {
-                            HStack(spacing: 12) {
-                                Image(systemName: questionsUnlocked ? "questionmark.circle.fill" : "lock.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(questionsUnlocked ? SL.accent : SL.textSecondary)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Questions")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(questionsUnlocked ? SL.textPrimary : SL.textSecondary)
-                                    if !questionsUnlocked {
-                                        Text("Family plan required")
-                                            .font(SL.body(11))
-                                            .foregroundColor(SL.textSecondary)
-                                    }
-                                }
-                                Spacer()
-                                if questionsUnlocked {
-                                    Text("2")
-                                        .font(.system(size: 13, weight: .semibold))
+                        // Comments & Questions stacked on the right
+                        VStack(spacing: 10) {
+                            // Comments: always available
+                            NavigationLink(destination: CommentsView(story: story)) {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "bubble.left.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(SL.accent)
+                                    Text("Comments")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(SL.textPrimary)
+                                    Spacer()
+                                    Text("3")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(SL.textSecondary)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11))
                                         .foregroundColor(SL.textSecondary)
                                 }
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(SL.textSecondary)
+                                .padding(12)
+                                .background(SL.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                             }
-                            .padding(14)
-                            .background(questionsUnlocked ? SL.surface : SL.surface.opacity(0.5))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+
+                            // Questions: only if storyteller has Family tier
+                            let questionsUnlocked = story.authorSubscriptionTier == .family
+                            NavigationLink(destination: QuestionsView(story: story)) {
+                                HStack(spacing: 10) {
+                                    Image(systemName: questionsUnlocked ? "questionmark.circle.fill" : "lock.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(questionsUnlocked ? SL.accent : SL.textSecondary)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("Questions")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(questionsUnlocked ? SL.textPrimary : SL.textSecondary)
+                                        if !questionsUnlocked {
+                                            Text("Family plan required")
+                                                .font(SL.body(10))
+                                                .foregroundColor(SL.textSecondary)
+                                        }
+                                    }
+                                    Spacer()
+                                    if questionsUnlocked {
+                                        Text("2")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(SL.textSecondary)
+                                    }
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(SL.textSecondary)
+                                }
+                                .padding(12)
+                                .background(questionsUnlocked ? SL.surface : SL.surface.opacity(0.5))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                            }
+                            .disabled(!questionsUnlocked)
                         }
-                        .disabled(!questionsUnlocked)
                     }
 
                     // Narration player — show if story has a recording
@@ -304,6 +331,47 @@ struct StoryDetailView: View {
             }
             .background(SL.background)
             .navigationBarBackButtonHidden(true)
+            .fullScreenCover(isPresented: $isImageExpanded) {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    VStack(spacing: 0) {
+                        HStack {
+                            Button(action: { isImageExpanded = false }) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 36, height: 36)
+                                    .background(Color.white.opacity(0.15))
+                                    .clipShape(Circle())
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+
+                        Spacer()
+
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(SL.accent.opacity(0.15))
+                            Image(systemName: "photo.fill")
+                                .font(.system(size: 72))
+                                .foregroundColor(SL.accent.opacity(0.4))
+                        }
+                        .aspectRatio(4/3, contentMode: .fit)
+                        .padding(.horizontal, 24)
+
+                        Text(story.title)
+                            .font(SL.heading(18))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 20)
+                            .padding(.horizontal, 32)
+
+                        Spacer()
+                    }
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
