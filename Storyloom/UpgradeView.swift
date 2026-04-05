@@ -63,11 +63,17 @@ struct UpgradeView: View {
                     VStack(spacing: 12) {
                         Button(action: {
                             if selectedPlan == "trial" {
-                                authManager.currentUser?.subscriptionTier = .free
+                                if var user = authManager.currentUser {
+                                    user.subscriptionTier = .free
+                                    authManager.currentUser = user
+                                }
                                 authManager.updateUserRole(.storyteller)
                             } else {
                                 // In real app, this would open payment
-                                authManager.currentUser?.subscriptionTier = .premium
+                                if var user = authManager.currentUser {
+                                    user.subscriptionTier = .premium
+                                    authManager.currentUser = user
+                                }
                                 authManager.updateUserRole(.storyteller)
                             }
                             dismiss()
