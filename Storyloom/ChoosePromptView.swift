@@ -184,11 +184,11 @@ struct PromptCard: View {
                 HStack(spacing: 4) {
                     Text(prompt.category)
                         .font(SL.body(12))
-                        .foregroundColor(SL.textMuted)
+                        .foregroundColor(SL.textSecondary)
 
                     if let era = prompt.eraNote {
                         Text("·")
-                            .foregroundColor(SL.textMuted)
+                            .foregroundColor(SL.textSecondary)
                         Text(era)
                             .font(SL.body(12))
                             .foregroundColor(SL.accent)

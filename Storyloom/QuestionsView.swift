@@ -255,8 +255,9 @@ struct AskQuestionSheet: View {
     @Binding var isPresented: Bool
     let story: StoryEntry
     @ObservedObject var authManager: AuthManager
+    @ObservedObject private var audio = AudioManager.shared
     @State private var questionText = ""
-    @State private var isRecording = false
+    @State private var pendingAudioFileName: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -278,18 +279,75 @@ struct AskQuestionSheet: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                 }
 
-                Button(action: { isRecording = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "waveform.circle.fill")
-                            .font(.system(size: 16))
-                        Text("Record audio question (optional)")
-                            .font(.system(size: 14, weight: .medium))
+                if audio.isRecording {
+                    HStack(spacing: 12) {
+                        Circle().fill(Color.red).frame(width: 10, height: 10)
+                        Text(audio.formatDuration(audio.recordingDuration))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(SL.textPrimary)
+                            .monospacedDigit()
+                        Spacer()
+                        Button(action: { AudioManager.shared.stopRecording() }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "stop.fill").font(.system(size: 12))
+                                Text("Stop").font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16).padding(.vertical, 9)
+                            .background(Color.red).clipShape(Capsule())
+                        }
                     }
-                    .foregroundColor(SL.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(12)
-                    .background(SL.accent.opacity(0.1))
+                    .padding(14)
+                    .background(Color.red.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.3), lineWidth: 1))
+                } else if pendingAudioFileName != nil {
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            guard let f = pendingAudioFileName else { return }
+                            if audio.isPlaying { audio.stop() } else { audio.play(fileName: f) }
+                        }) {
+                            ZStack {
+                                Circle().fill(SL.primary).frame(width: 36, height: 36)
+                                Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 13)).foregroundColor(SL.accent)
+                            }
+                        }
+                        Text(audio.isPlaying ? "Playing..." : "Question recorded")
+                            .font(.system(size: 14, weight: .medium)).foregroundColor(SL.textPrimary)
+                        Spacer()
+                        Button(action: {
+                            audio.stop()
+                            if let f = pendingAudioFileName { AudioManager.shared.deleteRecording(fileName: f) }
+                            pendingAudioFileName = nil
+                        }) {
+                            Image(systemName: "trash").font(.system(size: 13))
+                                .foregroundColor(Color.red.opacity(0.7))
+                                .padding(8).background(Color.red.opacity(0.07))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                        }
+                    }
+                    .padding(14).background(SL.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                } else {
+                    Button(action: {
+                        Task {
+                            let granted = await AudioManager.shared.requestMicrophonePermission()
+                            guard granted else { return }
+                            await MainActor.run {
+                                pendingAudioFileName = AudioManager.shared.startRecording()
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "waveform.circle.fill").font(.system(size: 16))
+                            Text("Record audio question (optional)").font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(SL.accent).frame(maxWidth: .infinity).padding(12)
+                        .background(SL.accent.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
                 }
 
                 Spacer()
@@ -337,8 +395,9 @@ struct AskQuestionSheet: View {
 struct AnswerQuestionSheet: View {
     @Binding var isPresented: Bool
     let question: StoryQuestion
+    @ObservedObject private var audio = AudioManager.shared
     @State private var answerText = ""
-    @State private var isRecordingAnswer = false
+    @State private var pendingAudioFileName: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -372,18 +431,75 @@ struct AnswerQuestionSheet: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                 }
 
-                Button(action: { isRecordingAnswer = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "waveform.circle.fill")
-                            .font(.system(size: 16))
-                        Text("Record audio answer (optional)")
-                            .font(.system(size: 14, weight: .medium))
+                if audio.isRecording {
+                    HStack(spacing: 12) {
+                        Circle().fill(Color.red).frame(width: 10, height: 10)
+                        Text(audio.formatDuration(audio.recordingDuration))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(SL.textPrimary)
+                            .monospacedDigit()
+                        Spacer()
+                        Button(action: { AudioManager.shared.stopRecording() }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "stop.fill").font(.system(size: 12))
+                                Text("Stop").font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16).padding(.vertical, 9)
+                            .background(Color.red).clipShape(Capsule())
+                        }
                     }
-                    .foregroundColor(SL.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(12)
-                    .background(SL.accent.opacity(0.1))
+                    .padding(14)
+                    .background(Color.red.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.3), lineWidth: 1))
+                } else if pendingAudioFileName != nil {
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            guard let f = pendingAudioFileName else { return }
+                            if audio.isPlaying { audio.stop() } else { audio.play(fileName: f) }
+                        }) {
+                            ZStack {
+                                Circle().fill(SL.primary).frame(width: 36, height: 36)
+                                Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 13)).foregroundColor(SL.accent)
+                            }
+                        }
+                        Text(audio.isPlaying ? "Playing..." : "Answer recorded")
+                            .font(.system(size: 14, weight: .medium)).foregroundColor(SL.textPrimary)
+                        Spacer()
+                        Button(action: {
+                            audio.stop()
+                            if let f = pendingAudioFileName { AudioManager.shared.deleteRecording(fileName: f) }
+                            pendingAudioFileName = nil
+                        }) {
+                            Image(systemName: "trash").font(.system(size: 13))
+                                .foregroundColor(Color.red.opacity(0.7))
+                                .padding(8).background(Color.red.opacity(0.07))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                        }
+                    }
+                    .padding(14).background(SL.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                } else {
+                    Button(action: {
+                        Task {
+                            let granted = await AudioManager.shared.requestMicrophonePermission()
+                            guard granted else { return }
+                            await MainActor.run {
+                                pendingAudioFileName = AudioManager.shared.startRecording()
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "waveform.circle.fill").font(.system(size: 16))
+                            Text("Record audio answer (optional)").font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(SL.accent).frame(maxWidth: .infinity).padding(12)
+                        .background(SL.accent.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
                 }
 
                 Spacer()

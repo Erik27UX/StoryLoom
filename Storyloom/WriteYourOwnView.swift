@@ -62,7 +62,7 @@ struct WriteYourOwnView: View {
                             if content.isEmpty {
                                 Text("Write your story here, or tap the mic to speak it...")
                                     .font(SL.serif(16))
-                                    .foregroundColor(SL.textMuted)
+                                    .foregroundColor(SL.textSecondary)
                                     .italic()
                                     .padding(.horizontal, 16)
                                     .padding(.top, 16)

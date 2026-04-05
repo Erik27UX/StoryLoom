@@ -45,7 +45,7 @@ struct AnswerView: View {
                         if answerText.isEmpty {
                             Text("Type your answer here, or tap the microphone to speak...")
                                 .font(SL.body(16))
-                                .foregroundColor(SL.textMuted)
+                                .foregroundColor(SL.textSecondary)
                                 .italic()
                                 .padding(.horizontal, 16)
                                 .padding(.top, 16)

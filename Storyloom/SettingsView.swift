@@ -226,6 +226,11 @@ struct EditProfileImageSheet: View {
 
 struct StorytellerSettingsContent: View {
     @ObservedObject var authManager = AuthManager.shared
+    @State private var commentsEnabled = true
+    @State private var reactionsEnabled = true
+    @State private var questionsEnabled = true
+    @State private var notifyNewReader = true
+    @State private var notifyComments = true
 
     var body: some View {
         // Subscription card
@@ -307,7 +312,7 @@ struct StorytellerSettingsContent: View {
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $commentsEnabled)
                         .labelsHidden()
                         .tint(SL.accent)
                 }
@@ -316,7 +321,7 @@ struct StorytellerSettingsContent: View {
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $reactionsEnabled)
                         .labelsHidden()
                         .tint(SL.accent)
                 }
@@ -333,13 +338,13 @@ struct StorytellerSettingsContent: View {
                     }
                     Spacer()
                     if authManager.currentUser?.subscriptionTier == .family {
-                        Toggle("", isOn: .constant(true))
+                        Toggle("", isOn: $questionsEnabled)
                             .labelsHidden()
                             .tint(SL.accent)
                     } else {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 14))
-                            .foregroundColor(SL.textMuted)
+                            .foregroundColor(SL.textSecondary)
                     }
                 }
             }
@@ -353,7 +358,7 @@ struct StorytellerSettingsContent: View {
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $notifyNewReader)
                         .labelsHidden()
                         .tint(SL.accent)
                 }
@@ -362,7 +367,7 @@ struct StorytellerSettingsContent: View {
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $notifyComments)
                         .labelsHidden()
                         .tint(SL.accent)
                 }
@@ -374,6 +379,9 @@ struct StorytellerSettingsContent: View {
 // MARK: - Reader Settings Content
 
 struct ReaderSettingsContent: View {
+    @State private var notifyNewStory = true
+    @State private var notifyComments = true
+
     var body: some View {
         // Upgrade CTA
         SectionCard(title: "Upgrade") {
@@ -420,7 +428,7 @@ struct ReaderSettingsContent: View {
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $notifyNewStory)
                         .labelsHidden()
                         .tint(SL.accent)
                 }
@@ -429,7 +437,7 @@ struct ReaderSettingsContent: View {
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $notifyComments)
                         .labelsHidden()
                         .tint(SL.accent)
                 }

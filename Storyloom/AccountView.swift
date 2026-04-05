@@ -147,7 +147,7 @@ struct AccountView: View {
                     }
 
                     // Sign out
-                    Button(action: {}) {
+                    Button(action: { AuthManager.shared.logout() }) {
                         Text("Sign out")
                             .font(.system(size: 15))
                             .foregroundColor(SL.textSecondary)

@@ -75,7 +75,7 @@ struct CommentsView: View {
                                                 .clipShape(RoundedRectangle(cornerRadius: 20))
                                             Button(action: postReply) {
                                                 Image(systemName: "paperplane.fill")
-                                                    .foregroundColor(replyText.isEmpty ? SL.textMuted : SL.accent)
+                                                    .foregroundColor(replyText.isEmpty ? SL.textSecondary : SL.accent)
                                             }
                                             .disabled(replyText.isEmpty)
                                             Button(action: { replyingTo = nil; replyText = "" }) {
@@ -109,7 +109,7 @@ struct CommentsView: View {
                         Button(action: postComment) {
                             Image(systemName: "paperplane.fill")
                                 .font(.system(size: 16))
-                                .foregroundColor(newComment.isEmpty ? SL.textMuted : SL.accent)
+                                .foregroundColor(newComment.isEmpty ? SL.textSecondary : SL.accent)
                         }
                         .disabled(newComment.isEmpty)
                     }
