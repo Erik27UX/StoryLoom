@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		141CE4412F82CD3900153BBA /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 141CE4402F82CD3900153BBA /* Supabase */; };
+		141CE44A2F82E28D00153BBA /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 141CE4492F82E28D00153BBA /* Supabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				141CE4412F82CD3900153BBA /* Supabase in Frameworks */,
+				141CE44A2F82E28D00153BBA /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,7 +70,7 @@
 			);
 			name = Storyloom;
 			packageProductDependencies = (
-				141CE4402F82CD3900153BBA /* Supabase */,
+				141CE4492F82E28D00153BBA /* Supabase */,
 			);
 			productName = Storyloom;
 			productReference = 14872E6A2F7B11B7008DAC30 /* Storyloom.app */;
@@ -101,7 +101,7 @@
 			mainGroup = 14872E612F7B11B7008DAC30;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				141CE43F2F82CD3900153BBA /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				141CE4482F82E28D00153BBA /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 14872E6B2F7B11B7008DAC30 /* Products */;
@@ -345,20 +345,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		141CE43F2F82CD3900153BBA /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+		141CE4482F82E28D00153BBA /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/supabase/supabase-swift";
+			repositoryURL = "https://github.com/supabase-community/supabase-swift.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.5.1;
+				minimumVersion = 2.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		141CE4402F82CD3900153BBA /* Supabase */ = {
+		141CE4492F82E28D00153BBA /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 141CE43F2F82CD3900153BBA /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			package = 141CE4482F82E28D00153BBA /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
 		};
 /* End XCSwiftPackageProductDependency section */

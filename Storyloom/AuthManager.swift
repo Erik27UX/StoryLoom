@@ -149,14 +149,11 @@ final class AuthManager: ObservableObject {
             ]
         )
 
-        print("AuthManager: auth signup succeeded, user id: \(authResponse.user?.id.uuidString ?? "unknown")")
+        print("AuthManager: auth signup succeeded, user id: \(authResponse.user.id.uuidString)")
 
         // Explicitly insert the profile row after successful auth signup
         // This is more reliable than relying on a database trigger
-        guard let userId = authResponse.user?.id else {
-            print("AuthManager: ERROR - no user ID in signup response")
-            throw NSError(domain: "AuthManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get user ID from signup response"])
-        }
+        let userId = authResponse.user.id
 
         let profile = SupabaseProfile(
             id: userId,
