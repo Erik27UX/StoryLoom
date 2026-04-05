@@ -15,7 +15,7 @@ struct ReaderStoriesView: View {
         let activeAuthors = selectedAuthors.isEmpty ? Set(uniqueAuthors) : selectedAuthors
         return stories.filter { story in
             let author = story.authorName ?? "Your Stories"
-            return activeAuthors.contains(author)
+            return story.isInVault && activeAuthors.contains(author)
         }
         .sorted { $0.dateCreated > $1.dateCreated }
     }

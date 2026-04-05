@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct CommentsView: View {
+    @Environment(\.modelContext) private var modelContext
     @ObservedObject var authManager = AuthManager.shared
     @Query private var comments: [StoryComment]
 
@@ -124,13 +125,15 @@ struct CommentsView: View {
 
     private func postComment() {
         guard !newComment.isEmpty else { return }
-        _ = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Reader", text: newComment)
+        let comment = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Reader", text: newComment)
+        modelContext.insert(comment)
         newComment = ""
     }
 
     private func postReply() {
         guard !replyText.isEmpty, let parent = replyingTo else { return }
-        _ = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Storyteller", text: replyText, parentCommentId: parent.id)
+        let reply = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Storyteller", text: replyText, parentCommentId: parent.id)
+        modelContext.insert(reply)
         replyText = ""
         replyingTo = nil
     }

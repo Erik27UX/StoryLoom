@@ -232,33 +232,14 @@ struct StoryLibraryCard: View {
                     .font(SL.body(13))
                     .foregroundColor(SL.textSecondary)
                 Spacer()
-                // Engagement stats (mock counts)
-                HStack(spacing: 12) {
+                if story.likeCount > 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 11))
                             .foregroundColor(Color(hex: "C17B6A"))
-                        Text("7")
+                        Text("\(story.likeCount)")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(SL.textSecondary)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: "bubble.left.fill")
-                            .font(.system(size: 11))
-                            .foregroundColor(SL.accent)
-                        Text("3")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(SL.textSecondary)
-                    }
-                    if story.authorSubscriptionTier == .family {
-                        HStack(spacing: 4) {
-                            Image(systemName: "questionmark.circle.fill")
-                                .font(.system(size: 11))
-                                .foregroundColor(SL.accent)
-                            Text("2")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(SL.textSecondary)
-                        }
                     }
                 }
             }

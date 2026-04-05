@@ -207,6 +207,7 @@ class StoryEntry {
     var narrationFileName: String?
     var authorSubscriptionTier: SubscriptionTier = SubscriptionTier.premium
     var authorName: String?
+    var likeCount: Int = 0
 
     init(
         title: String,
@@ -220,7 +221,8 @@ class StoryEntry {
         publishNarration: Bool = false,
         narrationFileName: String? = nil,
         authorSubscriptionTier: SubscriptionTier = .premium,
-        authorName: String? = nil
+        authorName: String? = nil,
+        likeCount: Int = 0
     ) {
         self.uuid = UUID()
         self.title = title
@@ -236,6 +238,7 @@ class StoryEntry {
         self.narrationFileName = narrationFileName
         self.authorSubscriptionTier = authorSubscriptionTier
         self.authorName = authorName
+        self.likeCount = likeCount
     }
 
     var dateFormatted: String {

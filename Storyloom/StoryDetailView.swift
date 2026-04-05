@@ -10,7 +10,6 @@ struct StoryDetailView: View {
     @State private var isEditingMode = false
     @State private var selectedPlaybackSpeed: Float = 1.0
     @State private var isLiked = false
-    @State private var likeCount = 7
 
     var body: some View {
         if isEditingMode {
@@ -75,27 +74,37 @@ struct StoryDetailView: View {
                                 Button(action: {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                         isLiked.toggle()
-                                        likeCount += isLiked ? 1 : -1
+                                        story.likeCount += isLiked ? 1 : -1
                                     }
                                 }) {
-                                    HStack(spacing: 4) {
+                                    HStack(spacing: 6) {
                                         Image(systemName: isLiked ? "heart.fill" : "heart")
-                                            .font(.system(size: 12))
+                                            .font(.system(size: 18))
                                             .foregroundColor(isLiked ? Color(hex: "C17B6A") : SL.textSecondary)
-                                        Text("\(likeCount)")
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(SL.textSecondary)
+                                        Text("\(story.likeCount)")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundColor(isLiked ? Color(hex: "C17B6A") : SL.textSecondary)
                                     }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(isLiked ? Color(hex: "C17B6A").opacity(0.1) : SL.surface)
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(isLiked ? Color(hex: "C17B6A").opacity(0.3) : SL.border, lineWidth: 1))
                                 }
                             } else {
-                                HStack(spacing: 4) {
+                                HStack(spacing: 6) {
                                     Image(systemName: "heart.fill")
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 18))
                                         .foregroundColor(Color(hex: "C17B6A"))
-                                    Text("\(likeCount)")
-                                        .font(.system(size: 12, weight: .medium))
+                                    Text("\(story.likeCount)")
+                                        .font(.system(size: 15, weight: .semibold))
                                         .foregroundColor(SL.textSecondary)
                                 }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(SL.surface)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(SL.border, lineWidth: 1))
                             }
                         }
                     }

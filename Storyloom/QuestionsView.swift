@@ -252,6 +252,7 @@ struct QuestionCard: View {
 }
 
 struct AskQuestionSheet: View {
+    @Environment(\.modelContext) private var modelContext
     @Binding var isPresented: Bool
     let story: StoryEntry
     @ObservedObject var authManager: AuthManager
@@ -385,14 +386,19 @@ struct AskQuestionSheet: View {
         let question = StoryQuestion(
             storyId: story.uuid,
             userName: authManager.currentUser?.name ?? "User",
-            text: questionText
+            text: questionText,
+            isAudio: pendingAudioFileName != nil,
+            audioFileName: pendingAudioFileName
         )
+        modelContext.insert(question)
         questionText = ""
+        pendingAudioFileName = nil
         isPresented = false
     }
 }
 
 struct AnswerQuestionSheet: View {
+    @Environment(\.modelContext) private var modelContext
     @Binding var isPresented: Bool
     let question: StoryQuestion
     @ObservedObject private var audio = AudioManager.shared
@@ -534,9 +540,13 @@ struct AnswerQuestionSheet: View {
     }
 
     private func submitAnswer() {
-        // Update question with answer
-        // question.answerText = answerText
-        // question.isAnswered = true
+        question.answerText = answerText
+        question.isAnswered = true
+        question.answeredDate = Date()
+        if let audioFile = pendingAudioFileName {
+            question.answerAudioFileName = audioFile
+        }
+        pendingAudioFileName = nil
         isPresented = false
     }
 }

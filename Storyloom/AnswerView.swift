@@ -7,9 +7,9 @@ struct AnswerView: View {
     @State private var answerText = ""
     @State private var pendingNarrationFileName: String? = nil
 
-    // For the prototype the "generated" story is the sample text;
+    // Uses the user's typed answer as the story content;
     // swap this out for a real AI call later.
-    private var generatedStory: String { SampleData.sampleStoryText }
+    private var generatedStory: String { answerText.trimmingCharacters(in: .whitespaces).isEmpty ? SampleData.sampleStoryText : answerText }
 
     var body: some View {
         VStack(spacing: 0) {
