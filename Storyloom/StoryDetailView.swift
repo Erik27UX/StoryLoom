@@ -127,21 +127,22 @@ struct StoryDetailView: View {
                         // Tappable image thumbnail on the left
                         Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
                             ZStack(alignment: .bottomTrailing) {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(SL.accent.opacity(0.12))
-                                Image(systemName: "photo.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(SL.accent.opacity(0.4))
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color(hex: "C17B6A"), Color(hex: "8B5A3C")]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                                     .font(.system(size: 9, weight: .semibold))
-                                    .foregroundColor(SL.accent.opacity(0.7))
+                                    .foregroundColor(.white)
                                     .padding(5)
-                                    .background(SL.surface.opacity(0.85))
+                                    .background(Color.black.opacity(0.3))
                                     .clipShape(RoundedRectangle(cornerRadius: 5))
                                     .padding(6)
                             }
                             .frame(width: 68)
                             .frame(maxHeight: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
@@ -425,10 +426,12 @@ struct StoryDetailView: View {
     let container = try! ModelContainer(for: StoryEntry.self, Folder.self, configurations: config)
     let sampleStory = StoryEntry(
         title: "Lost in Barcelona",
-        content: "We wandered the Gothic Quarter for hours without a map, completely lost but completely happy.",
+        content: "We wandered the Gothic Quarter for hours without a map, completely lost but completely happy. The narrow cobblestone streets twisted in impossible directions, and every corner revealed something new—a hidden chapel, a street musician, a café where locals gathered to watch the world go by. My friend laughed at our predicament, but I wouldn't have had it any other way. Sometimes the best memories come from being exactly where you don't mean to be.",
         category: "Adventure",
         year: 2003,
-        folder: nil
+        folder: nil,
+        hasNarration: true,
+        publishNarration: true
     )
     container.mainContext.insert(sampleStory)
 
