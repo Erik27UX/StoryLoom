@@ -127,11 +127,7 @@ struct StoryDetailView: View {
                         // Tappable image thumbnail on the left
                         Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
                             ZStack(alignment: .bottomTrailing) {
-                                LinearGradient(
-                                    gradient: Gradient(colors: [Color(hex: "C17B6A"), Color(hex: "8B5A3C")]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                                StoryImagePlaceholder(story: story)
                                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundColor(.white)
@@ -352,15 +348,10 @@ struct StoryDetailView: View {
 
                         Spacer()
 
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(SL.accent.opacity(0.15))
-                            Image(systemName: "photo.fill")
-                                .font(.system(size: 72))
-                                .foregroundColor(SL.accent.opacity(0.4))
-                        }
-                        .aspectRatio(4/3, contentMode: .fit)
-                        .padding(.horizontal, 24)
+                        StoryImagePlaceholder(story: story)
+                            .aspectRatio(4/3, contentMode: .fit)
+                            .padding(.horizontal, 24)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
 
                         Text(story.title)
                             .font(SL.heading(18))

@@ -97,7 +97,7 @@ struct ContentView: View {
                 .tag(3)
             } else {
                 NavigationStack {
-                    ReaderHomeView()
+                    ReaderHomeView(selectedTab: $selectedTab)
                 }
                 .id(tabIds[0])
                 .tabItem { Image(systemName: "house.fill");       Text("Home") }

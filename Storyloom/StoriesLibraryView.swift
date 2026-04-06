@@ -7,10 +7,21 @@ struct StoriesLibraryView: View {
     @State private var sortBy: SortOption = .created
 
     private var groupedStories: [(folder: Folder?, stories: [StoryEntry])] {
+        // Filter stories based on sort option
+        let filtered: [StoryEntry]
+        switch sortBy {
+        case .published:
+            filtered = allStories.filter { $0.isInVault }
+        case .draft:
+            filtered = allStories.filter { !$0.isInVault }
+        default:
+            filtered = allStories
+        }
+
         // Create a dictionary grouped by folder
         var grouped: [UUID?: [StoryEntry]] = [:]
 
-        for story in allStories {
+        for story in filtered {
             let key = story.folder?.id
             if grouped[key] == nil {
                 grouped[key] = []
@@ -26,6 +37,8 @@ struct StoriesLibraryView: View {
                     return lhs.dateCreated > rhs.dateCreated
                 case .year:
                     return (lhs.year ?? 0) > (rhs.year ?? 0)
+                case .draft, .published:
+                    return lhs.dateCreated > rhs.dateCreated
                 }
             }
         }
@@ -63,7 +76,8 @@ struct StoriesLibraryView: View {
                         Menu {
                             Button(action: { sortBy = .created }) {
                                 HStack {
-                                    Text("📅 Created")
+                                    Text("Newest First")
+                                    Spacer()
                                     if sortBy == .created {
                                         Image(systemName: "checkmark")
                                     }
@@ -71,8 +85,28 @@ struct StoriesLibraryView: View {
                             }
                             Button(action: { sortBy = .year }) {
                                 HStack {
-                                    Text("📆 Year")
+                                    Text("Story Year")
+                                    Spacer()
                                     if sortBy == .year {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Divider()
+                            Button(action: { sortBy = .published }) {
+                                HStack {
+                                    Text("Published")
+                                    Spacer()
+                                    if sortBy == .published {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: { sortBy = .draft }) {
+                                HStack {
+                                    Text("Draft")
+                                    Spacer()
+                                    if sortBy == .draft {
                                         Image(systemName: "checkmark")
                                     }
                                 }
@@ -173,15 +207,10 @@ struct StoryLibraryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Image placeholder
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(SL.accent.opacity(0.15))
-                    .frame(height: 80)
-                Image(systemName: "photo.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(SL.accent.opacity(0.4))
-            }
+            // Story image — same placeholder as detail view
+            StoryImagePlaceholder(story: story)
+                .frame(height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
             HStack(alignment: .top) {
                 Text(story.title)

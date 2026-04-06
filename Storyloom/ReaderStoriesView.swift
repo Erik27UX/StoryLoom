@@ -3,21 +3,66 @@ import SwiftData
 
 struct ReaderStoriesView: View {
     @Query private var stories: [StoryEntry]
+    @Query(sort: \Folder.dateCreated, order: .reverse) private var folders: [Folder]
     @State private var selectedAuthors = Set<String>()
     @State private var hasInitialized = false
+    @State private var sortBy: SortOption = .created
+    @State private var showAddVault = false
 
     var uniqueAuthors: [String] {
         let authors = stories.compactMap { $0.authorName ?? "Your Stories" }
         return Array(Set(authors)).sorted()
     }
 
-    var filteredStories: [StoryEntry] {
+    var groupedFilteredStories: [(folder: Folder?, stories: [StoryEntry])] {
         let activeAuthors = selectedAuthors.isEmpty ? Set(uniqueAuthors) : selectedAuthors
-        return stories.filter { story in
+
+        let filtered = stories.filter { story in
             let author = story.authorName ?? "Your Stories"
             return story.isInVault && activeAuthors.contains(author)
         }
-        .sorted { $0.dateCreated > $1.dateCreated }
+
+        // Group by folder
+        var grouped: [UUID?: [StoryEntry]] = [:]
+        for story in filtered {
+            let key = story.folder?.id
+            if grouped[key] == nil { grouped[key] = [] }
+            grouped[key]?.append(story)
+        }
+
+        // Sort stories within each group
+        for key in grouped.keys {
+            grouped[key]?.sort { lhs, rhs in
+                switch sortBy {
+                case .created:
+                    return lhs.dateCreated > rhs.dateCreated
+                case .year:
+                    return (lhs.year ?? Int.min) > (rhs.year ?? Int.min)
+                case .draft, .published:
+                    return lhs.dateCreated > rhs.dateCreated
+                }
+            }
+        }
+
+        var result: [(folder: Folder?, stories: [StoryEntry])] = []
+
+        // Named folders first (in folder creation order)
+        for folder in folders {
+            if let folderStories = grouped[folder.id], !folderStories.isEmpty {
+                result.append((folder, folderStories))
+            }
+        }
+
+        // Unfiled stories at the bottom
+        if let unfiledStories = grouped[nil], !unfiledStories.isEmpty {
+            result.append((nil, unfiledStories))
+        }
+
+        return result
+    }
+
+    var hasAnyStories: Bool {
+        !groupedFilteredStories.isEmpty
     }
 
     var showAuthorFilter: Bool {
@@ -29,13 +74,55 @@ struct ReaderStoriesView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Header
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Stories")
-                            .font(SL.heading(28))
-                            .foregroundColor(SL.textPrimary)
-                        Text("Shared with you")
-                            .font(SL.body(15))
-                            .foregroundColor(SL.textSecondary)
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Stories")
+                                .font(SL.heading(28))
+                                .foregroundColor(SL.textPrimary)
+                            Text("Shared with you")
+                                .font(SL.body(15))
+                                .foregroundColor(SL.textSecondary)
+                        }
+                        Spacer()
+                        Button(action: { showAddVault = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("Add Story Vault")
+                                    .font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(SL.accent)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(SL.surface)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(SL.border, lineWidth: 1))
+                        }
+                        Menu {
+                            Button(action: { sortBy = .created }) {
+                                HStack {
+                                    Text("Newest First")
+                                    if sortBy == .created {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            Button(action: { sortBy = .year }) {
+                                HStack {
+                                    Text("Story Year")
+                                    if sortBy == .year {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(SL.accent)
+                                .padding(8)
+                                .background(SL.surface)
+                                .clipShape(Circle())
+                        }
                     }
                     .padding(.top, 8)
                     .padding(.horizontal, 20)
@@ -87,8 +174,8 @@ struct ReaderStoriesView: View {
                         .padding(.top, 4)
                     }
 
-                    // Stories list
-                    if filteredStories.isEmpty {
+                    // Stories grouped by folder
+                    if !hasAnyStories {
                         VStack(spacing: 16) {
                             Image(systemName: "book.closed")
                                 .font(.system(size: 40))
@@ -103,14 +190,37 @@ struct ReaderStoriesView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                         .padding(40)
                     } else {
-                        LazyVStack(spacing: 12) {
-                            ForEach(filteredStories) { story in
-                                NavigationLink(destination: StoryDetailView(story: story)) {
-                                    StoryCardForReader(story: story)
+                        LazyVStack(alignment: .leading, spacing: 24) {
+                            ForEach(Array(groupedFilteredStories.enumerated()), id: \.offset) { _, group in
+                                VStack(alignment: .leading, spacing: 12) {
+                                    // Folder section header
+                                    HStack(spacing: 6) {
+                                        Image(systemName: group.folder != nil ? "folder.fill" : "tray.fill")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(SL.accent)
+                                        Text(group.folder?.name ?? "Unfiled")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .tracking(0.5)
+                                            .textCase(.uppercase)
+                                            .foregroundColor(SL.textSecondary)
+                                        Text("· \(group.stories.count)")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(SL.textSecondary.opacity(0.6))
+                                    }
+                                    .padding(.horizontal, 20)
+
+                                    // Stories in this folder
+                                    VStack(spacing: 12) {
+                                        ForEach(group.stories) { story in
+                                            NavigationLink(destination: StoryDetailView(story: story)) {
+                                                StoryCardForReader(story: story)
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal, 20)
                                 }
                             }
                         }
-                        .padding(.horizontal, 20)
                         .padding(.bottom, 24)
                     }
                 }
@@ -118,6 +228,9 @@ struct ReaderStoriesView: View {
             }
             .background(SL.background)
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .sheet(isPresented: $showAddVault) {
+            AddStoryVaultView()
         }
         .onAppear {
             if !hasInitialized {
@@ -141,15 +254,10 @@ struct StoryCardForReader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Image placeholder — matches ReaderStoryCard style
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(SL.accent.opacity(0.12))
-                    .frame(height: 80)
-                Image(systemName: "photo.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(SL.accent.opacity(0.35))
-            }
+            // Sample image — same as home tab, consistent for each story
+            StoryImagePlaceholder(story: story)
+                .frame(height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
             HStack(alignment: .top) {
                 Text(story.title)
