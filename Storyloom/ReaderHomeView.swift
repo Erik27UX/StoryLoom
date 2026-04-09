@@ -28,14 +28,31 @@ struct ReaderHomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    // Greeting
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Good morning, \(userName)")
-                            .font(SL.heading(28))
+                    // Greeting header
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Good morning, \(userName)")
+                                .font(SL.heading(28))
+                                .foregroundColor(SL.textPrimary)
+                            Text("Stories shared with you")
+                                .font(SL.body(16))
+                                .foregroundColor(SL.textSecondary)
+                        }
+                        Spacer()
+                        Button(action: { showAddVault = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("Add Story Vault")
+                                    .font(.system(size: 13, weight: .medium))
+                            }
                             .foregroundColor(SL.textPrimary)
-                        Text("Stories shared with you")
-                            .font(SL.body(16))
-                            .foregroundColor(SL.textSecondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(SL.surface)
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(SL.border, lineWidth: 1))
+                        }
                     }
 
                     if vaultStories.isEmpty {
@@ -46,12 +63,12 @@ struct ReaderHomeView: View {
                             ReaderStatCard(
                                 icon: "books.vertical.fill",
                                 value: "\(totalCount)",
-                                label: "\(totalCount == 1 ? "story" : "stories")\n\(storytellerDisplay)"
+                                label: totalCount == 1 ? "story" : "stories"
                             )
                             ReaderStatCard(
                                 icon: "sparkles",
                                 value: "\(newThisWeek)",
-                                label: "new this\nweek"
+                                label: "new this week"
                             )
                         }
 
@@ -87,24 +104,6 @@ struct ReaderHomeView: View {
                 .padding(.bottom, 32)
             }
             .background(SL.background)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showAddVault = true }) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("Add Story Vault")
-                                .font(.system(size: 13, weight: .medium))
-                        }
-                        .foregroundColor(SL.accent)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(SL.surface)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(SL.border, lineWidth: 1))
-                    }
-                }
-            }
         }
         .sheet(isPresented: $showAddVault) {
             AddStoryVaultView()
@@ -120,29 +119,29 @@ struct ReaderStatCard: View {
     let label: String
 
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .center, spacing: 8) {
             ZStack {
                 Circle()
                     .fill(SL.accent.opacity(0.12))
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                 Image(systemName: icon)
-                    .font(.system(size: 16))
+                    .font(.system(size: 18))
                     .foregroundColor(SL.accent)
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(SL.textPrimary)
-                Text(label)
-                    .font(SL.body(12))
-                    .foregroundColor(SL.textSecondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer()
+
+            Text(value)
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(SL.textPrimary)
+
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(SL.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity)
         .background(SL.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))

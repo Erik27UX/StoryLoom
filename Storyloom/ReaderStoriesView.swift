@@ -91,7 +91,7 @@ struct ReaderStoriesView: View {
                                 Text("Add Story Vault")
                                     .font(.system(size: 13, weight: .medium))
                             }
-                            .foregroundColor(SL.accent)
+                            .foregroundColor(SL.textPrimary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
                             .background(SL.surface)
