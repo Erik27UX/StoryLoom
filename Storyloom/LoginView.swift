@@ -8,6 +8,8 @@ struct LoginView: View {
     @State private var name = ""
     @State private var errorMessage = ""
     @State private var isLoading = false
+    @State private var showEmailConfirmation = false
+    @State private var confirmedEmail = ""
 
     private var canSubmit: Bool {
         !email.isEmpty && !password.isEmpty && !(isSignup && name.isEmpty) && !isLoading
@@ -17,17 +19,86 @@ struct LoginView: View {
         ZStack {
             SL.background.ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(isSignup ? "Create your account" : "Welcome back")
-                            .font(SL.heading(28))
-                            .foregroundColor(SL.textPrimary)
-                        Text(isSignup ? "Tell us a bit about yourself" : "Sign in to continue")
-                            .font(SL.body(16))
-                            .foregroundColor(SL.textSecondary)
-                    }
+            if showEmailConfirmation {
+                emailConfirmationView
+            } else {
+                formView
+            }
+        }
+    }
+
+    // MARK: - Email Confirmation Screen
+
+    private var emailConfirmationView: some View {
+        VStack(spacing: 32) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(SL.accent.opacity(0.12))
+                    .frame(width: 90, height: 90)
+                Image(systemName: "envelope.fill")
+                    .font(.system(size: 38))
+                    .foregroundColor(SL.accent)
+            }
+
+            VStack(spacing: 12) {
+                Text("Check your inbox")
+                    .font(SL.heading(26))
+                    .foregroundColor(SL.textPrimary)
+
+                Text("We sent a confirmation link to")
+                    .font(SL.body(16))
+                    .foregroundColor(SL.textSecondary)
+
+                Text(confirmedEmail)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(SL.textPrimary)
+
+                Text("Tap the link in the email to activate your account. You'll be signed in automatically once confirmed.")
+                    .font(SL.body(14))
+                    .foregroundColor(SL.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 4)
+            }
+            .padding(.horizontal, 32)
+
+            Spacer()
+
+            Button(action: {
+                showEmailConfirmation = false
+                isSignup = false
+                email = ""
+                password = ""
+                name = ""
+            }) {
+                Text("Back to sign in")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(Color(hex: "FDF9F0"))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(SL.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Login / Signup Form
+
+    private var formView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Header
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(isSignup ? "Create your account" : "Welcome back")
+                        .font(SL.heading(28))
+                        .foregroundColor(SL.textPrimary)
+                    Text(isSignup ? "Tell us a bit about yourself" : "Sign in to continue")
+                        .font(SL.body(16))
+                        .foregroundColor(SL.textSecondary)
+                }
 
                     // Form fields
                     VStack(alignment: .leading, spacing: 14) {
@@ -124,8 +195,7 @@ struct LoginView: View {
                 .padding(.top, 32)
                 .padding(.bottom, 40)
             }
-        }
-    }
+    }  // end formView
 
     // MARK: - Submit
 
@@ -156,10 +226,15 @@ struct LoginView: View {
             do {
                 if isSignup {
                     try await authManager.signup(email: email, password: password, name: name)
+                    await MainActor.run {
+                        confirmedEmail = email
+                        showEmailConfirmation = true
+                        isLoading = false
+                    }
                 } else {
                     try await authManager.login(email: email, password: password)
+                    // Auth state listener handles setting isLoggedIn
                 }
-                // Auth state listener handles setting isLoggedIn
             } catch {
                 await MainActor.run {
                     errorMessage = friendlyError(error)
