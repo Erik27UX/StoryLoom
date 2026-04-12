@@ -108,11 +108,37 @@ final class AuthManager: ObservableObject {
             SyncManager.shared.pullAllUserData()
 
         } catch {
-            print("AuthManager: handleSession error fetching profile - \(error.localizedDescription)")
-            // Profile may not exist yet (race on new signup) — fall back to cached
-            if let user = loadCachedUser(session: session) {
+            print("AuthManager: handleSession profile not found — creating now for \(session.user.id)")
+            // Profile doesn't exist yet (first sign-in after email confirmation).
+            // Create it now — user is authenticated so RLS will pass.
+            let metadata = session.user.userMetadata
+            let name = (metadata["name"]?.value as? String) ?? ""
+            let role = (metadata["role"]?.value as? String) ?? UserRole.reader.rawValue
+            let newProfile = SupabaseProfile(
+                id: session.user.id,
+                email: session.user.email,
+                name: name,
+                birthYear: nil,
+                role: role,
+                subscriptionTier: "Free",
+                profilePhotoURL: nil
+            )
+            do {
+                try await SupabaseManager.shared.client
+                    .from("profiles")
+                    .insert(newProfile)
+                    .execute()
+                print("AuthManager: profile created successfully")
+                let user = buildUser(from: newProfile, session: session)
                 currentUser = user
                 isLoggedIn = true
+                cacheProfile(newProfile)
+            } catch {
+                print("AuthManager: failed to create profile — \(error.localizedDescription)")
+                if let user = loadCachedUser(session: session) {
+                    currentUser = user
+                    isLoggedIn = true
+                }
             }
             isCheckingAuth = false
         }
@@ -143,7 +169,7 @@ final class AuthManager: ObservableObject {
     func signup(email: String, password: String, name: String, role: UserRole = .reader) async throws {
         print("AuthManager: signup starting for email: \(email)")
 
-        let response = try await SupabaseManager.shared.client.auth.signUp(
+        try await SupabaseManager.shared.client.auth.signUp(
             email: email,
             password: password,
             data: [
@@ -152,25 +178,9 @@ final class AuthManager: ObservableObject {
             ]
         )
 
-        // Manually create profile instead of relying on trigger
-        let userId = response.user.id
-
-        let profile = SupabaseProfile(
-            id: userId,
-            email: email,
-            name: name,
-            birthYear: nil,
-            role: role.rawValue,
-            subscriptionTier: "Free",
-            profilePhotoURL: nil
-        )
-
-        try await SupabaseManager.shared.client
-            .from("profiles")
-            .insert(profile)
-            .execute()
-
-        print("AuthManager: signup complete — profile created, confirmation email sent")
+        // Profile is created in handleSession once the user confirms their email
+        // and a valid session exists — RLS requires auth.uid() to match the profile id.
+        print("AuthManager: signup complete — confirmation email sent")
     }
 
     // MARK: - Fire-and-Forget Auth Methods (synchronous public API)
