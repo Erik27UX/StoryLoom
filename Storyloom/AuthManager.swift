@@ -32,8 +32,11 @@ final class AuthManager: ObservableObject {
     // MARK: Init
 
     private init() {
+        print("AuthManager: init called")
         hasCompletedOnboarding = UserDefaults.standard.bool(forKey: onboardingKey)
+        print("AuthManager: starting auth listener...")
         startAuthListener()
+        print("AuthManager: init complete")
     }
 
     // MARK: - Auth State Listener
@@ -140,7 +143,7 @@ final class AuthManager: ObservableObject {
     func signup(email: String, password: String, name: String, role: UserRole = .reader) async throws {
         print("AuthManager: signup starting for email: \(email)")
 
-        try await SupabaseManager.shared.client.auth.signUp(
+        let response = try await SupabaseManager.shared.client.auth.signUp(
             email: email,
             password: password,
             data: [
@@ -149,10 +152,25 @@ final class AuthManager: ObservableObject {
             ]
         )
 
-        // Profile is created automatically by the Supabase database trigger (handle_new_user)
-        // which runs as SECURITY DEFINER and bypasses RLS.
-        // Auth state listener handles sign-in once the user confirms their email.
-        print("AuthManager: signup complete — confirmation email sent")
+        // Manually create profile instead of relying on trigger
+        let userId = response.user.id
+
+        let profile = SupabaseProfile(
+            id: userId,
+            email: email,
+            name: name,
+            birthYear: nil,
+            role: role.rawValue,
+            subscriptionTier: "Free",
+            profilePhotoURL: nil
+        )
+
+        try await SupabaseManager.shared.client
+            .from("profiles")
+            .insert(profile)
+            .execute()
+
+        print("AuthManager: signup complete — profile created, confirmation email sent")
     }
 
     // MARK: - Fire-and-Forget Auth Methods (synchronous public API)
