@@ -302,7 +302,7 @@ struct StorytellerSettingsContent: View {
                             .font(SL.body(15))
                             .foregroundColor(authManager.currentUser?.subscriptionTier == .family ? SL.textPrimary : SL.textSecondary)
                         if authManager.currentUser?.subscriptionTier != .family {
-                            Text("Requires Family plan")
+                            Text("Requires Story Legend plan")
                                 .font(SL.body(11))
                                 .foregroundColor(SL.accent)
                         }

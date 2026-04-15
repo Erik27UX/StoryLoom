@@ -33,7 +33,7 @@ struct QuestionsView: View {
                                     Text("Questions not enabled")
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundColor(SL.textPrimary)
-                                    Text("Upgrade to Family plan to let readers ask you questions about your stories.")
+                                    Text("Upgrade to Story Legend plan to let readers ask you questions about your stories.")
                                         .font(SL.body(12))
                                         .foregroundColor(SL.textSecondary)
                                 }
@@ -78,7 +78,7 @@ struct QuestionsView: View {
                 if authManager.currentUser?.role == .reader {
                     if isQuestionsLocked {
                         VStack(spacing: 8) {
-                            Text("Questions only available for storytellers with Family subscription")
+                            Text("Questions only available for storytellers with Story Legend subscription")
                                 .font(SL.body(12))
                                 .foregroundColor(SL.textSecondary)
                                 .multilineTextAlignment(.center)

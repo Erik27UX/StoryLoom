@@ -78,11 +78,11 @@ struct StorytellerSubscriptionView: View {
                         .background(SL.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                        // Family plan
+                        // Story Legend plan
                         VStack(spacing: 12) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Family")
+                                    Text("Story Legend")
                                         .font(.system(size: 17, weight: .semibold))
                                         .foregroundColor(SL.textPrimary)
                                     Text("$9.99/month")
@@ -106,7 +106,7 @@ struct StorytellerSubscriptionView: View {
                                 FeatureItem("Share with unlimited people")
                                 FeatureItem("Create team libraries")
                                 FeatureItem("Advanced privacy controls")
-                                FeatureItem("Family support")
+                                FeatureItem("Story Legend support")
                             }
                         }
                         .padding(12)

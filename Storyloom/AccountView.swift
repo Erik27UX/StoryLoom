@@ -76,7 +76,7 @@ struct AccountView: View {
                                     }
                                 }
                                 Text(isPremium
-                                    ? "Unlimited stories · Vault sharing · Family access"
+                                    ? "Unlimited stories · Vault sharing · Story Legend access"
                                     : "Up to 3 stories · No vault sharing")
                                     .font(SL.body(13))
                                     .foregroundColor(SL.textSecondary)

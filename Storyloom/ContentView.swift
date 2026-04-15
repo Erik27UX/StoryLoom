@@ -37,13 +37,13 @@ struct ContentView: View {
             NavigationStack {
                 LoginView()
             }
-        } else if !authManager.hasCompletedOnboarding {
-            // Logged in but onboarding not done — show welcome flow
+        } else if authManager.currentUser?.subscriptionTier == .free && !authManager.hasCompletedOnboarding {
+            // Free users need to complete onboarding to access the app
             NavigationStack {
                 WelcomeView()
             }
         } else {
-            // Fully authenticated and onboarded
+            // Fully authenticated: premium/legend users skip onboarding, free users already onboarded
             mainApp
         }
     }

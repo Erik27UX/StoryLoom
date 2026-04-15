@@ -147,7 +147,7 @@ final class AuthManager: ObservableObject {
     private func buildUser(from profile: SupabaseProfile, session: Session) -> User {
         let subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "Free") ?? .free
 
-        // Premium and Family tier users should always be storytellers
+        // Premium and Story Legend tier users should always be storytellers
         let role: UserRole
         if subscriptionTier == .premium || subscriptionTier == .family {
             role = .storyteller
@@ -220,7 +220,6 @@ final class AuthManager: ObservableObject {
     func updateUserRole(_ role: UserRole) {
         guard var user = currentUser else { return }
         user.role = role
-        user.subscriptionTier = role == .storyteller ? .premium : .free
         currentUser = user
 
         guard let uid = supabaseUserId else { return }

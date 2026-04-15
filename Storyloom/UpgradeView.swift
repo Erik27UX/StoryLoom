@@ -24,11 +24,11 @@ struct UpgradeView: View {
             recommended: true
         ),
         (
-            name: "Family",
+            name: "Story Legend",
             id: "family",
             price: "$9.99",
             duration: "per month",
-            features: ["Everything in Pro", "Share with unlimited people", "Create team libraries", "Advanced privacy controls", "Family support"],
+            features: ["Everything in Pro", "Share with unlimited people", "Create team libraries", "Advanced privacy controls", "Story Legend support"],
             recommended: false
         ),
     ]

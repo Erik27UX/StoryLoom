@@ -178,7 +178,7 @@ struct StoryDetailView: View {
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                             }
 
-                            // Questions: only if storyteller has Family tier
+                            // Questions: only if storyteller has Story Legend tier
                             let questionsUnlocked = story.authorSubscriptionTier == .family
                             NavigationLink(destination: QuestionsView(story: story)) {
                                 HStack(spacing: 10) {
@@ -190,7 +190,7 @@ struct StoryDetailView: View {
                                             .font(.system(size: 13, weight: .medium))
                                             .foregroundColor(questionsUnlocked ? SL.textPrimary : SL.textSecondary)
                                         if !questionsUnlocked {
-                                            Text("Family plan required")
+                                            Text("Story Legend plan required")
                                                 .font(SL.body(10))
                                                 .foregroundColor(SL.textSecondary)
                                         }
