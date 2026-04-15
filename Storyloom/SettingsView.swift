@@ -150,6 +150,7 @@ struct SettingsView: View {
             .background(SL.background)
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(SL.background, for: .navigationBar)
         }
         .sheet(isPresented: $showImagePicker) {
             EditProfileImageSheet(isPresented: $showImagePicker, authManager: authManager)

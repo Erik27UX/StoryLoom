@@ -3,7 +3,7 @@ import SwiftData
 
 struct HomeView: View {
     @ObservedObject private var authManager = AuthManager.shared
-    @AppStorage("userName") private var userName = "John"
+    @AppStorage("userName") private var userName = ""
     @AppStorage("subscriptionTier") private var subscriptionTier = SubscriptionTier.free.rawValue
     @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
 
@@ -32,7 +32,7 @@ struct HomeView: View {
 
                     // Greeting
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Welcome back, \(displayName)")
+                        Text(displayName.isEmpty ? "Welcome back" : "Welcome back, \(displayName)")
                             .font(SL.heading(28))
                             .foregroundColor(SL.textPrimary)
                         Text("Your story is growing beautifully")
@@ -178,6 +178,7 @@ struct HomeView: View {
                 .padding(.bottom, 32)
             }
             .background(SL.background)
+            .toolbarBackground(SL.background, for: .navigationBar)
         }
     }
 }

@@ -105,6 +105,7 @@ struct ReadersView: View {
             .background(SL.background)
             .navigationTitle("Readers")
             .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(SL.background, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showManageSheet = true }) {

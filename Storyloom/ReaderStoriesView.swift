@@ -228,6 +228,7 @@ struct ReaderStoriesView: View {
             }
             .background(SL.background)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(SL.background, for: .navigationBar)
         }
         .sheet(isPresented: $showAddVault) {
             AddStoryVaultView()

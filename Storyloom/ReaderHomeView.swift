@@ -4,7 +4,7 @@ import SwiftData
 struct ReaderHomeView: View {
     @Binding var selectedTab: Int
     @ObservedObject private var authManager = AuthManager.shared
-    @AppStorage("userName") private var userName = "John"
+    @AppStorage("userName") private var userName = ""
     @Query(filter: #Predicate<StoryEntry> { $0.isInVault == true },
            sort: \StoryEntry.dateCreated, order: .reverse)
     private var vaultStories: [StoryEntry]
@@ -33,7 +33,7 @@ struct ReaderHomeView: View {
                     // Greeting header
                     HStack(alignment: .top, spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Welcome back, \(displayName)")
+                            Text(displayName.isEmpty ? "Welcome back" : "Welcome back, \(displayName)")
                                 .font(SL.heading(28))
                                 .foregroundColor(SL.textPrimary)
                             Text("Stories shared with you")
@@ -106,6 +106,7 @@ struct ReaderHomeView: View {
                 .padding(.bottom, 32)
             }
             .background(SL.background)
+            .toolbarBackground(SL.background, for: .navigationBar)
         }
         .sheet(isPresented: $showAddVault) {
             AddStoryVaultView()

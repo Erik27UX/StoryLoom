@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AccountView: View {
-    @AppStorage("userName")         private var userName         = "John"
+    @AppStorage("userName")         private var userName         = ""
     @AppStorage("userRole")         private var userRole         = UserRole.storyteller.rawValue
     @AppStorage("subscriptionTier") private var subscriptionTier = SubscriptionTier.free.rawValue
 

@@ -23,6 +23,7 @@ struct EditStoryView: View {
     @State private var pendingNarrationFileName: String? = nil
     @State private var showSaveConfirmation: Bool = false
     @State private var savedStoryId: UUID? = nil
+    @State private var showDeleteConfirm: Bool = false
 
     init(
         story: StoryEntry?,
@@ -56,28 +57,6 @@ struct EditStoryView: View {
                         Text("Make it sound exactly like you")
                             .font(SL.body(16))
                             .foregroundColor(SL.textSecondary)
-                    }
-
-                    // Rewrite with AI button
-                    NavigationLink(destination: AIRewriteToolsView(
-                        originalText: storyText,
-                        onSave: { rewritten in storyText = rewritten }
-                    )) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 15, weight: .medium))
-                            Text("Rewrite with AI")
-                                .font(.system(size: 15, weight: .medium))
-                        }
-                        .foregroundColor(SL.accent)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(SL.accent.opacity(0.5), lineWidth: 1.5)
-                        )
                     }
 
                     // Story details (only when editing persisted story)
@@ -217,6 +196,22 @@ struct EditStoryView: View {
 
                             // Voice narration section
                             narrationSection
+
+                            // Delete story
+                            Button(action: { showDeleteConfirm = true }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 14))
+                                    Text("Delete story")
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .foregroundColor(Color.red.opacity(0.8))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(Color.red.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                            }
                         }
                         .padding(16)
                         .background(SL.surface.opacity(0.6))
@@ -280,6 +275,12 @@ struct EditStoryView: View {
                     isEditing = false
                 }
             }
+        }
+        .alert("Delete this story?", isPresented: $showDeleteConfirm) {
+            Button("Delete", role: .destructive) { deleteStory() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently remove the story and cannot be undone.")
         }
         .fullScreenCover(isPresented: $showSaveConfirmation) {
             ZStack {
@@ -583,6 +584,20 @@ struct EditStoryView: View {
             onDismiss?()
             dismiss()
         }
+    }
+
+    private func deleteStory() {
+        guard let story else { return }
+        audio.stop()
+        // Delete local audio file if any
+        if let fileName = story.narrationFileName {
+            AudioManager.shared.deleteRecording(fileName: fileName)
+        }
+        // Delete from Supabase
+        SyncManager.shared.deleteStory(uuid: story.uuid)
+        // Delete from SwiftData
+        modelContext.delete(story)
+        dismiss()
     }
 
     private func discardAndDismiss() {

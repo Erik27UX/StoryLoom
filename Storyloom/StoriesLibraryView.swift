@@ -198,6 +198,7 @@ struct StoriesLibraryView: View {
                 .padding(.bottom, 32)
             }
             .background(SL.background)
+            .toolbarBackground(SL.background, for: .navigationBar)
         }
     }
 }
