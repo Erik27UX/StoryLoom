@@ -67,7 +67,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var mainApp: some View {
-        let isStoryteller = authManager.currentUser?.role == .storyteller
+        let isStoryteller = authManager.currentUserRole == .storyteller
 
         TabView(selection: $coordinator.selectedTab) {
             if isStoryteller {

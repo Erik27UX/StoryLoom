@@ -22,9 +22,6 @@ struct EditStoryView: View {
     @State private var publishNarration: Bool
     @State private var isVault: Bool
     @State private var pendingNarrationFileName: String? = nil
-    @StateObject private var coordinator = AppCoordinator.shared
-    @State private var showSaveConfirmation: Bool = false
-    @State private var savedStoryId: UUID? = nil
     @State private var showDeleteConfirm: Bool = false
     @State private var pickerItem: PhotosPickerItem? = nil
     @State private var selectedUIImage: UIImage? = nil  // New image picked but not yet saved
@@ -203,22 +200,6 @@ struct EditStoryView: View {
 
                             // Voice narration section
                             narrationSection
-
-                            // Delete story
-                            Button(action: { showDeleteConfirm = true }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 14))
-                                    Text("Delete story")
-                                        .font(.system(size: 14, weight: .medium))
-                                }
-                                .foregroundColor(Color.red.opacity(0.8))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
-                                .background(Color.red.opacity(0.06))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.2), lineWidth: 1))
-                            }
                         }
                         .padding(16)
                         .background(SL.surface.opacity(0.6))
@@ -254,6 +235,24 @@ struct EditStoryView: View {
                         .background(SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+
+                    // Standalone delete button (only when editing existing story)
+                    if story != nil {
+                        Button(action: { showDeleteConfirm = true }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 14))
+                                Text("Delete story")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(Color.red.opacity(0.8))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(Color.red.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                        }
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -288,98 +287,6 @@ struct EditStoryView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will permanently remove the story and cannot be undone.")
-        }
-        .fullScreenCover(isPresented: $showSaveConfirmation) {
-            saveConfirmationSheet
-        }
-    }
-
-    private var saveConfirmationSheet: some View {
-        ZStack {
-            SL.background.ignoresSafeArea()
-            VStack(spacing: 0) {
-
-                // X dismiss button
-                HStack {
-                    Spacer()
-                    Button(action: { coordinator.returnToHome() }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(SL.textSecondary)
-                            .padding(10)
-                            .background(SL.surface)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(SL.border, lineWidth: 1))
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-
-                Spacer()
-
-                // Checkmark + message
-                VStack(spacing: 16) {
-                    ZStack {
-                        Circle()
-                            .fill(SL.accent.opacity(0.15))
-                            .frame(width: 88, height: 88)
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundColor(SL.accent)
-                    }
-
-                    VStack(spacing: 8) {
-                        Text(isVault ? "Story Published!" : "Story Saved!")
-                            .font(SL.heading(24))
-                            .foregroundColor(SL.textPrimary)
-                        Text(isVault
-                            ? "Your story is now shared with your readers."
-                            : "Your story is saved privately. You can publish it anytime.")
-                            .font(SL.body(15))
-                            .foregroundColor(SL.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
-                    }
-                }
-
-                Spacer()
-
-                // Action buttons
-                VStack(spacing: 12) {
-                    Button(action: {
-                        if let storyId = story?.uuid {
-                            coordinator.navigateToStory(storyId)
-                        } else {
-                            coordinator.returnToHome()
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "eye.fill")
-                                .font(.system(size: 15))
-                            Text("View story")
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        .foregroundColor(Color(hex: "FDF9F0"))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(SL.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-
-                    Button(action: { coordinator.returnToHome() }) {
-                        Text("Close")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(SL.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(SL.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 40)
-            }
         }
     }
 
@@ -636,7 +543,6 @@ struct EditStoryView: View {
             story.isInVault = isVault
             story.publishNarration = publishNarration
 
-            // Save new image if picked
             if let newImage = selectedUIImage {
                 story.imageFileName = ImageManager.saveImage(newImage, existingFileName: story.imageFileName)
                 selectedUIImage = nil
@@ -649,9 +555,9 @@ struct EditStoryView: View {
                 story.narrationFileName = pending
                 story.hasNarration = true
             }
-            savedStoryId = story.uuid
             SyncManager.shared.pushStory(story)
-            showSaveConfirmation = true
+            // Return to story detail view (no confirmation modal for edits)
+            onDismiss?()
         } else {
             onSave?(storyText)
             onDismiss?()

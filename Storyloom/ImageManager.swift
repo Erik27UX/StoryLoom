@@ -59,7 +59,7 @@ enum ImageManager {
 
 struct StoryImageView: View {
     let story: StoryEntry
-    var height: CGFloat = 120
+    var height: CGFloat = 130
 
     var body: some View {
         if let name = story.imageFileName,
@@ -67,11 +67,11 @@ struct StoryImageView: View {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
-                .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
                 .clipped()
-        } else {
-            StoryImagePlaceholder(story: story)
         }
+        // No fallback — when no image, renders nothing (EmptyView)
     }
 }
 

@@ -19,6 +19,8 @@ final class AuthManager: ObservableObject {
     /// True while we are checking for an existing Supabase session on launch.
     /// Show a splash / loading screen while this is true.
     @Published var isCheckingAuth: Bool = true
+    /// Current user's role — mirrors currentUser?.role but guaranteed to trigger @Published updates.
+    @Published var currentUserRole: UserRole = .reader
 
     // MARK: Internal state
 
@@ -169,6 +171,9 @@ final class AuthManager: ObservableObject {
         UserDefaults.standard.set(user.subscriptionTier.rawValue, forKey: "subscriptionTier")
         UserDefaults.standard.set(user.role.rawValue, forKey: "userRole")
 
+        // Keep currentUserRole in sync (drives ContentView tab structure)
+        currentUserRole = role
+
         return user
     }
 
@@ -221,6 +226,7 @@ final class AuthManager: ObservableObject {
         guard var user = currentUser else { return }
         user.role = role
         currentUser = user
+        currentUserRole = role
 
         guard let uid = supabaseUserId else { return }
         Task {
@@ -271,6 +277,7 @@ final class AuthManager: ObservableObject {
         currentUser = nil
         isLoggedIn = false
         supabaseUserId = nil
+        currentUserRole = .reader
     }
 
     // MARK: - Local Profile Cache (offline fallback)
