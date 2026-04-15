@@ -4,7 +4,9 @@ import SwiftData
 struct StoriesLibraryView: View {
     @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var allStories: [StoryEntry]
     @Query(sort: \Folder.dateCreated, order: .reverse) private var folders: [Folder]
+    @StateObject private var coordinator = AppCoordinator.shared
     @State private var sortBy: SortOption = .created
+    @State private var navigationPath = NavigationPath()
 
     private var groupedStories: [(folder: Folder?, stories: [StoryEntry])] {
         // Filter stories based on sort option
@@ -62,7 +64,7 @@ struct StoriesLibraryView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .center, spacing: 12) {
@@ -146,7 +148,7 @@ struct StoriesLibraryView: View {
 
                                 // Stories in folder
                                 ForEach(stories) { story in
-                                    NavigationLink(destination: StoryDetailView(story: story)) {
+                                    NavigationLink(value: story.uuid) {
                                         StoryLibraryCard(story: story)
                                     }
                                     .buttonStyle(.plain)
@@ -199,6 +201,17 @@ struct StoriesLibraryView: View {
             }
             .background(SL.background)
             .toolbarBackground(SL.background, for: .navigationBar)
+            .navigationDestination(for: UUID.self) { storyId in
+                if let story = allStories.first(where: { $0.uuid == storyId }) {
+                    StoryDetailView(story: story)
+                }
+            }
+        }
+        .onChange(of: coordinator.storyToOpen) { _, storyId in
+            guard let id = storyId else { return }
+            navigationPath.removeLast(navigationPath.count)
+            navigationPath.append(id)
+            DispatchQueue.main.async { coordinator.storyToOpen = nil }
         }
     }
 }
@@ -208,9 +221,8 @@ struct StoryLibraryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Story image — same placeholder as detail view
-            StoryImagePlaceholder(story: story)
-                .frame(height: 80)
+            // Story image — real image if available, placeholder otherwise
+            StoryImageView(story: story, height: 80)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
             HStack(alignment: .top) {

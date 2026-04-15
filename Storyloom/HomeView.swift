@@ -189,9 +189,8 @@ struct RecentStoryCard: View {
     var body: some View {
         NavigationLink(destination: StoryDetailView(story: story)) {
             VStack(alignment: .leading, spacing: 12) {
-                // Story image — same placeholder as detail view
-                StoryImagePlaceholder(story: story)
-                    .frame(height: 80)
+                // Story image — real image if available, placeholder otherwise
+                StoryImageView(story: story, height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
                 HStack(alignment: .top) {

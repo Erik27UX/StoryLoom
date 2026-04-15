@@ -135,7 +135,7 @@ struct StoryDetailView: View {
                         // Tappable image thumbnail on the left
                         Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
                             ZStack(alignment: .bottomTrailing) {
-                                StoryImagePlaceholder(story: story)
+                                StoryImageView(story: story, height: 80)
                                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                                     .font(.system(size: 9, weight: .semibold))
                                     .foregroundColor(.white)
@@ -361,8 +361,7 @@ struct StoryDetailView: View {
 
                         Spacer()
 
-                        StoryImagePlaceholder(story: story)
-                            .aspectRatio(4/3, contentMode: .fit)
+                        StoryImageView(story: story, height: 240)
                             .padding(.horizontal, 24)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
 

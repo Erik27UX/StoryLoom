@@ -3,8 +3,8 @@ import SwiftData
 
 struct ContentView: View {
     @StateObject private var authManager = AuthManager.shared
+    @StateObject private var coordinator = AppCoordinator.shared
     @Environment(\.modelContext) private var modelContext
-    @State private var selectedTab = 0
     @State private var tabIds: [Int: UUID] = [0: UUID(), 1: UUID(), 2: UUID(), 3: UUID()]
 
     init() {
@@ -69,7 +69,7 @@ struct ContentView: View {
     private var mainApp: some View {
         let isStoryteller = authManager.currentUser?.role == .storyteller
 
-        TabView(selection: $selectedTab) {
+        TabView(selection: $coordinator.selectedTab) {
             if isStoryteller {
                 NavigationStack {
                     HomeView()
@@ -100,7 +100,7 @@ struct ContentView: View {
                 .tag(3)
             } else {
                 NavigationStack {
-                    ReaderHomeView(selectedTab: $selectedTab)
+                    ReaderHomeView(selectedTab: $coordinator.selectedTab)
                 }
                 .id(tabIds[0])
                 .tabItem { Image(systemName: "house.fill");       Text("Home") }
@@ -128,11 +128,17 @@ struct ContentView: View {
                 .tag(3)
             }
         }
-        .onChange(of: selectedTab) { oldTab, newTab in
+        .onChange(of: coordinator.selectedTab) { oldTab, newTab in
             // Delay reset until after tab-switch animation to avoid black flash
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 tabIds[oldTab] = UUID()
             }
+        }
+        .onChange(of: coordinator.tabToReset) { _, tabIdx in
+            // Programmatic nav-stack reset (e.g. "Close" from a confirmation modal)
+            guard let idx = tabIdx else { return }
+            tabIds[idx] = UUID()
+            DispatchQueue.main.async { coordinator.tabToReset = nil }
         }
         .onAppear(perform: seedIfNeeded)
     }

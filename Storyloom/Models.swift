@@ -205,6 +205,7 @@ class StoryEntry {
     var hasNarration: Bool
     var publishNarration: Bool
     var narrationFileName: String?
+    var imageFileName: String?
     var authorSubscriptionTier: SubscriptionTier = SubscriptionTier.premium
     var authorName: String?
     var likeCount: Int = 0
@@ -220,6 +221,7 @@ class StoryEntry {
         hasNarration: Bool = false,
         publishNarration: Bool = false,
         narrationFileName: String? = nil,
+        imageFileName: String? = nil,
         authorSubscriptionTier: SubscriptionTier = .premium,
         authorName: String? = nil,
         likeCount: Int = 0
@@ -236,6 +238,7 @@ class StoryEntry {
         self.hasNarration = hasNarration
         self.publishNarration = publishNarration
         self.narrationFileName = narrationFileName
+        self.imageFileName = imageFileName
         self.authorSubscriptionTier = authorSubscriptionTier
         self.authorName = authorName
         self.likeCount = likeCount

@@ -255,9 +255,8 @@ struct StoryCardForReader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Sample image — same as home tab, consistent for each story
-            StoryImagePlaceholder(story: story)
-                .frame(height: 80)
+            // Story image — real image if available, placeholder otherwise
+            StoryImageView(story: story, height: 80)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
             HStack(alignment: .top) {

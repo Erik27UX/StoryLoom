@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct StoryReadyView: View {
     @Environment(\.dismiss) private var dismiss
@@ -12,14 +13,18 @@ struct StoryReadyView: View {
     let storyText: String
     let customTitle: String?
 
+    @StateObject private var coordinator = AppCoordinator.shared
+
     @State private var pendingNarrationFileName: String?
     @State private var editableText: String
-    @State private var savedSuccessfully = false
     @State private var selectedYear: Int? = nil
     @State private var selectedFolder: Folder? = nil
     @State private var yearText: String = ""
     @State private var selectedCategory: PromptCategory = .coreMemory
     @State private var publishNarration: Bool = true
+    @State private var showConfirmation: Bool = false
+    @State private var confirmedEntry: StoryEntry? = nil
+    @State private var confirmedIsPublished: Bool = false
 
     init(
         prompt: StoryPrompt?,
@@ -35,11 +40,12 @@ struct StoryReadyView: View {
     }
 
     private let imageOptions = [
-        ("photo.fill", "AI image"),
         ("person.crop.square", "My photo"),
         ("xmark", "None"),
     ]
-    @State private var selectedImageOption = 0
+    @State private var selectedImageOption = 1  // Default: None
+    @State private var pickerItem: PhotosPickerItem? = nil
+    @State private var selectedUIImage: UIImage? = nil
 
     var body: some View {
         ScrollView {
@@ -71,41 +77,109 @@ struct StoryReadyView: View {
 
                 // Image option pills
                 HStack(spacing: 8) {
-                    ForEach(0..<3) { i in
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.2)) { selectedImageOption = i }
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: imageOptions[i].0)
-                                    .font(.system(size: 13))
-                                Text(imageOptions[i].1)
-                                    .font(.system(size: 13, weight: .medium))
+                    // "My photo" pill — wraps PhotosPicker
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                        HStack(spacing: 6) {
+                            Image(systemName: imageOptions[0].0)
+                                .font(.system(size: 13))
+                            Text(imageOptions[0].1)
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                        .frame(maxWidth: .infinity)
+                        .background(selectedImageOption == 0 ? SL.surface : SL.background)
+                        .foregroundColor(selectedImageOption == 0 ? SL.textPrimary : SL.textSecondary)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(selectedImageOption == 0 ? SL.accent : SL.border,
+                                        lineWidth: selectedImageOption == 0 ? 2 : 1)
+                        )
+                    }
+
+                    // "None" pill
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedImageOption = 1
+                            selectedUIImage = nil
+                            pickerItem = nil
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: imageOptions[1].0)
+                                .font(.system(size: 13))
+                            Text(imageOptions[1].1)
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                        .frame(maxWidth: .infinity)
+                        .background(selectedImageOption == 1 ? SL.surface : SL.background)
+                        .foregroundColor(selectedImageOption == 1 ? SL.textPrimary : SL.textSecondary)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(selectedImageOption == 1 ? SL.accent : SL.border,
+                                        lineWidth: selectedImageOption == 1 ? 2 : 1)
+                        )
+                    }
+                }
+                .onChange(of: pickerItem) { _, item in
+                    guard let item else { return }
+                    Task {
+                        if let data = try? await item.loadTransferable(type: Data.self),
+                           let uiImage = UIImage(data: data) {
+                            await MainActor.run {
+                                selectedUIImage = uiImage
+                                selectedImageOption = 0
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 9)
-                            .frame(maxWidth: .infinity)
-                            .background(selectedImageOption == i ? SL.surface : SL.background)
-                            .foregroundColor(selectedImageOption == i ? SL.textPrimary : SL.textSecondary)
-                            .clipShape(Capsule())
-                            .overlay(
-                                Capsule()
-                                    .stroke(selectedImageOption == i ? SL.accent : SL.border,
-                                            lineWidth: selectedImageOption == i ? 2 : 1)
-                            )
                         }
                     }
                 }
 
                 // Image preview
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(SL.surface)
-                        .frame(height: 90)
-                    Image(systemName: "photo.on.rectangle")
-                        .font(.system(size: 26))
-                        .foregroundColor(SL.accent.opacity(0.5))
+                if let uiImage = selectedUIImage {
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity, minHeight: 140, maxHeight: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+
+                        // Remove button
+                        Button(action: {
+                            withAnimation {
+                                selectedUIImage = nil
+                                selectedImageOption = 1
+                                pickerItem = nil
+                            }
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.3), radius: 3)
+                                .padding(8)
+                        }
+                    }
+                } else if selectedImageOption == 1 {
+                    // No image selected
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(SL.surface)
+                            .frame(height: 90)
+                        VStack(spacing: 6) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 24))
+                                .foregroundColor(SL.accent.opacity(0.4))
+                            Text("No image")
+                                .font(SL.body(12))
+                                .foregroundColor(SL.textSecondary)
+                        }
+                    }
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
                 }
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
 
                 // Narration section — only if user recorded
                 if pendingNarrationFileName != nil || audio.isRecording {
@@ -351,23 +425,22 @@ struct StoryReadyView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.open.fill")
                                 .font(.system(size: 15))
-                            Text(savedSuccessfully ? "Published!" : "Publish to vault")
+                            Text("Publish to vault")
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .foregroundColor(Color(hex: "FDF9F0"))
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(savedSuccessfully ? SL.accent : SL.primary)
+                        .background(SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .animation(.easeInOut(duration: 0.2), value: savedSuccessfully)
                     }
-                    .disabled(savedSuccessfully)
+                    .disabled(showConfirmation)
 
                     Button(action: { saveStory(publish: false) }) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 15))
-                            Text(savedSuccessfully ? "Saved!" : "Save as private")
+                            Text("Save as private")
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(SL.textPrimary)
@@ -377,7 +450,7 @@ struct StoryReadyView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1.5))
                     }
-                    .disabled(savedSuccessfully)
+                    .disabled(showConfirmation)
                 }
             }
             .padding(.horizontal, 20)
@@ -386,6 +459,9 @@ struct StoryReadyView: View {
         }
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
+        .fullScreenCover(isPresented: $showConfirmation) {
+            saveConfirmationView
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: {
@@ -451,6 +527,10 @@ struct StoryReadyView: View {
             return selectedCategory.rawValue
         }()
         let currentUser = AuthManager.shared.currentUser
+
+        // Save image to documents if one was selected
+        let savedImageFileName = selectedUIImage.flatMap { ImageManager.saveImage($0) }
+
         let entry = StoryEntry(
             title: title,
             content: editableText,
@@ -462,19 +542,112 @@ struct StoryReadyView: View {
             hasNarration: pendingNarrationFileName != nil,
             publishNarration: pendingNarrationFileName != nil && publishNarration,
             narrationFileName: pendingNarrationFileName,
+            imageFileName: savedImageFileName,
             authorSubscriptionTier: currentUser?.subscriptionTier ?? .free,
             authorName: currentUser?.name
         )
         modelContext.insert(entry)
-        // Push to Supabase
         SyncManager.shared.pushStory(entry)
-        withAnimation { savedSuccessfully = true }
+        confirmedEntry = entry
+        confirmedIsPublished = publish
+        showConfirmation = true
     }
 
     private func deriveTitle(from text: String) -> String {
         let sentence = text.components(separatedBy: ".").first ?? text
         let words = sentence.components(separatedBy: " ").prefix(7)
         return words.joined(separator: " ")
+    }
+
+    // MARK: - Confirmation Modal
+
+    private var saveConfirmationView: some View {
+        ZStack {
+            SL.background.ignoresSafeArea()
+            VStack(spacing: 0) {
+
+                // X dismiss button
+                HStack {
+                    Spacer()
+                    Button(action: { coordinator.returnToHome() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(SL.textSecondary)
+                            .padding(10)
+                            .background(SL.surface)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(SL.border, lineWidth: 1))
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+
+                Spacer()
+
+                // Checkmark + message
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(SL.accent.opacity(0.15))
+                            .frame(width: 88, height: 88)
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 44))
+                            .foregroundColor(SL.accent)
+                    }
+
+                    VStack(spacing: 8) {
+                        Text(confirmedIsPublished ? "Story Published!" : "Story Saved!")
+                            .font(SL.heading(24))
+                            .foregroundColor(SL.textPrimary)
+                        Text(confirmedIsPublished
+                            ? "Your story is now shared with your readers."
+                            : "Your story is saved privately. You can publish it anytime.")
+                            .font(SL.body(15))
+                            .foregroundColor(SL.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                    }
+                }
+
+                Spacer()
+
+                // Action buttons
+                VStack(spacing: 12) {
+                    Button(action: {
+                        guard let entry = confirmedEntry else {
+                            coordinator.returnToHome()
+                            return
+                        }
+                        coordinator.navigateToStory(entry.uuid)
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "eye.fill")
+                                .font(.system(size: 15))
+                            Text("View story")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .foregroundColor(Color(hex: "FDF9F0"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(SL.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    Button(action: { coordinator.returnToHome() }) {
+                        Text("Close")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(SL.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
+            }
+        }
     }
 }
 
