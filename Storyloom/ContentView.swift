@@ -140,10 +140,12 @@ struct ContentView: View {
     // MARK: - Sample Data Seeding (dev / first-launch only)
 
     private func seedIfNeeded() {
+        #if DEBUG
         let descriptor = FetchDescriptor<StoryEntry>()
         let count = (try? modelContext.fetchCount(descriptor)) ?? 0
         guard count == 0 else { return }
         SampleData.seedStories(in: modelContext)
+        #endif
     }
 }
 

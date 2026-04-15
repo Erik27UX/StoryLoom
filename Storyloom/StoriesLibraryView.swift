@@ -174,8 +174,8 @@ struct StoriesLibraryView: View {
                             .font(SL.body(14))
                             .foregroundColor(SL.textSecondary)
 
-                        Button(action: {}) {
-                            Text("Unlock \u{2014} $12/month")
+                        NavigationLink(destination: UpgradeView()) {
+                            Text("View Plans")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(Color(hex: "FDF9F0"))
                                 .frame(maxWidth: .infinity)

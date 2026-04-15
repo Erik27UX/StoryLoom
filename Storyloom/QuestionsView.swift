@@ -10,27 +10,7 @@ struct QuestionsView: View {
     let story: StoryEntry
 
     var filteredQuestions: [StoryQuestion] {
-        let realQuestions = questions.filter { $0.storyId == story.uuid }
-
-        // Mock unanswered question
-        let q1 = StoryQuestion(
-            storyId: story.uuid,
-            userName: "Marcus T.",
-            text: "This is such a vivid memory. How did it feel when you first got that job? Were you nervous?"
-        )
-
-        // Mock answered question
-        let q2 = StoryQuestion(
-            storyId: story.uuid,
-            userName: "Elena R.",
-            text: "Did Mr. Hawthorn teach you anything else besides the importance of punctuality?"
-        )
-        q2.isAnswered = true
-        q2.answerText = "Oh yes, he taught me the value of hard work and patience. More than anything, he showed me that kindness in the workplace goes a long way. Some of my best memories are from early mornings baking bread with him."
-        q2.answeredDate = Date().addingTimeInterval(-86400)
-
-        let mockQuestions = [q1, q2]
-        return (realQuestions + mockQuestions).sorted { $0.dateCreated > $1.dateCreated }
+        questions.filter { $0.storyId == story.uuid }.sorted { $0.dateCreated > $1.dateCreated }
     }
 
     var isQuestionsLocked: Bool {
@@ -548,6 +528,7 @@ struct AnswerQuestionSheet: View {
             question.answerAudioFileName = audioFile
         }
         pendingAudioFileName = nil
+        SyncManager.shared.pushQuestion(question)
         isPresented = false
     }
 }

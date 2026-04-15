@@ -12,11 +12,7 @@ struct CommentsView: View {
     @State private var replyText = ""
 
     var allComments: [StoryComment] {
-        let real = comments.filter { $0.storyId == story.uuid }
-        let c1 = StoryComment(storyId: story.uuid, userName: "Sarah M.", text: "What a beautiful memory! This reminds me of my own childhood summers.")
-        let r1 = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Storyteller", text: "Thank you Sarah, that truly means everything to hear. These memories are precious to share.", parentCommentId: c1.id)
-        let c2 = StoryComment(storyId: story.uuid, userName: "James L.", text: "So touching. Thank you for sharing this with us.")
-        return real + [c1, r1, c2]
+        comments.filter { $0.storyId == story.uuid }
     }
 
     var topLevelComments: [StoryComment] {

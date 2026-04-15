@@ -7,9 +7,11 @@ struct AnswerView: View {
     @State private var answerText = ""
     @State private var pendingNarrationFileName: String? = nil
 
-    // Uses the user's typed answer as the story content;
-    // swap this out for a real AI call later.
-    private var generatedStory: String { answerText.trimmingCharacters(in: .whitespaces).isEmpty ? SampleData.sampleStoryText : answerText }
+    private var generatedStory: String { answerText }
+
+    private var canProceed: Bool {
+        !answerText.trimmingCharacters(in: .whitespaces).isEmpty || pendingNarrationFileName != nil
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -195,9 +197,10 @@ struct AnswerView: View {
                         .foregroundColor(Color(hex: "FDF9F0"))
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
-                        .background(SL.primary)
+                        .background(canProceed ? SL.primary : SL.primary.opacity(0.4))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .disabled(!canProceed)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)

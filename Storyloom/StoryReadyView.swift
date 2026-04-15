@@ -450,6 +450,7 @@ struct StoryReadyView: View {
             if let p = prompt { return p.category }
             return selectedCategory.rawValue
         }()
+        let currentUser = AuthManager.shared.currentUser
         let entry = StoryEntry(
             title: title,
             content: editableText,
@@ -460,7 +461,9 @@ struct StoryReadyView: View {
             folder: selectedFolder,
             hasNarration: pendingNarrationFileName != nil,
             publishNarration: pendingNarrationFileName != nil && publishNarration,
-            narrationFileName: pendingNarrationFileName
+            narrationFileName: pendingNarrationFileName,
+            authorSubscriptionTier: currentUser?.subscriptionTier ?? .free,
+            authorName: currentUser?.name
         )
         modelContext.insert(entry)
         // Push to Supabase

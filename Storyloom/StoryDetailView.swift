@@ -7,6 +7,12 @@ struct StoryDetailView: View {
     @ObservedObject var authManager = AuthManager.shared
     let story: StoryEntry
 
+    @Query private var allComments: [StoryComment]
+    @Query private var allQuestions: [StoryQuestion]
+
+    private var commentCount: Int { allComments.filter { $0.storyId == story.uuid }.count }
+    private var questionCount: Int { allQuestions.filter { $0.storyId == story.uuid }.count }
+
     @State private var isEditingMode = false
     @State private var selectedPlaybackSpeed: Float = 1.0
     @State private var isLiked = false
@@ -76,11 +82,13 @@ struct StoryDetailView: View {
                                 Button(action: {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                         isLiked.toggle()
-                                        story.likeCount += isLiked ? 1 : -1
-                                        // Sync like state to Supabase
                                         if isLiked {
+                                            story.likeCount += 1
+                                            LikeManager.shared.like(story.uuid)
                                             SyncManager.shared.pushLike(storyUUID: story.uuid)
                                         } else {
+                                            story.likeCount = max(0, story.likeCount - 1)
+                                            LikeManager.shared.unlike(story.uuid)
                                             SyncManager.shared.removeLike(storyUUID: story.uuid)
                                         }
                                     }
@@ -155,9 +163,11 @@ struct StoryDetailView: View {
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(SL.textPrimary)
                                     Spacer()
-                                    Text("3")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(SL.textSecondary)
+                                    if commentCount > 0 {
+                                        Text("\(commentCount)")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(SL.textSecondary)
+                                    }
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 11))
                                         .foregroundColor(SL.textSecondary)
@@ -186,8 +196,8 @@ struct StoryDetailView: View {
                                         }
                                     }
                                     Spacer()
-                                    if questionsUnlocked {
-                                        Text("2")
+                                    if questionsUnlocked && questionCount > 0 {
+                                        Text("\(questionCount)")
                                             .font(.system(size: 12, weight: .semibold))
                                             .foregroundColor(SL.textSecondary)
                                     }
@@ -270,12 +280,12 @@ struct StoryDetailView: View {
                                             .fill(SL.accent)
                                             .frame(width: geo.size.width * progress)
                                     }
+                                    .gesture(DragGesture().onChanged { value in
+                                        let percentage = min(max(value.location.x / geo.size.width, 0), 1)
+                                        audio.seek(to: percentage * audio.duration)
+                                    })
                                 }
                                 .frame(height: 6)
-                                .gesture(DragGesture().onChanged { value in
-                                    let percentage = min(max(value.location.x / 200, 0), 1)
-                                    audio.seek(to: percentage * audio.duration)
-                                })
 
                                 HStack {
                                     Text("Remaining")
@@ -328,6 +338,9 @@ struct StoryDetailView: View {
             }
             .background(SL.background)
             .navigationBarBackButtonHidden(true)
+            .onAppear {
+                isLiked = LikeManager.shared.isLiked(story.uuid)
+            }
             .fullScreenCover(isPresented: $isImageExpanded) {
                 ZStack {
                     Color.black.ignoresSafeArea()
