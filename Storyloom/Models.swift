@@ -13,7 +13,7 @@ enum UserRole: String, Codable, CaseIterable {
 enum SubscriptionTier: String, Codable {
     case free = "Free"
     case premium = "Premium"
-    case family = "Family"
+    case family = "Story Legend"
 }
 
 // MARK: - SwiftData models
