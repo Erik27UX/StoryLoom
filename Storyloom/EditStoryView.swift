@@ -21,6 +21,8 @@ struct EditStoryView: View {
     @State private var publishNarration: Bool
     @State private var isVault: Bool
     @State private var pendingNarrationFileName: String? = nil
+    @State private var showSaveConfirmation: Bool = false
+    @State private var savedStoryId: UUID? = nil
 
     init(
         story: StoryEntry?,
@@ -39,6 +41,8 @@ struct EditStoryView: View {
         _publishNarration = State(initialValue: story?.publishNarration ?? false)
         _isVault = State(initialValue: story?.isInVault ?? false)
     }
+
+    @FocusState private var isEditing: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -141,6 +145,7 @@ struct EditStoryView: View {
                                         .font(SL.body(15))
                                         .foregroundColor(SL.textPrimary)
                                         .keyboardType(.numberPad)
+                                        .focused($isEditing)
                                         .onChange(of: yearText) { newValue in
                                             let filtered = newValue.filter { $0.isNumber }
                                             if filtered.count <= 4 {
@@ -252,6 +257,9 @@ struct EditStoryView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
         }
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
@@ -266,6 +274,109 @@ struct EditStoryView: View {
                     .foregroundColor(SL.accent)
                 }
             }
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isEditing = false
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showSaveConfirmation) {
+            ZStack {
+                SL.background.ignoresSafeArea()
+                saveConfirmationSheet
+            }
+        }
+    }
+
+    private var saveConfirmationSheet: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                ZStack {
+                    Circle()
+                        .fill(SL.accent.opacity(0.15))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(SL.accent)
+                }
+                .padding(.top, 12)
+
+                VStack(spacing: 8) {
+                    if isVault {
+                        Text("Published!")
+                            .font(SL.heading(22))
+                            .foregroundColor(SL.textPrimary)
+                        Text("Your story is now shared with your readers")
+                            .font(SL.body(15))
+                            .foregroundColor(SL.textSecondary)
+                    } else {
+                        Text("Saved as draft")
+                            .font(SL.heading(22))
+                            .foregroundColor(SL.textPrimary)
+                        Text("You can edit it anytime from your Stories")
+                            .font(SL.body(15))
+                            .foregroundColor(SL.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                VStack(spacing: 12) {
+                    if let story = story {
+                        NavigationLink(destination: StoryDetailView(story: story)) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "eye.fill")
+                                    .font(.system(size: 15))
+                                Text("View story")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "FDF9F0"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(SL.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    } else {
+                        Button(action: {
+                            showSaveConfirmation = false
+                            onDismiss?()
+                            dismiss()
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "eye.fill")
+                                    .font(.system(size: 15))
+                                Text("View story")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "FDF9F0"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(SL.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+
+                    Button(action: {
+                        showSaveConfirmation = false
+                        onDismiss?()
+                        dismiss()
+                    }) {
+                        Text("Close")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(SL.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+            .frame(maxWidth: .infinity)
+            .background(SL.background)
         }
     }
 
@@ -463,13 +574,15 @@ struct EditStoryView: View {
                 story.narrationFileName = pending
                 story.hasNarration = true
             }
+            savedStoryId = story.uuid
             // Push updated story to Supabase
             SyncManager.shared.pushStory(story)
+            showSaveConfirmation = true
         } else {
             onSave?(storyText)
+            onDismiss?()
+            dismiss()
         }
-        onDismiss?()
-        dismiss()
     }
 
     private func discardAndDismiss() {

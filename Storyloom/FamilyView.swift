@@ -214,6 +214,8 @@ struct ManageReadersSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(SL.background)
             .navigationTitle("Manage Readers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -224,6 +226,7 @@ struct ManageReadersSheet: View {
                 }
             }
         }
+        .background(SL.background)
         .confirmationDialog(
             "Remove \(readerToRemove?.name ?? "reader")?",
             isPresented: $showRemoveConfirm,

@@ -2,13 +2,17 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
+    @ObservedObject private var authManager = AuthManager.shared
     @AppStorage("userName") private var userName = "John"
     @AppStorage("subscriptionTier") private var subscriptionTier = SubscriptionTier.free.rawValue
     @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
 
     private var recentStories: [StoryEntry] { Array(stories.prefix(2)) }
+    private var isFree: Bool { subscriptionTier == SubscriptionTier.free.rawValue }
     private var isPremium: Bool { subscriptionTier == SubscriptionTier.premium.rawValue }
-    private var dailyLimit: Int { isPremium ? 30 : 3 }
+    private var isFamily: Bool { subscriptionTier == "Family" }
+    private var dailyLimit: Int { isFree ? 3 : 30 }
+    private var displayName: String { authManager.currentUser?.name ?? userName }
 
     private var todayStories: Int {
         let start = Calendar.current.startOfDay(for: Date())
@@ -28,7 +32,7 @@ struct HomeView: View {
 
                     // Greeting
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Good morning, \(userName)")
+                        Text("Welcome back, \(displayName)")
                             .font(SL.heading(28))
                             .foregroundColor(SL.textPrimary)
                         Text("Your story is growing beautifully")
@@ -71,8 +75,8 @@ struct HomeView: View {
 
                             Spacer()
 
-                            if !isPremium {
-                                NavigationLink(destination: AccountView()) {
+                            if !isFamily {
+                                NavigationLink(destination: UpgradeView()) {
                                     HStack(spacing: 4) {
                                         Image(systemName: "star.fill")
                                             .font(.system(size: 11))

@@ -145,14 +145,30 @@ final class AuthManager: ObservableObject {
     }
 
     private func buildUser(from profile: SupabaseProfile, session: Session) -> User {
+        let subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "Free") ?? .free
+
+        // Premium and Family tier users should always be storytellers
+        let role: UserRole
+        if subscriptionTier == .premium || subscriptionTier == .family {
+            role = .storyteller
+        } else {
+            role = UserRole(rawValue: profile.role) ?? .reader
+        }
+
         let user = User(
             email: profile.email ?? session.user.email ?? "",
             name: profile.name ?? "",
-            role: UserRole(rawValue: profile.role) ?? .reader
+            role: role
         )
-        user.subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "Free") ?? .free
+        user.subscriptionTier = subscriptionTier
         user.birthYear = profile.birthYear
         user.profilePhotoURL = profile.profilePhotoURL
+
+        // Save name and subscription tier to AppStorage for display throughout app
+        UserDefaults.standard.set(user.name, forKey: "userName")
+        UserDefaults.standard.set(user.subscriptionTier.rawValue, forKey: "subscriptionTier")
+        UserDefaults.standard.set(user.role.rawValue, forKey: "userRole")
+
         return user
     }
 
@@ -175,7 +191,8 @@ final class AuthManager: ObservableObject {
             data: [
                 "name": .string(name),
                 "role": .string(role.rawValue)
-            ]
+            ],
+            redirectTo: URL(string: "storyloom://auth/callback")
         )
 
         // Profile is created in handleSession once the user confirms their email

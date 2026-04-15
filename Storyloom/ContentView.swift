@@ -10,14 +10,17 @@ struct ContentView: View {
     init() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(Color(hex: "FDF9F0"))
-        appearance.shadowColor = UIColor(Color(hex: "EAE0C8"))
+        appearance.backgroundColor = UIColor(red: 0.992, green: 0.976, blue: 0.941, alpha: 1.0) // FDF9F0
+        appearance.shadowColor = UIColor(red: 0.918, green: 0.878, blue: 0.784, alpha: 1.0) // EAE0C8
 
-        let normal: [NSAttributedString.Key: Any]   = [.foregroundColor: UIColor(Color(hex: "A8926A"))]
-        let selected: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor(Color(hex: "2E2418"))]
+        let normalColor = UIColor(red: 0.11, green: 0.10, blue: 0.09, alpha: 1.0) // 1C1917 - dark
+        let selectedColor = UIColor(red: 0.18, green: 0.14, blue: 0.09, alpha: 1.0) // 2E2418 - dark brown
 
-        appearance.stackedLayoutAppearance.normal.iconColor   = UIColor(Color(hex: "A8926A"))
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Color(hex: "2E2418"))
+        let normal: [NSAttributedString.Key: Any]   = [.foregroundColor: normalColor]
+        let selected: [NSAttributedString.Key: Any] = [.foregroundColor: selectedColor]
+
+        appearance.stackedLayoutAppearance.normal.iconColor   = normalColor
+        appearance.stackedLayoutAppearance.selected.iconColor = selectedColor
         appearance.stackedLayoutAppearance.normal.titleTextAttributes   = normal
         appearance.stackedLayoutAppearance.selected.titleTextAttributes = selected
 

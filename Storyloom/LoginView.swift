@@ -104,11 +104,12 @@ struct LoginView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         if isSignup {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Full name")
+                                Text("First name")
                                     .font(SL.body(13))
                                     .foregroundColor(SL.textSecondary)
-                                TextField("Jane Doe", text: $name)
+                                TextField("Jane", text: $name)
                                     .font(SL.body(16))
+                                    .foregroundColor(SL.textPrimary)
                                     .padding(12)
                                     .background(SL.surface)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -122,6 +123,7 @@ struct LoginView: View {
                                 .foregroundColor(SL.textSecondary)
                             TextField("you@example.com", text: $email)
                                 .font(SL.body(16))
+                                .foregroundColor(SL.textPrimary)
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
                                 .padding(12)
@@ -136,6 +138,7 @@ struct LoginView: View {
                                 .foregroundColor(SL.textSecondary)
                             SecureField("••••••••", text: $password)
                                 .font(SL.body(16))
+                                .foregroundColor(SL.textPrimary)
                                 .padding(12)
                                 .background(SL.surface)
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -248,16 +251,23 @@ struct LoginView: View {
 
     private func friendlyError(_ error: Error) -> String {
         let message = error.localizedDescription.lowercased()
+
         if message.contains("invalid login credentials") || message.contains("invalid_credentials") {
-            return "Incorrect email or password. Please try again."
+            return "Email or password is incorrect"
         } else if message.contains("email already") || message.contains("already registered") {
-            return "An account with this email already exists. Try signing in."
+            return "This email is already registered. Sign in instead."
         } else if message.contains("rate limit") {
-            return "Too many attempts. Please wait a moment and try again."
+            return "Too many attempts. Wait a moment and try again."
         } else if message.contains("network") || message.contains("connection") {
-            return "No internet connection. Please check your network."
+            return "Check your internet connection"
+        } else if message.contains("password") {
+            return "Password must be at least 6 characters"
+        } else if message.contains("unable to validate email") || message.contains("invalid email") {
+            return "Enter a valid email address"
+        } else if message.contains("user") {
+            return "Account not found"
         }
-        return error.localizedDescription
+        return "Something went wrong. Try again."
     }
 }
 

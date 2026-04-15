@@ -3,6 +3,7 @@ import SwiftData
 
 struct ReaderHomeView: View {
     @Binding var selectedTab: Int
+    @ObservedObject private var authManager = AuthManager.shared
     @AppStorage("userName") private var userName = "John"
     @Query(filter: #Predicate<StoryEntry> { $0.isInVault == true },
            sort: \StoryEntry.dateCreated, order: .reverse)
@@ -11,6 +12,7 @@ struct ReaderHomeView: View {
 
     private var recentStories: [StoryEntry] { Array(vaultStories.prefix(5)) }
     private var totalCount: Int { vaultStories.count }
+    private var displayName: String { authManager.currentUser?.name ?? userName }
 
     private var newThisWeek: Int {
         let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -31,7 +33,7 @@ struct ReaderHomeView: View {
                     // Greeting header
                     HStack(alignment: .top, spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Good morning, \(userName)")
+                            Text("Welcome back, \(displayName)")
                                 .font(SL.heading(28))
                                 .foregroundColor(SL.textPrimary)
                             Text("Stories shared with you")
