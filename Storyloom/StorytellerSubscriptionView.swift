@@ -19,7 +19,7 @@ struct StorytellerSubscriptionView: View {
                                     .tracking(1)
                                     .textCase(.uppercase)
                                     .foregroundColor(SL.textSecondary)
-                                Text(authManager.currentUser?.subscriptionTier.rawValue ?? "Free")
+                                Text(authManager.currentUser?.subscriptionTier.displayName ?? "Free")
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(SL.accent)
                             }
@@ -73,6 +73,17 @@ struct StorytellerSubscriptionView: View {
                                 FeatureItem("Audio speed controls")
                                 FeatureItem("Priority support")
                             }
+                            if authManager.currentUser?.subscriptionTier != .premium {
+                                NavigationLink(destination: UpgradeView()) {
+                                    Text("Select Pro")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FDF9F0"))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 44)
+                                        .background(SL.primary)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                            }
                         }
                         .padding(12)
                         .background(SL.surface)
@@ -107,6 +118,17 @@ struct StorytellerSubscriptionView: View {
                                 FeatureItem("Create team libraries")
                                 FeatureItem("Advanced privacy controls")
                                 FeatureItem("Story Legend support")
+                            }
+                            if authManager.currentUser?.subscriptionTier != .family {
+                                NavigationLink(destination: UpgradeView()) {
+                                    Text("Select Story Legend")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FDF9F0"))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 44)
+                                        .background(SL.primary)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
                             }
                         }
                         .padding(12)

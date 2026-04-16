@@ -26,6 +26,9 @@ struct ReadersView: View {
 
                     // Header
                     VStack(alignment: .leading, spacing: 4) {
+                        Text("Readers")
+                            .font(SL.heading(28))
+                            .foregroundColor(SL.textPrimary)
                         Text("\(mockReaders.count) members reading your stories")
                             .font(SL.body(15))
                             .foregroundColor(SL.textSecondary)
@@ -103,8 +106,7 @@ struct ReadersView: View {
                 .padding(.bottom, 32)
             }
             .background(SL.background)
-            .navigationTitle("Readers")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(SL.background, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

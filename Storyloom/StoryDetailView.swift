@@ -361,9 +361,15 @@ struct StoryDetailView: View {
 
                         Spacer()
 
-                        StoryImageView(story: story, height: 240)
-                            .padding(.horizontal, 24)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        // Use scaledToFit so the full image is visible without cropping
+                        if let name = story.imageFileName,
+                           let uiImage = ImageManager.loadImage(fileName: name) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .padding(.horizontal, 24)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
 
                         Text(story.title)
                             .font(SL.heading(18))

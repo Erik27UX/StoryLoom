@@ -231,6 +231,7 @@ struct StoryLibraryCard: View {
                 Text(story.title)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(SL.textPrimary)
+                    .lineLimit(2)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     if story.isInVault {

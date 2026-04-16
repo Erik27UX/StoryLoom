@@ -569,7 +569,12 @@ struct StoryReadyView: View {
                 // X dismiss button
                 HStack {
                     Spacer()
-                    Button(action: { coordinator.returnToHome() }) {
+                    Button(action: {
+                        showConfirmation = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            coordinator.returnToHome()
+                        }
+                    }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(SL.textSecondary)
@@ -615,10 +620,15 @@ struct StoryReadyView: View {
                 VStack(spacing: 12) {
                     Button(action: {
                         guard let entry = confirmedEntry else {
-                            coordinator.returnToHome()
+                            showConfirmation = false
                             return
                         }
-                        coordinator.navigateToStory(entry.uuid)
+                        // Dismiss the cover first, then navigate after the animation completes
+                        showConfirmation = false
+                        let targetId = entry.uuid
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            coordinator.navigateToStory(targetId)
+                        }
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "eye.fill")
@@ -633,7 +643,12 @@ struct StoryReadyView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
-                    Button(action: { coordinator.returnToHome() }) {
+                    Button(action: {
+                        showConfirmation = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            coordinator.returnToHome()
+                        }
+                    }) {
                         Text("Close")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(SL.textPrimary)

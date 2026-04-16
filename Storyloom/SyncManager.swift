@@ -273,7 +273,7 @@ final class SyncManager {
                     hasNarration: rs.hasNarration,
                     publishNarration: rs.publishNarration,
                     narrationFileName: rs.narrationFileName,
-                    authorSubscriptionTier: SubscriptionTier(rawValue: rs.authorSubscriptionTier ?? "Premium") ?? .premium,
+                    authorSubscriptionTier: SubscriptionTier(rawValue: rs.authorSubscriptionTier ?? "premium") ?? .premium,
                     authorName: rs.authorName,
                     likeCount: rs.likeCount
                 )

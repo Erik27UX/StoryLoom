@@ -38,7 +38,11 @@ struct WelcomeView: View {
                 Spacer()
 
                 VStack(spacing: 12) {
-                    Button(action: { showRolePicker = true }) {
+                    Button(action: {
+                        // Mark onboarding seen — returning users won't see this screen again
+                        AuthManager.shared.completeOnboarding()
+                        showRolePicker = true
+                    }) {
                         Text("Get started")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Color(hex: "FDF9F0"))
@@ -48,7 +52,10 @@ struct WelcomeView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
-                    Button(action: { showRolePicker = true }) {
+                    Button(action: {
+                        AuthManager.shared.completeOnboarding()
+                        showRolePicker = true
+                    }) {
                         Text("Skip")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(SL.textPrimary)

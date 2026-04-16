@@ -6,14 +6,29 @@ import Combine
 // MARK: - Enums
 
 enum UserRole: String, Codable, CaseIterable {
-    case storyteller = "Storyteller"
-    case reader = "Reader"
+    case storyteller = "storyteller"
+    case reader = "reader"
+
+    var displayName: String {
+        switch self {
+        case .storyteller: return "Storyteller"
+        case .reader:      return "Reader"
+        }
+    }
 }
 
 enum SubscriptionTier: String, Codable {
-    case free = "Free"
-    case premium = "Premium"
-    case family = "Story Legend"
+    case free    = "free"
+    case premium = "premium"
+    case family  = "family"
+
+    var displayName: String {
+        switch self {
+        case .free:    return "Free"
+        case .premium: return "Pro"
+        case .family:  return "Story Legend"
+        }
+    }
 }
 
 // MARK: - SwiftData models

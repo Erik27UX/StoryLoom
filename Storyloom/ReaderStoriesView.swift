@@ -266,6 +266,7 @@ struct StoryCardForReader: View {
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(SL.textPrimary)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 if let year = story.year {
                     Text(String(year))

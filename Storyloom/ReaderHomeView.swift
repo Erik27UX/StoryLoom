@@ -180,6 +180,7 @@ struct ReaderStoryCard: View {
                 Text(story.title)
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(SL.textPrimary)
+                    .lineLimit(2)
                 Spacer()
                 if let year = story.year {
                     Text(formatCardYear(year))

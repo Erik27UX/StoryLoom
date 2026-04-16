@@ -10,7 +10,7 @@ struct HomeView: View {
     private var recentStories: [StoryEntry] { Array(stories.prefix(2)) }
     private var isFree: Bool { subscriptionTier == SubscriptionTier.free.rawValue }
     private var isPremium: Bool { subscriptionTier == SubscriptionTier.premium.rawValue }
-    private var isFamily: Bool { subscriptionTier == "Family" }
+    private var isFamily: Bool { subscriptionTier == SubscriptionTier.family.rawValue }
     private var dailyLimit: Int { isFree ? 3 : 30 }
     private var displayName: String { authManager.currentUser?.name ?? userName }
 
@@ -111,13 +111,6 @@ struct HomeView: View {
                             .foregroundColor(Color(hex: "FDF9F0"))
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("Matched to your 1960s upbringing")
-                            .font(SL.body(12))
-                            .foregroundColor(SL.accent)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.white.opacity(0.12))
-                            .clipShape(Capsule())
                     }
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -199,6 +192,7 @@ struct RecentStoryCard: View {
                     Text(story.title)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(SL.textPrimary)
+                        .lineLimit(2)
                     Spacer()
                     if story.isInVault {
                         HStack(spacing: 3) {

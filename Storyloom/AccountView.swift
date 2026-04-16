@@ -5,7 +5,14 @@ struct AccountView: View {
     @AppStorage("userRole")         private var userRole         = UserRole.storyteller.rawValue
     @AppStorage("subscriptionTier") private var subscriptionTier = SubscriptionTier.free.rawValue
 
-    var isPremium: Bool { subscriptionTier == SubscriptionTier.premium.rawValue }
+    var isPremium:  Bool { subscriptionTier == SubscriptionTier.premium.rawValue }
+    var isFamily:   Bool { subscriptionTier == SubscriptionTier.family.rawValue }
+    var isPaid:     Bool { isPremium || isFamily }
+    var tierDisplayName: String {
+        if isFamily  { return "Story Legend" }
+        if isPremium { return "Pro" }
+        return "Free plan"
+    }
 
     var body: some View {
         NavigationStack {
@@ -62,10 +69,10 @@ struct AccountView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 8) {
-                                    Text(isPremium ? "Premium" : "Free plan")
+                                    Text(tierDisplayName)
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(SL.textPrimary)
-                                    if isPremium {
+                                    if isPaid {
                                         Text("Active")
                                             .font(.system(size: 11, weight: .semibold))
                                             .foregroundColor(SL.accent)
@@ -75,16 +82,18 @@ struct AccountView: View {
                                             .clipShape(Capsule())
                                     }
                                 }
-                                Text(isPremium
-                                    ? "Unlimited stories · Vault sharing · Story Legend access"
-                                    : "Up to 3 stories · No vault sharing")
+                                Text(isFamily
+                                    ? "Unlimited stories · Vault sharing · Team libraries"
+                                    : isPremium
+                                        ? "Unlimited stories · Vault sharing · Priority support"
+                                        : "Up to 3 stories · No vault sharing")
                                     .font(SL.body(13))
                                     .foregroundColor(SL.textSecondary)
                             }
                             Spacer()
                         }
 
-                        if !isPremium {
+                        if !isPaid {
                             Button(action: {}) {
                                 Text("Upgrade \u{2014} $12/month")
                                     .font(.system(size: 15, weight: .medium))

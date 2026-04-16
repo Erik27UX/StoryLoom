@@ -239,7 +239,7 @@ struct StorytellerSettingsContent: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(authManager.currentUser?.subscriptionTier.rawValue ?? "Free")
+                        Text(authManager.currentUser?.subscriptionTier.displayName ?? "Free")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(SL.textPrimary)
                         if authManager.currentUser?.subscriptionTier == .premium {

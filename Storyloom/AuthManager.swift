@@ -122,7 +122,7 @@ final class AuthManager: ObservableObject {
                 name: name,
                 birthYear: nil,
                 role: role,
-                subscriptionTier: "Free",
+                subscriptionTier: "free",
                 profilePhotoURL: nil
             )
             do {
@@ -147,9 +147,10 @@ final class AuthManager: ObservableObject {
     }
 
     private func buildUser(from profile: SupabaseProfile, session: Session) -> User {
-        let subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "Free") ?? .free
+        let subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "free") ?? .free
 
-        // Premium and Story Legend tier users should always be storytellers
+        // Paid users always open to storyteller on launch (they can switch in-session).
+        // Free users open to whatever role is saved in their profile.
         let role: UserRole
         if subscriptionTier == .premium || subscriptionTier == .family {
             role = .storyteller
@@ -227,6 +228,11 @@ final class AuthManager: ObservableObject {
         user.role = role
         currentUser = user
         currentUserRole = role
+
+        // Paid users' in-session switches are local-only — buildUser() always
+        // resets them to storyteller on next launch, so writing to Supabase is a no-op.
+        let tier = user.subscriptionTier
+        if tier == .premium || tier == .family { return }
 
         guard let uid = supabaseUserId else { return }
         Task {
