@@ -166,12 +166,12 @@ struct StoryReadingView: View {
                                 .foregroundColor(SL.textSecondary)
                                 .tracking(0.5)
                             HStack(spacing: 8) {
-                                ForEach([0.75, 1.0, 1.25, 1.5], id: \.self) { speed in
+                                ForEach([0.5, 1.0, 1.5, 2.0] as [Double], id: \.self) { speed in
                                     Button(action: {
                                         selectedPlaybackSpeed = Float(speed)
                                         audio.setPlaybackRate(Float(speed))
                                     }) {
-                                        Text(speed == 1.0 ? "1x" : "\(String(format: "%.2g", speed))x")
+                                        Text(speedLabel(speed))
                                             .font(.system(size: 13, weight: .medium))
                                             .foregroundColor(selectedPlaybackSpeed == Float(speed) ? Color(hex: "FDF9F0") : SL.textPrimary)
                                             .frame(maxWidth: .infinity)
@@ -512,6 +512,16 @@ struct StoryReadingView: View {
         let m = Int(seconds) / 60
         let s = Int(seconds) % 60
         return String(format: "%d:%02d", m, s)
+    }
+
+    private func speedLabel(_ speed: Double) -> String {
+        switch speed {
+        case 0.5: return "0.5x"
+        case 1.0: return "1x"
+        case 1.5: return "1.5x"
+        case 2.0: return "2x"
+        default:  return "\(speed)x"
+        }
     }
 }
 

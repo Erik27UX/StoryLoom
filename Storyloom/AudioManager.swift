@@ -14,6 +14,8 @@ class AudioManager: NSObject, ObservableObject {
     private var durationTimer: Timer?
     private var playbackTimer: Timer?
     private var currentFileName: String?
+    /// Persists the selected playback rate so it's applied on every play/resume
+    private(set) var playbackRate: Float = 1.0
 
     static let shared = AudioManager()
 
@@ -108,14 +110,19 @@ class AudioManager: NSObject, ObservableObject {
 
             // If already playing this file, resume; otherwise create new player
             if currentFileName == fileName && audioPlayer != nil {
+                audioPlayer?.enableRate = true
+                audioPlayer?.rate = playbackRate
                 audioPlayer?.play()
             } else {
-                audioPlayer = try AVAudioPlayer(contentsOf: url)
-                audioPlayer?.delegate = self
-                audioPlayer?.play()
+                let player = try AVAudioPlayer(contentsOf: url)
+                player.delegate = self
+                player.enableRate = true
+                player.rate = playbackRate
+                player.play()
+                audioPlayer = player
                 currentFileName = fileName
                 DispatchQueue.main.async {
-                    self.duration = self.audioPlayer?.duration ?? 0
+                    self.duration = player.duration
                     self.currentTime = 0
                 }
             }
@@ -141,6 +148,8 @@ class AudioManager: NSObject, ObservableObject {
     }
 
     func resume() {
+        audioPlayer?.enableRate = true
+        audioPlayer?.rate = playbackRate
         audioPlayer?.play()
         startPlaybackTimer()
         DispatchQueue.main.async {
@@ -167,6 +176,7 @@ class AudioManager: NSObject, ObservableObject {
     }
 
     func setPlaybackRate(_ rate: Float) {
+        playbackRate = rate
         guard let player = audioPlayer else { return }
         player.enableRate = true
         player.rate = rate
