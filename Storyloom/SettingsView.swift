@@ -381,16 +381,6 @@ struct ReaderSettingsContent: View {
             .padding(.top, 4)
         }
 
-        // Audio Settings
-        SectionCard(title: "Reading & Listening") {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Audio playback speed")
-                    .font(SL.body(13))
-                    .foregroundColor(SL.textSecondary)
-                AudioSpeedSelector()
-            }
-        }
-
         // Notifications
         SectionCard(title: "Notifications") {
             VStack(spacing: 12) {

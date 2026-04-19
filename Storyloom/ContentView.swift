@@ -26,6 +26,17 @@ struct ContentView: View {
 
         UITabBar.appearance().standardAppearance   = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
+
+        // Navigation bar — force dark text on the cream background for all large/inline titles
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithOpaqueBackground()
+        navAppearance.backgroundColor = UIColor(red: 0.992, green: 0.976, blue: 0.941, alpha: 1.0)
+        let titleColor = UIColor(red: 0.11, green: 0.10, blue: 0.09, alpha: 1.0)
+        navAppearance.titleTextAttributes = [.foregroundColor: titleColor]
+        navAppearance.largeTitleTextAttributes = [.foregroundColor: titleColor]
+        UINavigationBar.appearance().standardAppearance   = navAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+        UINavigationBar.appearance().compactAppearance    = navAppearance
     }
 
     var body: some View {

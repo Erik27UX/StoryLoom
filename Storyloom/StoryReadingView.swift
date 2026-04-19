@@ -336,7 +336,9 @@ struct StoryReadingView: View {
 
             // New comment input
             VStack(spacing: 8) {
-                TextField("Leave a comment...", text: $newCommentText, axis: .vertical)
+                TextField("", text: $newCommentText,
+                          prompt: Text("Leave a comment...").foregroundColor(SL.textSecondary),
+                          axis: .vertical)
                     .font(SL.body(15))
                     .foregroundColor(SL.textPrimary)
                     .padding(12)
@@ -425,7 +427,9 @@ struct StoryReadingView: View {
 
             // Submit a new question
             VStack(spacing: 8) {
-                TextField("Ask the storyteller something...", text: $newQuestionText, axis: .vertical)
+                TextField("", text: $newQuestionText,
+                          prompt: Text("Ask the storyteller something...").foregroundColor(SL.textSecondary),
+                          axis: .vertical)
                     .font(SL.body(15))
                     .foregroundColor(SL.textPrimary)
                     .padding(12)
