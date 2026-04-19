@@ -39,17 +39,28 @@ final class User: Codable {
     var email: String
     var name: String
     var birthYear: Int?
-    var role: UserRole
-    var subscriptionTier: SubscriptionTier
+    // String-backed storage to avoid SwiftData composite attribute decode crash
+    var roleRaw: String = "reader"
+    var subscriptionTierRaw: String = "free"
     var profilePhotoURL: String?
     var dateCreated: Date
+
+    // Computed wrappers — not stored by SwiftData
+    var role: UserRole {
+        get { UserRole(rawValue: roleRaw) ?? .reader }
+        set { roleRaw = newValue.rawValue }
+    }
+    var subscriptionTier: SubscriptionTier {
+        get { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free }
+        set { subscriptionTierRaw = newValue.rawValue }
+    }
 
     init(email: String, name: String = "", role: UserRole = .reader) {
         self.id = UUID()
         self.email = email
         self.name = name
-        self.role = role
-        self.subscriptionTier = role == .storyteller ? .premium : .free
+        self.roleRaw = role.rawValue
+        self.subscriptionTierRaw = (role == .storyteller ? SubscriptionTier.premium : SubscriptionTier.free).rawValue
         self.dateCreated = Date()
     }
 
@@ -63,8 +74,8 @@ final class User: Codable {
         try container.encode(email, forKey: .email)
         try container.encode(name, forKey: .name)
         try container.encode(birthYear, forKey: .birthYear)
-        try container.encode(role.rawValue, forKey: .role)
-        try container.encode(subscriptionTier.rawValue, forKey: .subscriptionTier)
+        try container.encode(roleRaw, forKey: .role)
+        try container.encode(subscriptionTierRaw, forKey: .subscriptionTier)
         try container.encode(profilePhotoURL, forKey: .profilePhotoURL)
         try container.encode(dateCreated, forKey: .dateCreated)
     }
@@ -75,10 +86,8 @@ final class User: Codable {
         self.email = try container.decode(String.self, forKey: .email)
         self.name = try container.decode(String.self, forKey: .name)
         self.birthYear = try container.decodeIfPresent(Int.self, forKey: .birthYear)
-        let roleString = try container.decode(String.self, forKey: .role)
-        self.role = UserRole(rawValue: roleString) ?? .reader
-        let tierString = try container.decode(String.self, forKey: .subscriptionTier)
-        self.subscriptionTier = SubscriptionTier(rawValue: tierString) ?? .free
+        self.roleRaw = try container.decode(String.self, forKey: .role)
+        self.subscriptionTierRaw = try container.decode(String.self, forKey: .subscriptionTier)
         self.profilePhotoURL = try container.decodeIfPresent(String.self, forKey: .profilePhotoURL)
         self.dateCreated = try container.decode(Date.self, forKey: .dateCreated)
     }
@@ -221,9 +230,16 @@ class StoryEntry {
     var publishNarration: Bool
     var narrationFileName: String?
     var imageFileName: String?
-    var authorSubscriptionTier: SubscriptionTier = SubscriptionTier.premium
+    // String-backed storage to avoid SwiftData composite attribute decode crash
+    var authorSubscriptionTierRaw: String = "premium"
     var authorName: String?
     var likeCount: Int = 0
+
+    // Computed wrapper — not stored by SwiftData
+    var authorSubscriptionTier: SubscriptionTier {
+        get { SubscriptionTier(rawValue: authorSubscriptionTierRaw) ?? .premium }
+        set { authorSubscriptionTierRaw = newValue.rawValue }
+    }
 
     init(
         title: String,
@@ -254,7 +270,7 @@ class StoryEntry {
         self.publishNarration = publishNarration
         self.narrationFileName = narrationFileName
         self.imageFileName = imageFileName
-        self.authorSubscriptionTier = authorSubscriptionTier
+        self.authorSubscriptionTierRaw = authorSubscriptionTier.rawValue
         self.authorName = authorName
         self.likeCount = likeCount
     }

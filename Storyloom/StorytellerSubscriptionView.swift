@@ -24,7 +24,7 @@ struct StorytellerSubscriptionView: View {
                                     .foregroundColor(SL.accent)
                             }
                             Spacer()
-                            if authManager.currentUser?.subscriptionTier == .premium {
+                            if authManager.currentUser?.subscriptionTier == .premium || authManager.currentUser?.subscriptionTier == .family {
                                 HStack(spacing: 4) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 14))
@@ -101,17 +101,27 @@ struct StorytellerSubscriptionView: View {
                                         .foregroundColor(SL.accent)
                                 }
                                 Spacer()
-                                HStack(spacing: 4) {
-                                    Image(systemName: "star.fill")
-                                        .font(.system(size: 10))
-                                    Text("Best value")
-                                        .font(.system(size: 11, weight: .semibold))
+                                if authManager.currentUser?.subscriptionTier == .family {
+                                    Text("Current plan")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(SL.accent)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(SL.accent.opacity(0.1))
+                                        .clipShape(Capsule())
+                                } else {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "star.fill")
+                                            .font(.system(size: 10))
+                                        Text("Best value")
+                                            .font(.system(size: 11, weight: .semibold))
+                                    }
+                                    .foregroundColor(Color(hex: "FDF9F0"))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.orange)
+                                    .clipShape(Capsule())
                                 }
-                                .foregroundColor(Color(hex: "FDF9F0"))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.orange)
-                                .clipShape(Capsule())
                             }
                             VStack(alignment: .leading, spacing: 6) {
                                 FeatureItem("Share with unlimited people")

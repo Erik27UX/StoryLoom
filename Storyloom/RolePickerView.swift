@@ -86,6 +86,7 @@ struct RolePickerView: View {
                 Button(action: {
                     if let role = selectedRole {
                         authManager.updateUserRole(role)
+                        authManager.completeOnboarding()
                         showOnboarding = true
                     }
                 }) {

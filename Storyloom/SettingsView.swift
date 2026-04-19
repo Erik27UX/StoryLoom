@@ -227,11 +227,11 @@ struct EditProfileImageSheet: View {
 
 struct StorytellerSettingsContent: View {
     @ObservedObject var authManager = AuthManager.shared
-    @State private var commentsEnabled = true
-    @State private var reactionsEnabled = true
-    @State private var questionsEnabled = true
-    @State private var notifyNewReader = true
-    @State private var notifyComments = true
+    @AppStorage("setting.commentsEnabled") private var commentsEnabled = true
+    @AppStorage("setting.reactionsEnabled") private var reactionsEnabled = true
+    @AppStorage("setting.questionsEnabled") private var questionsEnabled = true
+    @AppStorage("setting_notifyNewReader") private var notifyNewReader = true
+    @AppStorage("setting_notifyComments") private var notifyComments = true
 
     var body: some View {
         // Subscription card
@@ -242,7 +242,7 @@ struct StorytellerSettingsContent: View {
                         Text(authManager.currentUser?.subscriptionTier.displayName ?? "Free")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(SL.textPrimary)
-                        if authManager.currentUser?.subscriptionTier == .premium {
+                        if authManager.currentUser?.subscriptionTier == .premium || authManager.currentUser?.subscriptionTier == .family {
                             Text("Active")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(SL.accent)
@@ -350,8 +350,8 @@ struct StorytellerSettingsContent: View {
 // MARK: - Reader Settings Content
 
 struct ReaderSettingsContent: View {
-    @State private var notifyNewStory = true
-    @State private var notifyComments = true
+    @AppStorage("setting_readerNotifyNewStory") private var notifyNewStory = true
+    @AppStorage("setting_readerNotifyComments") private var notifyComments = true
 
     var body: some View {
         // Upgrade CTA
@@ -418,6 +418,29 @@ struct ReaderSettingsContent: View {
 }
 
 // MARK: - Reusable Components
+
+struct SectionCard<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1)
+                .textCase(.uppercase)
+                .foregroundColor(SL.textSecondary)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .padding(16)
+            .background(SL.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+        }
+    }
+}
 
 struct AudioSpeedSelector: View {
     @State private var selectedSpeed: Float = 1.0

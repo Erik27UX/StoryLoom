@@ -5,6 +5,7 @@ struct StoriesLibraryView: View {
     @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var allStories: [StoryEntry]
     @Query(sort: \Folder.dateCreated, order: .reverse) private var folders: [Folder]
     @StateObject private var coordinator = AppCoordinator.shared
+    @ObservedObject var authManager = AuthManager.shared
     @State private var sortBy: SortOption = .created
     @State private var navigationPath = NavigationPath()
 
@@ -157,7 +158,8 @@ struct StoriesLibraryView: View {
                         }
                     }
 
-                    // Locked upgrade card
+                    // Locked upgrade card — only shown to free users
+                    if authManager.currentUser?.subscriptionTier == .free {
                     VStack(spacing: 16) {
                         ZStack {
                             Circle()
@@ -194,6 +196,7 @@ struct StoriesLibraryView: View {
                         RoundedRectangle(cornerRadius: 14)
                             .stroke(SL.border, lineWidth: 1)
                     )
+                    } // end if free
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)

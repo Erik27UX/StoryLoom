@@ -245,3 +245,65 @@ struct ProfileTierUpdate: Encodable {
         case subscriptionTier = "subscription_tier"
     }
 }
+
+// MARK: Story Access (vault membership)
+
+struct SupabaseStoryAccess: Codable {
+    let id: UUID
+    let storytellerId: UUID
+    let readerEmail: String
+    let readerId: UUID?
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case storytellerId = "storyteller_id"
+        case readerEmail   = "reader_email"
+        case readerId      = "reader_id"
+        case createdAt     = "created_at"
+    }
+}
+
+// MARK: Story Invite (invite codes)
+
+struct SupabaseStoryInvite: Codable {
+    let id: UUID
+    let storytellerId: UUID
+    let code: String
+    let createdAt: Date
+    let expiresAt: Date?
+    let maxUses: Int?
+    let usesCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case storytellerId = "storyteller_id"
+        case code
+        case createdAt     = "created_at"
+        case expiresAt     = "expires_at"
+        case maxUses       = "max_uses"
+        case usesCount     = "uses_count"
+    }
+}
+
+struct CreateInviteParams: Encodable {
+    let storytellerId: UUID
+    let code: String
+
+    enum CodingKeys: String, CodingKey {
+        case storytellerId = "storyteller_id"
+        case code
+    }
+}
+
+struct RedeemInviteParams: Encodable {
+    let code: String
+    let readerId: UUID
+    let readerEmail: String
+
+    enum CodingKeys: String, CodingKey {
+        case code
+        case readerId    = "reader_id"
+        case readerEmail = "reader_email"
+    }
+}

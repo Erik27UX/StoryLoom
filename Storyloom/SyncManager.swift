@@ -50,9 +50,36 @@ final class SyncManager {
 
                 let (folders, stories) = try await (remoteFolders, remoteStories)
 
+                // Collect story UUIDs so we can fetch related comments/questions
+                let storyIds = stories.map { $0.id.uuidString }
+
+                // Fetch comments and questions for user's stories
+                var remoteComments: [SupabaseComment] = []
+                var remoteQuestions: [SupabaseQuestion] = []
+
+                if !storyIds.isEmpty {
+                    // Fetch comments where story_id in user's stories
+                    // Supabase PostgREST: use .in() filter
+                    remoteComments = (try? await SupabaseManager.shared.client
+                        .from("comments")
+                        .select()
+                        .in("story_id", values: storyIds)
+                        .execute()
+                        .value) ?? []
+
+                    remoteQuestions = (try? await SupabaseManager.shared.client
+                        .from("questions")
+                        .select()
+                        .in("story_id", values: storyIds)
+                        .execute()
+                        .value) ?? []
+                }
+
                 await MainActor.run {
                     self.applyRemoteFolders(folders, context: context)
                     self.applyRemoteStories(stories, context: context)
+                    self.applyRemoteComments(remoteComments, context: context)
+                    self.applyRemoteQuestions(remoteQuestions, context: context)
                 }
             } catch {
                 print("SyncManager: pullAllUserData failed — \(error.localizedDescription)")
@@ -209,6 +236,60 @@ final class SyncManager {
     }
 
     // MARK: - Apply Remote Data to SwiftData
+
+    @MainActor
+    private func applyRemoteComments(_ remoteComments: [SupabaseComment], context: ModelContext) {
+        let existing = (try? context.fetch(FetchDescriptor<StoryComment>())) ?? []
+        let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+
+        for rc in remoteComments {
+            if let local = existingById[rc.id] {
+                local.text = rc.text
+            } else {
+                let comment = StoryComment(
+                    storyId: rc.storyId,
+                    userName: rc.userName,
+                    text: rc.text,
+                    parentCommentId: rc.parentCommentId,
+                    replyToUserName: rc.replyToUserName
+                )
+                comment.id = rc.id
+                comment.userId = rc.userId
+                if let createdAt = rc.createdAt { comment.dateCreated = createdAt }
+                context.insert(comment)
+            }
+        }
+    }
+
+    @MainActor
+    private func applyRemoteQuestions(_ remoteQuestions: [SupabaseQuestion], context: ModelContext) {
+        let existing = (try? context.fetch(FetchDescriptor<StoryQuestion>())) ?? []
+        let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+
+        for rq in remoteQuestions {
+            if let local = existingById[rq.id] {
+                local.text = rq.text
+                local.answerText = rq.answerText
+                local.isAnswered = rq.isAnswered
+                local.answeredDate = rq.answeredAt
+            } else {
+                let question = StoryQuestion(
+                    storyId: rq.storyId,
+                    userName: rq.userName,
+                    text: rq.text,
+                    isAudio: rq.isAudio,
+                    audioFileName: rq.audioFileURL
+                )
+                question.id = rq.id
+                question.userId = rq.userId
+                question.answerText = rq.answerText
+                question.isAnswered = rq.isAnswered
+                question.answeredDate = rq.answeredAt
+                if let createdAt = rq.createdAt { question.dateCreated = createdAt }
+                context.insert(question)
+            }
+        }
+    }
 
     @MainActor
     private func applyRemoteFolders(_ remoteFolders: [SupabaseFolder], context: ModelContext) {

@@ -7,14 +7,28 @@ struct HomeView: View {
     @AppStorage("subscriptionTier") private var subscriptionTier = SubscriptionTier.free.rawValue
     @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
 
+    @State private var showLimitSheet = false
+
     private var recentStories: [StoryEntry] { Array(stories.prefix(2)) }
     private var isFree: Bool { subscriptionTier == SubscriptionTier.free.rawValue }
     private var isPremium: Bool { subscriptionTier == SubscriptionTier.premium.rawValue }
     private var isFamily: Bool { subscriptionTier == SubscriptionTier.family.rawValue }
-    private var dailyLimit: Int { isFree ? 3 : 30 }
+    private var currentTier: SubscriptionTier {
+        SubscriptionTier(rawValue: subscriptionTier) ?? .free
+    }
+    private var dailyLimit: Int {
+        switch currentTier {
+        case .free: return 3
+        case .premium: return 3
+        case .family: return 5
+        }
+    }
     private var displayName: String { authManager.currentUser?.name ?? userName }
 
     private var todayStories: Int {
+        if currentTier == .free {
+            return stories.count // free = lifetime total
+        }
         let start = Calendar.current.startOfDay(for: Date())
         return stories.filter { $0.dateCreated >= start }.count
     }
@@ -118,29 +132,25 @@ struct HomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16))
 
                     // Answer button
-                    NavigationLink(destination: AnswerView(prompt: SampleData.prompts.first)) {
-                        Text("Answer today's question")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(Color(hex: "FDF9F0"))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(SL.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    LimitGatedNavigationButton(
+                        label: "Answer today's question",
+                        primary: true,
+                        stories: stories,
+                        tier: currentTier,
+                        showLimitSheet: $showLimitSheet
+                    ) {
+                        AnswerView(prompt: SampleData.prompts.first)
                     }
 
                     // Secondary button
-                    NavigationLink(destination: ChoosePromptView()) {
-                        Text("Choose different question")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(SL.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(SL.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(SL.border, lineWidth: 1.5)
-                            )
+                    LimitGatedNavigationButton(
+                        label: "Choose different question",
+                        primary: false,
+                        stories: stories,
+                        tier: currentTier,
+                        showLimitSheet: $showLimitSheet
+                    ) {
+                        ChoosePromptView()
                     }
 
                     // Divider
@@ -172,6 +182,69 @@ struct HomeView: View {
             }
             .background(SL.background)
             .toolbarBackground(SL.background, for: .navigationBar)
+        }
+        .fullScreenCover(isPresented: $showLimitSheet) {
+            NavigationStack {
+                switch currentTier {
+                case .free:
+                    FreeLimitView()
+                case .premium:
+                    ProLimitView()
+                case .family:
+                    LegendLimitView()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Limit-Gated Navigation Button
+
+struct LimitGatedNavigationButton<Destination: View>: View {
+    let label: String
+    let primary: Bool
+    let stories: [StoryEntry]
+    let tier: SubscriptionTier
+    @Binding var showLimitSheet: Bool
+    @ViewBuilder let destination: () -> Destination
+
+    @State private var navigateTo = false
+    private var isAtLimit: Bool { StoryLimitChecker.isAtLimit(stories: stories, tier: tier) }
+
+    var body: some View {
+        if isAtLimit {
+            Button(action: { showLimitSheet = true }) {
+                labelView
+            }
+        } else {
+            NavigationLink(destination: destination()) {
+                labelView
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var labelView: some View {
+        if primary {
+            Text(label)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(Color(hex: "FDF9F0"))
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(SL.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+        } else {
+            Text(label)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(SL.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(SL.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(SL.border, lineWidth: 1.5)
+                )
         }
     }
 }

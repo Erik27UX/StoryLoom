@@ -13,6 +13,10 @@ struct StoryDetailView: View {
     private var commentCount: Int { allComments.filter { $0.storyId == story.uuid }.count }
     private var questionCount: Int { allQuestions.filter { $0.storyId == story.uuid }.count }
 
+    @AppStorage("setting.commentsEnabled") private var commentsEnabled = true
+    @AppStorage("setting.reactionsEnabled") private var reactionsEnabled = true
+    @AppStorage("setting.questionsEnabled") private var questionsEnabled = true
+
     @State private var isEditingMode = false
     @State private var selectedPlaybackSpeed: Float = 1.0
     @State private var isLiked = false
@@ -77,50 +81,52 @@ struct StoryDetailView: View {
 
                             Spacer()
 
-                            // Likes — interactive for readers
-                            if authManager.currentUser?.role == .reader {
-                                Button(action: {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                        isLiked.toggle()
-                                        if isLiked {
-                                            story.likeCount += 1
-                                            LikeManager.shared.like(story.uuid)
-                                            SyncManager.shared.pushLike(storyUUID: story.uuid)
-                                        } else {
-                                            story.likeCount = max(0, story.likeCount - 1)
-                                            LikeManager.shared.unlike(story.uuid)
-                                            SyncManager.shared.removeLike(storyUUID: story.uuid)
+                            // Likes — interactive for readers (if reactions enabled)
+                            if reactionsEnabled {
+                                if authManager.currentUser?.role == .reader {
+                                    Button(action: {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                            isLiked.toggle()
+                                            if isLiked {
+                                                story.likeCount += 1
+                                                LikeManager.shared.like(story.uuid)
+                                                SyncManager.shared.pushLike(storyUUID: story.uuid)
+                                            } else {
+                                                story.likeCount = max(0, story.likeCount - 1)
+                                                LikeManager.shared.unlike(story.uuid)
+                                                SyncManager.shared.removeLike(storyUUID: story.uuid)
+                                            }
                                         }
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                                .font(.system(size: 18))
+                                                .foregroundColor(isLiked ? Color(hex: "C17B6A") : SL.textSecondary)
+                                            Text("\(story.likeCount)")
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundColor(isLiked ? Color(hex: "C17B6A") : SL.textSecondary)
+                                        }
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(isLiked ? Color(hex: "C17B6A").opacity(0.1) : SL.surface)
+                                        .clipShape(Capsule())
+                                        .overlay(Capsule().stroke(isLiked ? Color(hex: "C17B6A").opacity(0.3) : SL.border, lineWidth: 1))
                                     }
-                                }) {
+                                } else {
                                     HStack(spacing: 6) {
-                                        Image(systemName: isLiked ? "heart.fill" : "heart")
+                                        Image(systemName: "heart.fill")
                                             .font(.system(size: 18))
-                                            .foregroundColor(isLiked ? Color(hex: "C17B6A") : SL.textSecondary)
+                                            .foregroundColor(Color(hex: "C17B6A"))
                                         Text("\(story.likeCount)")
                                             .font(.system(size: 15, weight: .semibold))
-                                            .foregroundColor(isLiked ? Color(hex: "C17B6A") : SL.textSecondary)
+                                            .foregroundColor(SL.textSecondary)
                                     }
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 8)
-                                    .background(isLiked ? Color(hex: "C17B6A").opacity(0.1) : SL.surface)
+                                    .background(SL.surface)
                                     .clipShape(Capsule())
-                                    .overlay(Capsule().stroke(isLiked ? Color(hex: "C17B6A").opacity(0.3) : SL.border, lineWidth: 1))
+                                    .overlay(Capsule().stroke(SL.border, lineWidth: 1))
                                 }
-                            } else {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "heart.fill")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(Color(hex: "C17B6A"))
-                                    Text("\(story.likeCount)")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(SL.textSecondary)
-                                }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(SL.surface)
-                                .clipShape(Capsule())
-                                .overlay(Capsule().stroke(SL.border, lineWidth: 1))
                             }
                         }
                     }
@@ -132,38 +138,47 @@ struct StoryDetailView: View {
                     // Image thumbnail + Comments & Questions side by side
                     HStack(alignment: .top, spacing: 12) {
 
-                        // Tappable image thumbnail on the left
-                        Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
-                            ZStack(alignment: .bottomTrailing) {
-                                StoryImageView(story: story, height: 80)
-                                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .padding(5)
-                                    .background(Color.black.opacity(0.3))
-                                    .clipShape(RoundedRectangle(cornerRadius: 5))
-                                    .padding(6)
+                        // Tappable image thumbnail on the left — only if story has an image
+                        if story.imageFileName != nil {
+                            Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
+                                ZStack(alignment: .bottomTrailing) {
+                                    StoryImageView(story: story, height: 80)
+                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(5)
+                                        .background(Color.black.opacity(0.3))
+                                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                                        .padding(6)
+                                }
+                                .frame(width: 68)
+                                .frame(maxHeight: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                             }
-                            .frame(width: 68)
-                            .frame(maxHeight: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
 
-                        // Comments & Questions stacked on the right
+                        // Comments & Questions stacked on the right (full width when no image)
                         VStack(spacing: 10) {
-                            // Comments: always available
+                            // Comments: available unless disabled in settings
                             NavigationLink(destination: CommentsView(story: story)) {
                                 HStack(spacing: 10) {
-                                    Image(systemName: "bubble.left.fill")
+                                    Image(systemName: commentsEnabled ? "bubble.left.fill" : "bubble.left")
                                         .font(.system(size: 14))
-                                        .foregroundColor(SL.accent)
-                                    Text("Comments")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(SL.textPrimary)
+                                        .foregroundColor(commentsEnabled ? SL.accent : SL.textSecondary)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("Comments")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(commentsEnabled ? SL.textPrimary : SL.textSecondary)
+                                        if !commentsEnabled {
+                                            Text("Comments are disabled")
+                                                .font(SL.body(10))
+                                                .foregroundColor(SL.textSecondary)
+                                        }
+                                    }
                                     Spacer()
-                                    if commentCount > 0 {
+                                    if commentsEnabled && commentCount > 0 {
                                         Text("\(commentCount)")
                                             .font(.system(size: 12, weight: .semibold))
                                             .foregroundColor(SL.textSecondary)
@@ -173,13 +188,14 @@ struct StoryDetailView: View {
                                         .foregroundColor(SL.textSecondary)
                                 }
                                 .padding(12)
-                                .background(SL.surface)
+                                .background(commentsEnabled ? SL.surface : SL.surface.opacity(0.5))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                             }
+                            .disabled(!commentsEnabled)
 
-                            // Questions: only if storyteller has Story Legend tier
-                            let questionsUnlocked = story.authorSubscriptionTier == .family
+                            // Questions: only if storyteller has Story Legend tier and not disabled
+                            let questionsUnlocked = story.authorSubscriptionTier == .family && questionsEnabled
                             NavigationLink(destination: QuestionsView(story: story)) {
                                 HStack(spacing: 10) {
                                     Image(systemName: questionsUnlocked ? "questionmark.circle.fill" : "lock.fill")
@@ -189,8 +205,12 @@ struct StoryDetailView: View {
                                         Text("Questions")
                                             .font(.system(size: 13, weight: .medium))
                                             .foregroundColor(questionsUnlocked ? SL.textPrimary : SL.textSecondary)
-                                        if !questionsUnlocked {
+                                        if story.authorSubscriptionTier != .family {
                                             Text("Story Legend plan required")
+                                                .font(SL.body(10))
+                                                .foregroundColor(SL.textSecondary)
+                                        } else if !questionsEnabled {
+                                            Text("Questions are disabled")
                                                 .font(SL.body(10))
                                                 .foregroundColor(SL.textSecondary)
                                         }
@@ -212,6 +232,7 @@ struct StoryDetailView: View {
                             }
                             .disabled(!questionsUnlocked)
                         }
+                        .frame(maxWidth: story.imageFileName != nil ? nil : .infinity)
                     }
 
                     // Narration player — show if story has a recording

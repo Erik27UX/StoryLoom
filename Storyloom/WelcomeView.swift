@@ -39,8 +39,6 @@ struct WelcomeView: View {
 
                 VStack(spacing: 12) {
                     Button(action: {
-                        // Mark onboarding seen — returning users won't see this screen again
-                        AuthManager.shared.completeOnboarding()
                         showRolePicker = true
                     }) {
                         Text("Get started")
@@ -53,7 +51,6 @@ struct WelcomeView: View {
                     }
 
                     Button(action: {
-                        AuthManager.shared.completeOnboarding()
                         showRolePicker = true
                     }) {
                         Text("Skip")

@@ -166,6 +166,12 @@ class AudioManager: NSObject, ObservableObject {
         }
     }
 
+    func setPlaybackRate(_ rate: Float) {
+        guard let player = audioPlayer else { return }
+        player.enableRate = true
+        player.rate = rate
+    }
+
     private func startPlaybackTimer() {
         playbackTimer?.invalidate()
         playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in

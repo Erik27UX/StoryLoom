@@ -211,6 +211,7 @@ final class AuthManager: ObservableObject {
     func logout() {
         Task { @MainActor in
             try? await SupabaseManager.shared.client.auth.signOut()
+            LikeManager.shared.clearAll()
             clearUser()
             hasCompletedOnboarding = false
             UserDefaults.standard.removeObject(forKey: onboardingKey)

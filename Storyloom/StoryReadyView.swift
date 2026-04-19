@@ -6,6 +6,7 @@ struct StoryReadyView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Folder.dateCreated, order: .reverse) var folders: [Folder]
+    @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var allStories: [StoryEntry]
 
     @ObservedObject private var audio = AudioManager.shared
 
@@ -25,6 +26,12 @@ struct StoryReadyView: View {
     @State private var showConfirmation: Bool = false
     @State private var confirmedEntry: StoryEntry? = nil
     @State private var confirmedIsPublished: Bool = false
+    @State private var showLimitSheet = false
+
+    @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
+    private var currentTier: SubscriptionTier {
+        SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
+    }
 
     init(
         prompt: StoryPrompt?,
@@ -421,7 +428,13 @@ struct StoryReadyView: View {
 
                 // Publish / draft
                 VStack(spacing: 10) {
-                    Button(action: { saveStory(publish: true) }) {
+                    Button(action: {
+                        if StoryLimitChecker.isAtLimit(stories: allStories, tier: currentTier) {
+                            showLimitSheet = true
+                        } else {
+                            saveStory(publish: true)
+                        }
+                    }) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.open.fill")
                                 .font(.system(size: 15))
@@ -436,7 +449,13 @@ struct StoryReadyView: View {
                     }
                     .disabled(showConfirmation)
 
-                    Button(action: { saveStory(publish: false) }) {
+                    Button(action: {
+                        if StoryLimitChecker.isAtLimit(stories: allStories, tier: currentTier) {
+                            showLimitSheet = true
+                        } else {
+                            saveStory(publish: false)
+                        }
+                    }) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 15))
@@ -461,6 +480,15 @@ struct StoryReadyView: View {
         .navigationBarBackButtonHidden(true)
         .fullScreenCover(isPresented: $showConfirmation) {
             saveConfirmationView
+        }
+        .fullScreenCover(isPresented: $showLimitSheet) {
+            NavigationStack {
+                switch currentTier {
+                case .free: FreeLimitView()
+                case .premium: ProLimitView()
+                case .family: LegendLimitView()
+                }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {

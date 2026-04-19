@@ -139,28 +139,47 @@ struct ReaderStoriesView: View {
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
+                                    // "All" pill — active when selectedAuthors is empty
+                                    Button(action: { selectedAuthors.removeAll() }) {
+                                        HStack(spacing: 6) {
+                                            Text("All")
+                                                .font(.system(size: 13, weight: .medium))
+                                            if selectedAuthors.isEmpty {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.system(size: 12))
+                                            }
+                                        }
+                                        .foregroundColor(selectedAuthors.isEmpty ? .white : SL.textSecondary)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(selectedAuthors.isEmpty ? SL.accent : SL.surface)
+                                        .clipShape(Capsule())
+                                        .overlay(
+                                            Capsule().stroke(
+                                                selectedAuthors.isEmpty ? SL.accent : SL.border,
+                                                lineWidth: 1
+                                            )
+                                        )
+                                    }
+
                                     ForEach(uniqueAuthors, id: \.self) { author in
                                         Button(action: { toggleAuthor(author) }) {
                                             HStack(spacing: 6) {
                                                 Text(author)
                                                     .font(.system(size: 13, weight: .medium))
-                                                if selectedAuthors.contains(author) || selectedAuthors.isEmpty {
+                                                if selectedAuthors.contains(author) {
                                                     Image(systemName: "checkmark.circle.fill")
                                                         .font(.system(size: 12))
                                                 }
                                             }
-                                            .foregroundColor(
-                                                (selectedAuthors.contains(author) || selectedAuthors.isEmpty) ? .white : SL.textSecondary
-                                            )
+                                            .foregroundColor(selectedAuthors.contains(author) ? .white : SL.textSecondary)
                                             .padding(.horizontal, 14)
                                             .padding(.vertical, 8)
-                                            .background(
-                                                (selectedAuthors.contains(author) || selectedAuthors.isEmpty) ? SL.accent : SL.surface
-                                            )
+                                            .background(selectedAuthors.contains(author) ? SL.accent : SL.surface)
                                             .clipShape(Capsule())
                                             .overlay(
                                                 Capsule().stroke(
-                                                    (selectedAuthors.contains(author) || selectedAuthors.isEmpty) ? SL.accent : SL.border,
+                                                    selectedAuthors.contains(author) ? SL.accent : SL.border,
                                                     lineWidth: 1
                                                 )
                                             )
@@ -212,7 +231,7 @@ struct ReaderStoriesView: View {
                                     // Stories in this folder
                                     VStack(spacing: 12) {
                                         ForEach(group.stories) { story in
-                                            NavigationLink(destination: StoryDetailView(story: story)) {
+                                            NavigationLink(destination: StoryReadingView(story: story)) {
                                                 StoryCardForReader(story: story)
                                             }
                                         }
@@ -234,10 +253,8 @@ struct ReaderStoriesView: View {
             AddStoryVaultView()
         }
         .onAppear {
-            if !hasInitialized {
-                selectedAuthors = Set(uniqueAuthors)
-                hasInitialized = true
-            }
+            // selectedAuthors starts empty = "All" is active, which is correct
+            hasInitialized = true
         }
     }
 
