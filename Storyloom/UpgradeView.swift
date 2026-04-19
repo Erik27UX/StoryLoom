@@ -4,7 +4,6 @@ struct UpgradeView: View {
     @ObservedObject var authManager = AuthManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPlan: String = "pro"
-    @State private var showComingSoonAlert = false
 
     let plans: [(name: String, id: String, price: String, duration: String, features: [String], recommended: Bool)] = [
         (
@@ -63,16 +62,23 @@ struct UpgradeView: View {
                     // CTA buttons
                     VStack(spacing: 12) {
                         Button(action: {
-                            if selectedPlan == "trial" {
+                            switch selectedPlan {
+                            case "trial":
                                 if var user = authManager.currentUser {
                                     user.subscriptionTier = .free
                                     authManager.currentUser = user
                                 }
                                 authManager.updateUserRole(.storyteller)
-                                dismiss()
-                            } else {
-                                showComingSoonAlert = true
+                            case "family":
+                                authManager.updateSubscriptionTier(.family)
+                                authManager.updateUserRole(.storyteller)
+                                SyncManager.shared.pullAllUserData()
+                            default: // "pro"
+                                authManager.updateSubscriptionTier(.premium)
+                                authManager.updateUserRole(.storyteller)
+                                SyncManager.shared.pullAllUserData()
                             }
+                            dismiss()
                         }) {
                             Text(selectedPlan == "trial" ? "Start Free Trial" : "Subscribe Now")
                                 .font(.system(size: 16, weight: .semibold))
@@ -111,11 +117,6 @@ struct UpgradeView: View {
             }
         }
         .navigationBarBackButtonHidden()
-        .alert("Coming Soon", isPresented: $showComingSoonAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Paid subscriptions are not available yet. Start with a free trial to create and share your stories.")
-        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: { dismiss() }) {
