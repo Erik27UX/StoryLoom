@@ -265,6 +265,7 @@
 				DEVELOPMENT_TEAM = 3BJ76TZ89X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Storyloom needs camera access so you can take a profile photo.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Storyloom needs microphone access to record voice narrations for your stories.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Storyloom needs access to your photo library to add images to your stories.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Storyloom uses speech recognition to optionally transcribe your voice recordings into text.";
@@ -300,6 +301,7 @@
 				DEVELOPMENT_TEAM = 3BJ76TZ89X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Storyloom needs camera access so you can take a profile photo.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Storyloom needs microphone access to record voice narrations for your stories.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Storyloom needs access to your photo library to add images to your stories.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Storyloom uses speech recognition to optionally transcribe your voice recordings into text.";

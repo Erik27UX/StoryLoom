@@ -14,15 +14,27 @@ struct SettingsView: View {
                     // Avatar + name + Edit button
                     VStack(spacing: 12) {
                         ZStack(alignment: .bottomTrailing) {
-                            Circle()
-                                .fill(SL.surface)
-                                .frame(width: 80, height: 80)
-                                .overlay(Circle().stroke(SL.border, lineWidth: 1))
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                            Text(String(authManager.currentUser?.name.prefix(1) ?? "U").uppercased())
-                                .font(.system(size: 32, weight: .medium))
-                                .foregroundColor(SL.primary)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                            // Avatar base
+                            ZStack {
+                                Circle()
+                                    .fill(SL.surface)
+                                    .frame(width: 80, height: 80)
+                                    .overlay(Circle().stroke(SL.border, lineWidth: 1))
+
+                                if let fileName = authManager.currentUser?.profilePhotoURL,
+                                   let uiImg = ImageManager.loadImage(fileName: fileName) {
+                                    Image(uiImage: uiImg)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(Circle())
+                                } else {
+                                    Text(String(authManager.currentUser?.name.prefix(1) ?? "U").uppercased())
+                                        .font(.system(size: 32, weight: .medium))
+                                        .foregroundColor(SL.primary)
+                                }
+                            }
+
                             Button(action: { showImagePicker = true }) {
                                 ZStack {
                                     Circle()
@@ -164,61 +176,158 @@ struct EditProfileImageSheet: View {
     @Binding var isPresented: Bool
     var authManager: AuthManager
 
+    @State private var previewImage: UIImage? = nil
+    @State private var showCamera = false
+    @State private var isSaving = false
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Text("Update profile picture")
-                    .font(SL.heading(22))
-                    .foregroundColor(SL.textPrimary)
+            VStack(spacing: 24) {
 
-                VStack(spacing: 16) {
-                    Button(action: {}) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "photo.fill")
-                                .font(.system(size: 18))
-                            Text("Choose from library")
-                                .font(SL.body(16))
-                            Spacer()
-                        }
-                        .foregroundColor(SL.textPrimary)
-                        .padding(16)
-                        .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                // Preview circle
+                ZStack {
+                    Circle()
+                        .fill(SL.surface)
+                        .frame(width: 100, height: 100)
+                        .overlay(Circle().stroke(SL.border, lineWidth: 1))
+
+                    if let img = previewImage {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                    } else if let fileName = authManager.currentUser?.profilePhotoURL,
+                              let saved = ImageManager.loadImage(fileName: fileName) {
+                        Image(uiImage: saved)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                    } else {
+                        Text(String(authManager.currentUser?.name.prefix(1) ?? "U").uppercased())
+                            .font(.system(size: 40, weight: .medium))
+                            .foregroundColor(SL.primary)
                     }
+                }
+                .padding(.top, 8)
 
-                    Button(action: {}) {
-                        HStack(spacing: 12) {
+                // Pick options
+                VStack(spacing: 12) {
+                    PhotoPickerButton(
+                        label: "Choose from library",
+                        icon: "photo.fill",
+                        selectedImage: $previewImage
+                    )
+
+                    Button(action: { showCamera = true }) {
+                        HStack(spacing: 8) {
                             Image(systemName: "camera.fill")
-                                .font(.system(size: 18))
+                                .font(.system(size: 14))
                             Text("Take a photo")
-                                .font(SL.body(16))
-                            Spacer()
+                                .font(.system(size: 14, weight: .medium))
                         }
                         .foregroundColor(SL.textPrimary)
-                        .padding(16)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
                         .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
                     }
                 }
 
                 Spacer()
 
+                // Save button (only active when there's a new image to save)
+                if previewImage != nil {
+                    Button(action: savePhoto) {
+                        ZStack {
+                            Text(isSaving ? "Saving…" : "Save photo")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color(hex: "FDF9F0"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(isSaving ? SL.accent.opacity(0.6) : SL.accent)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+                    .disabled(isSaving)
+                }
+
                 Button(action: { isPresented = false }) {
                     Text("Cancel")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(SL.textPrimary)
+                        .foregroundColor(SL.textSecondary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(SL.border, lineWidth: 1)
-                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
                 }
             }
             .padding(20)
+            .background(SL.background.ignoresSafeArea())
+            .navigationTitle("Profile photo")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(SL.background, for: .navigationBar)
+        }
+        .sheet(isPresented: $showCamera) {
+            CameraPickerView(selectedImage: $previewImage)
+        }
+    }
+
+    private func savePhoto() {
+        guard let image = previewImage else { return }
+        isSaving = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let fileName = ImageManager.saveImage(
+                image,
+                existingFileName: authManager.currentUser?.profilePhotoURL
+            )
+            DispatchQueue.main.async {
+                authManager.updateUserProfile(
+                    name: authManager.currentUser?.name ?? "",
+                    birthYear: authManager.currentUser?.birthYear,
+                    profilePhotoURL: fileName
+                )
+                isSaving = false
+                isPresented = false
+            }
+        }
+    }
+}
+
+// MARK: - Camera Picker
+
+struct CameraPickerView: UIViewControllerRepresentable {
+    @Binding var selectedImage: UIImage?
+    @Environment(\.dismiss) private var dismiss
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary
+        picker.allowsEditing = true
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let parent: CameraPickerView
+        init(_ parent: CameraPickerView) { self.parent = parent }
+
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            let img = (info[.editedImage] ?? info[.originalImage]) as? UIImage
+            parent.selectedImage = img
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
         }
     }
 }

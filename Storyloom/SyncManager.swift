@@ -338,11 +338,12 @@ final class SyncManager {
                 local.likeCount              = rs.likeCount
                 local.dateCreated            = rs.createdAt
                 local.folder                 = folder
-                if let tierStr = rs.authorSubscriptionTier {
-                    local.authorSubscriptionTier = SubscriptionTier(rawValue: tierStr) ?? .premium
-                } else if rs.ownerId == AuthManager.shared.supabaseUserId {
-                    // author_subscription_tier column absent/null — infer from current user
+                if rs.ownerId == AuthManager.shared.supabaseUserId {
+                    // Always use current user's live subscription tier for their own stories.
+                    // The Supabase value may be stale (e.g. set to "premium" before a plan upgrade).
                     local.authorSubscriptionTier = AuthManager.shared.currentUser?.subscriptionTier ?? .premium
+                } else if let tierStr = rs.authorSubscriptionTier {
+                    local.authorSubscriptionTier = SubscriptionTier(rawValue: tierStr) ?? .premium
                 }
             } else {
                 // Create new local story from Supabase data
@@ -358,10 +359,11 @@ final class SyncManager {
                     publishNarration: rs.publishNarration,
                     narrationFileName: rs.narrationFileName,
                     authorSubscriptionTier: {
-                        if let t = rs.authorSubscriptionTier { return SubscriptionTier(rawValue: t) ?? .premium }
                         if rs.ownerId == AuthManager.shared.supabaseUserId {
+                            // Always use the current user's live subscription tier — Supabase value may be stale
                             return AuthManager.shared.currentUser?.subscriptionTier ?? .premium
                         }
+                        if let t = rs.authorSubscriptionTier { return SubscriptionTier(rawValue: t) ?? .premium }
                         return .premium
                     }(),
                     authorName: rs.authorName,
