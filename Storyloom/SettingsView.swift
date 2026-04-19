@@ -181,96 +181,100 @@ struct EditProfileImageSheet: View {
     @State private var isSaving = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
+        VStack(spacing: 24) {
 
-                // Preview circle
-                ZStack {
-                    Circle()
-                        .fill(SL.surface)
+            // Handle bar
+            RoundedRectangle(cornerRadius: 3)
+                .fill(SL.border)
+                .frame(width: 40, height: 5)
+                .padding(.top, 12)
+
+            // Title
+            Text("Profile photo")
+                .font(SL.heading(20))
+                .foregroundColor(SL.textPrimary)
+
+            // Preview circle
+            ZStack {
+                Circle()
+                    .fill(SL.surface)
+                    .frame(width: 100, height: 100)
+                    .overlay(Circle().stroke(SL.border, lineWidth: 1))
+
+                if let img = previewImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
                         .frame(width: 100, height: 100)
-                        .overlay(Circle().stroke(SL.border, lineWidth: 1))
-
-                    if let img = previewImage {
-                        Image(uiImage: img)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                    } else if let fileName = authManager.currentUser?.profilePhotoURL,
-                              let saved = ImageManager.loadImage(fileName: fileName) {
-                        Image(uiImage: saved)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                    } else {
-                        Text(String(authManager.currentUser?.name.prefix(1) ?? "U").uppercased())
-                            .font(.system(size: 40, weight: .medium))
-                            .foregroundColor(SL.primary)
-                    }
-                }
-                .padding(.top, 8)
-
-                // Pick options
-                VStack(spacing: 12) {
-                    PhotoPickerButton(
-                        label: "Choose from library",
-                        icon: "photo.fill",
-                        selectedImage: $previewImage
-                    )
-
-                    Button(action: { showCamera = true }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "camera.fill")
-                                .font(.system(size: 14))
-                            Text("Take a photo")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                        .foregroundColor(SL.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
-                    }
-                }
-
-                Spacer()
-
-                // Save button (only active when there's a new image to save)
-                if previewImage != nil {
-                    Button(action: savePhoto) {
-                        ZStack {
-                            Text(isSaving ? "Saving…" : "Save photo")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(Color(hex: "FDF9F0"))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(isSaving ? SL.accent.opacity(0.6) : SL.accent)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                        }
-                    }
-                    .disabled(isSaving)
-                }
-
-                Button(action: { isPresented = false }) {
-                    Text("Cancel")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(SL.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+                        .clipShape(Circle())
+                } else if let fileName = authManager.currentUser?.profilePhotoURL,
+                          let saved = ImageManager.loadImage(fileName: fileName) {
+                    Image(uiImage: saved)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 100, height: 100)
+                        .clipShape(Circle())
+                } else {
+                    Text(String(authManager.currentUser?.name.prefix(1) ?? "U").uppercased())
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundColor(SL.primary)
                 }
             }
-            .padding(20)
-            .background(SL.background.ignoresSafeArea())
-            .navigationTitle("Profile photo")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(SL.background, for: .navigationBar)
+
+            // Pick options
+            VStack(spacing: 12) {
+                PhotoPickerButton(
+                    label: "Choose from library",
+                    icon: "photo.fill",
+                    selectedImage: $previewImage
+                )
+
+                Button(action: { showCamera = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 14))
+                        Text("Take a photo")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(SL.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(SL.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
+                }
+            }
+
+            Spacer()
+
+            // Save button — appears once an image is chosen
+            if previewImage != nil {
+                Button(action: savePhoto) {
+                    Text(isSaving ? "Saving…" : "Save photo")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "FDF9F0"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(isSaving ? SL.accent.opacity(0.6) : SL.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .disabled(isSaving)
+            }
+
+            Button(action: { isPresented = false }) {
+                Text("Cancel")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(SL.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(SL.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+            }
         }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 24)
+        .background(SL.background.ignoresSafeArea())
         .sheet(isPresented: $showCamera) {
             CameraPickerView(selectedImage: $previewImage)
         }
