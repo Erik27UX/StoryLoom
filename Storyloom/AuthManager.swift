@@ -147,7 +147,19 @@ final class AuthManager: ObservableObject {
     }
 
     private func buildUser(from profile: SupabaseProfile, session: Session) -> User {
-        let subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "free") ?? .free
+        var subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "free") ?? .free
+
+        #if DEBUG
+        // Dev-account overrides — these emails always receive the specified tier
+        // regardless of what is stored in Supabase. Remove before App Store submission.
+        let devTierOverrides: [String: SubscriptionTier] = [
+            "erikfischer27@gmail.com": .family
+        ]
+        if let email = profile.email ?? session.user.email,
+           let override = devTierOverrides[email] {
+            subscriptionTier = override
+        }
+        #endif
 
         // Paid users always open to storyteller on launch (they can switch in-session).
         // Free users open to whatever role is saved in their profile.
