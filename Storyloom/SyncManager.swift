@@ -340,6 +340,9 @@ final class SyncManager {
                 local.folder                 = folder
                 if let tierStr = rs.authorSubscriptionTier {
                     local.authorSubscriptionTier = SubscriptionTier(rawValue: tierStr) ?? .premium
+                } else if rs.ownerId == AuthManager.shared.supabaseUserId {
+                    // author_subscription_tier column absent/null — infer from current user
+                    local.authorSubscriptionTier = AuthManager.shared.currentUser?.subscriptionTier ?? .premium
                 }
             } else {
                 // Create new local story from Supabase data
@@ -354,7 +357,13 @@ final class SyncManager {
                     hasNarration: rs.hasNarration,
                     publishNarration: rs.publishNarration,
                     narrationFileName: rs.narrationFileName,
-                    authorSubscriptionTier: SubscriptionTier(rawValue: rs.authorSubscriptionTier ?? "premium") ?? .premium,
+                    authorSubscriptionTier: {
+                        if let t = rs.authorSubscriptionTier { return SubscriptionTier(rawValue: t) ?? .premium }
+                        if rs.ownerId == AuthManager.shared.supabaseUserId {
+                            return AuthManager.shared.currentUser?.subscriptionTier ?? .premium
+                        }
+                        return .premium
+                    }(),
                     authorName: rs.authorName,
                     likeCount: rs.likeCount
                 )

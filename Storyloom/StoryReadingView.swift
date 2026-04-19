@@ -128,6 +128,37 @@ struct StoryReadingView: View {
                                 .clipShape(Circle())
                         }
 
+                        // Progress scrubber
+                        VStack(spacing: 6) {
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(SL.border)
+                                    let progress = audio.duration > 0 ? audio.currentTime / audio.duration : 0
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(SL.accent)
+                                        .frame(width: geo.size.width * CGFloat(progress))
+                                }
+                                .gesture(DragGesture().onChanged { value in
+                                    let pct = min(max(value.location.x / geo.size.width, 0), 1)
+                                    audio.seek(to: Double(pct) * audio.duration)
+                                })
+                            }
+                            .frame(height: 6)
+
+                            HStack {
+                                Text(formatTime(audio.currentTime))
+                                    .font(SL.body(11))
+                                    .foregroundColor(SL.textSecondary)
+                                    .monospacedDigit()
+                                Spacer()
+                                Text("-\(formatTime(max(0, audio.duration - audio.currentTime)))")
+                                    .font(SL.body(11))
+                                    .foregroundColor(SL.textSecondary)
+                                    .monospacedDigit()
+                            }
+                        }
+
                         // Playback speed controls
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Speed")
@@ -307,8 +338,9 @@ struct StoryReadingView: View {
             VStack(spacing: 8) {
                 TextField("Leave a comment...", text: $newCommentText, axis: .vertical)
                     .font(SL.body(15))
+                    .foregroundColor(SL.textPrimary)
                     .padding(12)
-                    .background(SL.surface)
+                    .background(SL.background)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
                     .lineLimit(1...4)
@@ -352,6 +384,11 @@ struct StoryReadingView: View {
                     .foregroundColor(SL.textSecondary)
             }
 
+            Text("Ask the storyteller something about this memory. They can answer when they're ready.")
+                .font(SL.body(13))
+                .foregroundColor(SL.textSecondary)
+                .lineSpacing(3)
+
             // Answered questions
             let answered = storyQuestions.filter { $0.isAnswered }
             if !answered.isEmpty {
@@ -390,8 +427,9 @@ struct StoryReadingView: View {
             VStack(spacing: 8) {
                 TextField("Ask the storyteller something...", text: $newQuestionText, axis: .vertical)
                     .font(SL.body(15))
+                    .foregroundColor(SL.textPrimary)
                     .padding(12)
-                    .background(SL.surface)
+                    .background(SL.background)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
                     .lineLimit(1...4)
@@ -468,6 +506,12 @@ struct StoryReadingView: View {
         formatter.groupingSeparator = ""
         formatter.usesGroupingSeparator = false
         return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
+    }
+
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let m = Int(seconds) / 60
+        let s = Int(seconds) % 60
+        return String(format: "%d:%02d", m, s)
     }
 }
 

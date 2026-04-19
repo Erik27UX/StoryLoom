@@ -35,6 +35,7 @@ struct ReaderActivityView: View {
         .navigationTitle("Activity")
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(SL.background, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
     }
 }
 
