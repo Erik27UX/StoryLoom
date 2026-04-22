@@ -27,6 +27,7 @@ struct StoryloomApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(.light)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }

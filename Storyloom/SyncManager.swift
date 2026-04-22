@@ -87,6 +87,45 @@ final class SyncManager {
         }
     }
 
+    /// Async variant of pullAllUserData — awaits completion so .refreshable can show the indicator.
+    @MainActor
+    func pullAllUserDataAsync() async {
+        guard let uid = AuthManager.shared.supabaseUserId,
+              let context = modelContext else { return }
+        do {
+            async let remoteFolders: [SupabaseFolder] = SupabaseManager.shared.client
+                .from("folders")
+                .select()
+                .eq("owner_id", value: uid.uuidString)
+                .execute()
+                .value
+            async let remoteStories: [SupabaseStory] = SupabaseManager.shared.client
+                .from("stories")
+                .select()
+                .eq("owner_id", value: uid.uuidString)
+                .execute()
+                .value
+            let (folders, stories) = try await (remoteFolders, remoteStories)
+            let storyIds = stories.map { $0.id.uuidString }
+            var remoteComments: [SupabaseComment] = []
+            var remoteQuestions: [SupabaseQuestion] = []
+            if !storyIds.isEmpty {
+                remoteComments = (try? await SupabaseManager.shared.client
+                    .from("comments").select()
+                    .in("story_id", values: storyIds).execute().value) ?? []
+                remoteQuestions = (try? await SupabaseManager.shared.client
+                    .from("questions").select()
+                    .in("story_id", values: storyIds).execute().value) ?? []
+            }
+            self.applyRemoteFolders(folders, context: context)
+            self.applyRemoteStories(stories, context: context)
+            self.applyRemoteComments(remoteComments, context: context)
+            self.applyRemoteQuestions(remoteQuestions, context: context)
+        } catch {
+            print("SyncManager: pullAllUserDataAsync failed — \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Push: Story
 
     /// Upserts a story to Supabase. Uses story.uuid as the Supabase row id.

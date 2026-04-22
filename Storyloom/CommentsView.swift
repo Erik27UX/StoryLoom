@@ -121,6 +121,7 @@ struct CommentsView: View {
 
     private func postComment() {
         guard !newComment.isEmpty else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         let comment = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Reader", text: newComment)
         modelContext.insert(comment)
         SyncManager.shared.pushComment(comment)
@@ -129,6 +130,7 @@ struct CommentsView: View {
 
     private func postReply() {
         guard !replyText.isEmpty, let parent = replyingTo else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         let reply = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Storyteller", text: replyText, parentCommentId: parent.id)
         modelContext.insert(reply)
         SyncManager.shared.pushComment(reply)

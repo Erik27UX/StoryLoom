@@ -192,6 +192,7 @@ struct StoryReadingView: View {
                 // Likes row (if reactions enabled)
                 if reactionsEnabled {
                     Button(action: {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             isLiked.toggle()
                             if isLiked {

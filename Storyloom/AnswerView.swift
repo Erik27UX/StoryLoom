@@ -20,6 +20,11 @@ struct AnswerView: View {
 
     private var generatedStory: String { answerText }
 
+    private var wordCount: Int {
+        guard !answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return 0 }
+        return answerText.components(separatedBy: .whitespaces).filter { !$0.isEmpty }.count
+    }
+
     private var canProceed: Bool {
         !answerText.trimmingCharacters(in: .whitespaces).isEmpty || pendingNarrationFileName != nil
     }
@@ -77,6 +82,15 @@ struct AnswerView: View {
                         RoundedRectangle(cornerRadius: 14)
                             .stroke(SL.border, lineWidth: 1)
                     )
+
+                    // Word count
+                    HStack {
+                        Spacer()
+                        Text(wordCount == 0 ? "" : "\(wordCount) \(wordCount == 1 ? "word" : "words")")
+                            .font(SL.body(12))
+                            .foregroundColor(SL.textSecondary)
+                            .animation(.easeInOut(duration: 0.15), value: wordCount)
+                    }
 
                     // Voice section
                     VStack(spacing: 12) {

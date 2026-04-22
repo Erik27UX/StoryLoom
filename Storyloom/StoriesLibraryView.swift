@@ -8,17 +8,24 @@ struct StoriesLibraryView: View {
     @ObservedObject var authManager = AuthManager.shared
     @State private var sortBy: SortOption = .created
     @State private var navigationPath = NavigationPath()
+    @State private var searchText = ""
 
     private var groupedStories: [(folder: Folder?, stories: [StoryEntry])] {
         // Filter stories based on sort option
-        let filtered: [StoryEntry]
+        let sortFiltered: [StoryEntry]
         switch sortBy {
         case .published:
-            filtered = allStories.filter { $0.isInVault }
+            sortFiltered = allStories.filter { $0.isInVault }
         case .draft:
-            filtered = allStories.filter { !$0.isInVault }
+            sortFiltered = allStories.filter { !$0.isInVault }
         default:
-            filtered = allStories
+            sortFiltered = allStories
+        }
+
+        // Apply search filter
+        let filtered = searchText.isEmpty ? sortFiltered : sortFiltered.filter { story in
+            story.title.localizedCaseInsensitiveContains(searchText) ||
+            story.content.localizedCaseInsensitiveContains(searchText)
         }
 
         // Create a dictionary grouped by folder
@@ -202,7 +209,11 @@ struct StoriesLibraryView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 32)
             }
+            .refreshable {
+                await SyncManager.shared.pullAllUserDataAsync()
+            }
             .background(SL.background)
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search stories")
             .toolbarBackground(SL.background, for: .navigationBar)
             .navigationDestination(for: UUID.self) { storyId in
                 if let story = allStories.first(where: { $0.uuid == storyId }) {

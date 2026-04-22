@@ -8,6 +8,7 @@ struct ReaderStoriesView: View {
     @State private var hasInitialized = false
     @State private var sortBy: SortOption = .created
     @State private var showAddVault = false
+    @State private var searchText = ""
 
     var uniqueAuthors: [String] {
         let authors = stories.compactMap { $0.authorName ?? "Your Stories" }
@@ -17,9 +18,15 @@ struct ReaderStoriesView: View {
     var groupedFilteredStories: [(folder: Folder?, stories: [StoryEntry])] {
         let activeAuthors = selectedAuthors.isEmpty ? Set(uniqueAuthors) : selectedAuthors
 
-        let filtered = stories.filter { story in
+        let baseFiltered = stories.filter { story in
             let author = story.authorName ?? "Your Stories"
             return story.isInVault && activeAuthors.contains(author)
+        }
+
+        // Apply search filter
+        let filtered = searchText.isEmpty ? baseFiltered : baseFiltered.filter { story in
+            story.title.localizedCaseInsensitiveContains(searchText) ||
+            story.content.localizedCaseInsensitiveContains(searchText)
         }
 
         // Group by folder
@@ -245,7 +252,11 @@ struct ReaderStoriesView: View {
                 }
                 .padding(.top, 4)
             }
+            .refreshable {
+                await SyncManager.shared.pullAllUserDataAsync()
+            }
             .background(SL.background)
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search stories")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(SL.background, for: .navigationBar)
         }

@@ -537,6 +537,13 @@ struct StoryReadyView: View {
     }
 
     private func saveStory(publish: Bool) {
+        // Haptic feedback — heavy for publish, light for private draft
+        if publish {
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        } else {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+
         let title = customTitle ?? deriveTitle(from: editableText)
         let category: String = {
             if let p = prompt { return p.category }
