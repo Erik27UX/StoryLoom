@@ -89,9 +89,7 @@ struct ContentView: View {
                 .tabItem { Image(systemName: "house.fill");       Text("Home") }
                 .tag(0)
 
-                NavigationStack {
-                    StoriesLibraryView()
-                }
+                StoriesLibraryView()
                 .id(tabIds[1])
                 .tabItem { Image(systemName: "square.stack.fill"); Text("Stories") }
                 .tag(1)

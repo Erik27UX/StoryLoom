@@ -409,6 +409,9 @@ struct InviteReadersSheet: View {
     @State private var didCopy = false
 
     private var inviteLink: String { "storyloom://join/\(inviteCode)" }
+    private var shareMessage: String {
+        "You've been invited to read stories on Storyloom!\n\nUse invite code: \(inviteCode)\n\nAlready have the app? Tap to join: storyloom://join/\(inviteCode)"
+    }
 
     var body: some View {
         NavigationStack {
@@ -480,7 +483,7 @@ struct InviteReadersSheet: View {
                     }
                     .disabled(isGenerating)
 
-                    ShareLink(item: inviteLink) {
+                    ShareLink(item: shareMessage) {
                         HStack(spacing: 10) {
                             Image(systemName: "square.and.arrow.up")
                                 .font(.system(size: 16))

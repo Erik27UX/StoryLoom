@@ -35,7 +35,20 @@ struct ReaderActivityView: View {
         .navigationTitle("Activity")
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(SL.background, for: .navigationBar)
-        .toolbarColorScheme(.light, for: .navigationBar)
+        .onAppear {
+            // Re-apply dark text appearance every time this tab is shown.
+            // The .toolbarColorScheme modifier interferes with UIKit appearance,
+            // so we set it directly here instead.
+            let a = UINavigationBarAppearance()
+            a.configureWithOpaqueBackground()
+            a.backgroundColor = UIColor(red: 0.992, green: 0.976, blue: 0.941, alpha: 1.0)
+            let c = UIColor(red: 0.11, green: 0.10, blue: 0.09, alpha: 1.0)
+            a.titleTextAttributes        = [.foregroundColor: c]
+            a.largeTitleTextAttributes   = [.foregroundColor: c]
+            UINavigationBar.appearance().standardAppearance   = a
+            UINavigationBar.appearance().scrollEdgeAppearance = a
+            UINavigationBar.appearance().compactAppearance    = a
+        }
     }
 }
 

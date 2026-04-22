@@ -27,6 +27,7 @@ struct StoryReadyView: View {
     @State private var confirmedEntry: StoryEntry? = nil
     @State private var confirmedIsPublished: Bool = false
     @State private var showLimitSheet = false
+    @FocusState private var yearFocused: Bool
 
     @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
     private var currentTier: SubscriptionTier {
@@ -376,6 +377,7 @@ struct StoryReadyView: View {
                                 .font(SL.body(15))
                                 .foregroundColor(SL.textPrimary)
                                 .keyboardType(.numberPad)
+                                .focused($yearFocused)
                                 .onChange(of: yearText) { newValue in
                                     let filtered = newValue.filter { $0.isNumber }
                                     if filtered.count <= 4 {
@@ -504,25 +506,11 @@ struct StoryReadyView: View {
                     .foregroundColor(SL.accent)
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(destination: EditStoryView(
-                    story: nil,
-                    initialText: editableText,
-                    onSave: { updated in editableText = updated }
-                )) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 13, weight: .medium))
-                        Text("Edit")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(SL.textPrimary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(SL.surface)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(SL.border, lineWidth: 1))
-                }
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { yearFocused = false }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(SL.accent)
             }
         }
     }
