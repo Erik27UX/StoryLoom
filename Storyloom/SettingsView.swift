@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var showImagePicker = false
     @State private var isEditingName = false
     @State private var editedName = ""
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -154,6 +155,13 @@ struct SettingsView: View {
                             .foregroundColor(SL.textSecondary)
                     }
                     .padding(.top, 4)
+
+                    // Delete account
+                    Button(action: { showDeleteConfirm = true }) {
+                        Text("Delete account")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color.red.opacity(0.7))
+                    }
                     .padding(.bottom, 16)
                 }
                 .padding(.horizontal, 20)
@@ -166,6 +174,18 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showImagePicker) {
             EditProfileImageSheet(isPresented: $showImagePicker, authManager: authManager)
+        }
+        .confirmationDialog(
+            "Delete your account?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete account", role: .destructive) {
+                authManager.deleteAccount()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account and all your stories. This cannot be undone.")
         }
     }
 }

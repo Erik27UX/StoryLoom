@@ -10,6 +10,7 @@ struct LoginView: View {
     @State private var isLoading = false
     @State private var showEmailConfirmation = false
     @State private var confirmedEmail = ""
+    @State private var showForgotPassword = false
 
     private var canSubmit: Bool {
         !email.isEmpty && !password.isEmpty && !(isSignup && name.isEmpty) && !isLoading
@@ -133,9 +134,19 @@ struct LoginView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Password")
-                                .font(SL.body(13))
-                                .foregroundColor(SL.textSecondary)
+                            HStack {
+                                Text("Password")
+                                    .font(SL.body(13))
+                                    .foregroundColor(SL.textSecondary)
+                                Spacer()
+                                if !isSignup {
+                                    Button(action: { showForgotPassword = true }) {
+                                        Text("Forgot password?")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(SL.accent)
+                                    }
+                                }
+                            }
                             SecureField("••••••••", text: $password)
                                 .font(SL.body(16))
                                 .foregroundColor(SL.textPrimary)
@@ -199,6 +210,9 @@ struct LoginView: View {
                 .padding(.bottom, 40)
             }
     }  // end formView
+    .sheet(isPresented: $showForgotPassword) {
+        ForgotPasswordView()
+    }
 
     // MARK: - Submit
 

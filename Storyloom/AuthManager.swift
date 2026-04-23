@@ -21,6 +21,8 @@ final class AuthManager: ObservableObject {
     @Published var isCheckingAuth: Bool = true
     /// Current user's role — mirrors currentUser?.role but guaranteed to trigger @Published updates.
     @Published var currentUserRole: UserRole = .reader
+    /// True when the user arrived via a password-reset link and needs to set a new password.
+    @Published var isPasswordRecovery: Bool = false
 
     // MARK: Internal state
 
@@ -66,6 +68,12 @@ final class AuthManager: ObservableObject {
                 case .signedOut:
                     print("AuthManager: signedOut event")
                     self.clearUser()
+                    self.isCheckingAuth = false
+
+                case .passwordRecovery:
+                    print("AuthManager: passwordRecovery event")
+                    // User tapped a reset-password link — show the new password screen.
+                    self.isPasswordRecovery = true
                     self.isCheckingAuth = false
 
                 case .tokenRefreshed:
@@ -222,6 +230,28 @@ final class AuthManager: ObservableObject {
 
     func logout() {
         Task { @MainActor in
+            try? await SupabaseManager.shared.client.auth.signOut()
+            LikeManager.shared.clearAll()
+            clearUser()
+            hasCompletedOnboarding = false
+            UserDefaults.standard.removeObject(forKey: onboardingKey)
+            UserDefaults.standard.removeObject(forKey: cachedProfileKey)
+        }
+    }
+
+    /// Permanently deletes the user's account and all their data via a Supabase RPC.
+    /// Requires the `delete_user_account` SQL function to be created in Supabase first.
+    func deleteAccount() {
+        Task { @MainActor in
+            do {
+                try await SupabaseManager.shared.client
+                    .rpc("delete_user_account")
+                    .execute()
+                print("AuthManager: account deleted from Supabase")
+            } catch {
+                print("AuthManager: deleteAccount RPC failed — \(error.localizedDescription)")
+            }
+            // Clear everything locally regardless of network result
             try? await SupabaseManager.shared.client.auth.signOut()
             LikeManager.shared.clearAll()
             clearUser()

@@ -43,6 +43,9 @@ struct ContentView: View {
         if authManager.isCheckingAuth {
             // Checking for an existing session — show splash to avoid login flash
             splashView
+        } else if authManager.isPasswordRecovery {
+            // User arrived via a password-reset email link — show new-password screen
+            ResetPasswordView()
         } else if !authManager.isLoggedIn {
             // No session found — show login
             NavigationStack {
