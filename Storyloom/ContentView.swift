@@ -67,10 +67,12 @@ struct ContentView: View {
     private var splashView: some View {
         ZStack {
             SL.background.ignoresSafeArea()
-            VStack(spacing: 16) {
-                Image(systemName: "book.closed.fill")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundColor(SL.accent)
+            VStack(spacing: 24) {
+                Image("AppLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .clipShape(RoundedRectangle(cornerRadius: 22))
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: SL.accent))
             }

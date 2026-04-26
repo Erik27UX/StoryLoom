@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 struct ResetPasswordView: View {
     @State private var newPassword = ""

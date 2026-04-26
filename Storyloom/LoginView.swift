@@ -93,6 +93,12 @@ struct LoginView: View {
             VStack(alignment: .leading, spacing: 24) {
                 // Header
                 VStack(alignment: .leading, spacing: 6) {
+                    Image("AppLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.bottom, 4)
                     Text(isSignup ? "Create your account" : "Welcome back")
                         .font(SL.heading(28))
                         .foregroundColor(SL.textPrimary)
@@ -209,10 +215,10 @@ struct LoginView: View {
                 .padding(.top, 32)
                 .padding(.bottom, 40)
             }
+        .sheet(isPresented: $showForgotPassword) {
+            ForgotPasswordView()
+        }
     }  // end formView
-    .sheet(isPresented: $showForgotPassword) {
-        ForgotPasswordView()
-    }
 
     // MARK: - Submit
 
