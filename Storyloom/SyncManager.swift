@@ -128,19 +128,135 @@ final class SyncManager {
 
     // MARK: - Push: Story
 
-    /// Upserts a story to Supabase. Uses story.uuid as the Supabase row id.
+    /// Upserts a story to Supabase and uploads any media files to Storage.
     func pushStory(_ story: StoryEntry) {
         guard let uid = AuthManager.shared.supabaseUserId else { return }
         let payload = SupabaseStory(from: story, ownerId: uid)
+        let storyUUID = story.uuid
+        let narrationFileName = story.narrationFileName
+        let imageFileName = story.imageFileName
+        let hasNarration = story.hasNarration
+
         Task {
             do {
                 try await SupabaseManager.shared.client
                     .from("stories")
                     .upsert(payload)
                     .execute()
+
+                // Upload audio to Storage if present
+                if hasNarration, let audioFile = narrationFileName {
+                    await uploadAudio(storyUUID: storyUUID, localFileName: audioFile)
+                }
+
+                // Upload image to Storage if present
+                if let imgFile = imageFileName {
+                    await uploadImage(storyUUID: storyUUID, localFileName: imgFile)
+                }
             } catch {
                 print("SyncManager: pushStory failed — \(error.localizedDescription)")
             }
+        }
+    }
+
+    // MARK: - Storage: Upload
+
+    private func uploadAudio(storyUUID: UUID, localFileName: String) async {
+        let url = AudioManager.narrationURL(fileName: localFileName)
+        guard let data = try? Data(contentsOf: url) else {
+            print("SyncManager: uploadAudio — local file not found: \(localFileName)")
+            return
+        }
+        let storagePath = "\(storyUUID.uuidString).m4a"
+        do {
+            try await SupabaseManager.shared.client.storage
+                .from("story-audio")
+                .upload(storagePath, data: data, options: FileOptions(contentType: "audio/mp4", upsert: true))
+            print("SyncManager: uploaded audio to story-audio/\(storagePath)")
+        } catch {
+            print("SyncManager: uploadAudio failed — \(error.localizedDescription)")
+        }
+    }
+
+    private func uploadImage(storyUUID: UUID, localFileName: String) async {
+        let url = ImageManager.imageURL(fileName: localFileName)
+        guard let data = try? Data(contentsOf: url) else {
+            print("SyncManager: uploadImage — local file not found: \(localFileName)")
+            return
+        }
+        let storagePath = "\(storyUUID.uuidString).jpg"
+        do {
+            try await SupabaseManager.shared.client.storage
+                .from("story-images")
+                .upload(storagePath, data: data, options: FileOptions(contentType: "image/jpeg", upsert: true))
+            print("SyncManager: uploaded image to story-images/\(storagePath)")
+        } catch {
+            print("SyncManager: uploadImage failed — \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Storage: Download
+
+    /// Downloads audio and image files for a story that arrived from a remote sync.
+    /// Only downloads if the file doesn't already exist locally.
+    func downloadMediaIfNeeded(storyUUID: UUID, hasNarration: Bool, publishNarration: Bool, hasImage: Bool) {
+        Task {
+            if hasNarration && publishNarration {
+                let localName = storyUUID.uuidString + ".m4a"
+                if !AudioManager.narrationExists(fileName: localName) {
+                    await downloadAudio(storyUUID: storyUUID, saveAs: localName)
+                }
+            }
+            if hasImage {
+                let localName = storyUUID.uuidString + ".jpg"
+                if !ImageManager.imageExists(fileName: localName) {
+                    await downloadImage(storyUUID: storyUUID, saveAs: localName)
+                }
+            }
+        }
+    }
+
+    private func downloadAudio(storyUUID: UUID, saveAs localName: String) async {
+        let storagePath = "\(storyUUID.uuidString).m4a"
+        do {
+            let data = try await SupabaseManager.shared.client.storage
+                .from("story-audio")
+                .download(path: storagePath)
+            let destURL = AudioManager.narrationURL(fileName: localName)
+            try data.write(to: destURL)
+            print("SyncManager: downloaded audio to \(localName)")
+            // Update narrationFileName on the matching local StoryEntry
+            await MainActor.run {
+                guard let context = self.modelContext else { return }
+                let stories = (try? context.fetch(FetchDescriptor<StoryEntry>())) ?? []
+                if let entry = stories.first(where: { $0.uuid == storyUUID }) {
+                    entry.narrationFileName = localName
+                }
+            }
+        } catch {
+            print("SyncManager: downloadAudio failed — \(error.localizedDescription)")
+        }
+    }
+
+    private func downloadImage(storyUUID: UUID, saveAs localName: String) async {
+        let storagePath = "\(storyUUID.uuidString).jpg"
+        do {
+            let data = try await SupabaseManager.shared.client.storage
+                .from("story-images")
+                .download(path: storagePath)
+            let destURL = ImageManager.imageURL(fileName: localName)
+            try data.write(to: destURL)
+            print("SyncManager: downloaded image to \(localName)")
+            // Update imageFileName on the matching local StoryEntry
+            await MainActor.run {
+                guard let context = self.modelContext else { return }
+                let stories = (try? context.fetch(FetchDescriptor<StoryEntry>())) ?? []
+                if let entry = stories.first(where: { $0.uuid == storyUUID }) {
+                    entry.imageFileName = localName
+                }
+            }
+        } catch {
+            print("SyncManager: downloadImage failed — \(error.localizedDescription)")
         }
     }
 
@@ -379,10 +495,18 @@ final class SyncManager {
                 local.folder                 = folder
                 if rs.ownerId == AuthManager.shared.supabaseUserId {
                     // Always use current user's live subscription tier for their own stories.
-                    // The Supabase value may be stale (e.g. set to "premium" before a plan upgrade).
                     local.authorSubscriptionTier = AuthManager.shared.currentUser?.subscriptionTier ?? .premium
                 } else if let tierStr = rs.authorSubscriptionTier {
                     local.authorSubscriptionTier = SubscriptionTier(rawValue: tierStr) ?? .premium
+                }
+                // Download media for reader devices (storyteller already has files locally)
+                if rs.ownerId != AuthManager.shared.supabaseUserId {
+                    downloadMediaIfNeeded(
+                        storyUUID: rs.id,
+                        hasNarration: rs.hasNarration,
+                        publishNarration: rs.publishNarration,
+                        hasImage: rs.imageFileName != nil
+                    )
                 }
             } else {
                 // Create new local story from Supabase data
@@ -397,9 +521,9 @@ final class SyncManager {
                     hasNarration: rs.hasNarration,
                     publishNarration: rs.publishNarration,
                     narrationFileName: rs.narrationFileName,
+                    imageFileName: rs.imageFileName,
                     authorSubscriptionTier: {
                         if rs.ownerId == AuthManager.shared.supabaseUserId {
-                            // Always use the current user's live subscription tier — Supabase value may be stale
                             return AuthManager.shared.currentUser?.subscriptionTier ?? .premium
                         }
                         if let t = rs.authorSubscriptionTier { return SubscriptionTier(rawValue: t) ?? .premium }
@@ -411,6 +535,15 @@ final class SyncManager {
                 entry.uuid        = rs.id
                 entry.dateCreated = rs.createdAt
                 context.insert(entry)
+                // Download media for reader devices
+                if rs.ownerId != AuthManager.shared.supabaseUserId {
+                    downloadMediaIfNeeded(
+                        storyUUID: rs.id,
+                        hasNarration: rs.hasNarration,
+                        publishNarration: rs.publishNarration,
+                        hasImage: rs.imageFileName != nil
+                    )
+                }
             }
         }
     }

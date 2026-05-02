@@ -12,7 +12,7 @@ struct StoryloomApp: App {
             print("StoryloomApp: creating ModelContainer...")
             modelContainer = try ModelContainer(
                 for: StoryEntry.self, Folder.self, StoryComment.self, StoryQuestion.self,
-                    StoryAccess.self, StoryInvite.self
+                    StoryAccess.self, StoryInvite.self, StoryReaction.self
             )
             print("StoryloomApp: configuring SyncManager...")
             // Give SyncManager access to the SwiftData main context
@@ -38,9 +38,23 @@ struct StoryloomApp: App {
     private func handleDeepLink(_ url: URL) {
         print("StoryloomApp: received deep link: \(url)")
 
+        // Handle Universal Links: https://storyloom.live/join/CODE
+        if url.scheme == "https" && url.host == "storyloom.live" {
+            let pathComponents = url.pathComponents.filter { $0 != "/" }
+            if pathComponents.first == "join", let code = pathComponents.dropFirst().first, !code.isEmpty {
+                print("StoryloomApp: Universal Link invite code received: \(code)")
+                NotificationCenter.default.post(
+                    name: Notification.Name("storyloom.joinCode"),
+                    object: nil,
+                    userInfo: ["code": code]
+                )
+            }
+            return
+        }
+
         guard url.scheme == "storyloom" else { return }
 
-        // Handle invite join links: storyloom://join/CODE
+        // Handle invite join links: storyloom://join/CODE (fallback custom scheme)
         if url.host == "join" {
             let code = url.pathComponents.dropFirst().first ?? url.lastPathComponent
             if !code.isEmpty {

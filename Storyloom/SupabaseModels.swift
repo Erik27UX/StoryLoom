@@ -62,6 +62,7 @@ struct SupabaseStory: Codable {
     let hasNarration: Bool
     let publishNarration: Bool
     let narrationFileName: String?
+    let imageFileName: String?
     let authorSubscriptionTier: String?
     let authorName: String?
     let likeCount: Int
@@ -78,6 +79,7 @@ struct SupabaseStory: Codable {
         case hasNarration        = "has_narration"
         case publishNarration    = "publish_narration"
         case narrationFileName   = "narration_file_name"
+        case imageFileName       = "image_file_name"
         case authorSubscriptionTier = "author_subscription_tier"
         case authorName          = "author_name"
         case likeCount           = "like_count"
@@ -97,6 +99,7 @@ struct SupabaseStory: Codable {
         self.hasNarration         = story.hasNarration
         self.publishNarration     = story.publishNarration
         self.narrationFileName    = story.narrationFileName
+        self.imageFileName        = story.imageFileName
         self.authorSubscriptionTier = story.authorSubscriptionTier.rawValue
         self.authorName           = story.authorName
         self.likeCount            = story.likeCount

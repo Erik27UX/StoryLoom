@@ -408,9 +408,9 @@ struct InviteReadersSheet: View {
     @State private var showShareSheet = false
     @State private var didCopy = false
 
-    private var inviteLink: String { "storyloom://join/\(inviteCode)" }
+    private var inviteLink: String { "https://storyloom.live/join/\(inviteCode)" }
     private var shareMessage: String {
-        "You've been invited to read stories on Storyloom!\n\nUse invite code: \(inviteCode)\n\nAlready have the app? Tap to join: storyloom://join/\(inviteCode)"
+        "You've been invited to read stories on Storyloom!\n\nTap to join: https://storyloom.live/join/\(inviteCode)\n\nOr enter invite code manually: \(inviteCode)"
     }
 
     var body: some View {
