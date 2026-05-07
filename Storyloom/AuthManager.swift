@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import Supabase
 import OSLog
+import Security
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "Auth")
 
@@ -239,7 +240,8 @@ final class AuthManager: ObservableObject {
             clearUser()
             hasCompletedOnboarding = false
             UserDefaults.standard.removeObject(forKey: onboardingKey)
-            UserDefaults.standard.removeObject(forKey: cachedProfileKey)
+            UserDefaults.standard.removeObject(forKey: cachedProfileKey) // legacy fallback
+            ProfileKeychain.delete(account: cachedProfileKey)
         }
     }
 
@@ -262,7 +264,8 @@ final class AuthManager: ObservableObject {
             clearUser()
             hasCompletedOnboarding = false
             UserDefaults.standard.removeObject(forKey: onboardingKey)
-            UserDefaults.standard.removeObject(forKey: cachedProfileKey)
+            UserDefaults.standard.removeObject(forKey: cachedProfileKey) // legacy fallback
+            ProfileKeychain.delete(account: cachedProfileKey)
         }
     }
 
@@ -345,16 +348,69 @@ final class AuthManager: ObservableObject {
 
     private func cacheProfile(_ profile: SupabaseProfile) {
         guard let data = try? JSONEncoder().encode(profile) else { return }
-        UserDefaults.standard.set(data, forKey: cachedProfileKey)
+        ProfileKeychain.save(data, account: cachedProfileKey)
+        // Remove any legacy UserDefaults entry left by older versions of the app.
+        UserDefaults.standard.removeObject(forKey: cachedProfileKey)
     }
 
     private func loadCachedUser(session: Session) -> User? {
-        guard let data = UserDefaults.standard.data(forKey: cachedProfileKey),
+        // Try Keychain first; fall back to UserDefaults for one-time migration from older versions.
+        let data: Data? = ProfileKeychain.load(account: cachedProfileKey) ?? {
+            guard let legacy = UserDefaults.standard.data(forKey: cachedProfileKey) else { return nil }
+            ProfileKeychain.save(legacy, account: cachedProfileKey)
+            UserDefaults.standard.removeObject(forKey: cachedProfileKey)
+            return legacy
+        }()
+
+        guard let data,
               let profile = try? JSONDecoder().decode(SupabaseProfile.self, from: data) else {
-            // Minimal fallback from session only
-            let user = User(email: session.user.email ?? "", name: "")
-            return user
+            return User(email: session.user.email ?? "", name: "")
         }
         return buildUser(from: profile, session: session)
+    }
+}
+
+// MARK: - ProfileKeychain
+// Minimal Keychain wrapper for storing the offline-fallback profile blob.
+// Uses kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly so the item:
+//   • is available after the first unlock following a reboot (supports background refresh)
+//   • is NOT transferred to a new device via backup/restore (ties the cache to this device)
+
+private enum ProfileKeychain {
+    private static let service = Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom"
+
+    static func save(_ data: Data, account: String) {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecValueData: data,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+        // Delete any existing item before adding, to handle updates cleanly.
+        SecItemDelete(query as CFDictionary)
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    static func load(account: String) -> Data? {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecReturnData: true,
+            kSecMatchLimit: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        return status == errSecSuccess ? result as? Data : nil
+    }
+
+    static func delete(account: String) {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account
+        ]
+        SecItemDelete(query as CFDictionary)
     }
 }

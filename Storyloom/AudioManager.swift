@@ -25,9 +25,27 @@ class AudioManager: NSObject, ObservableObject {
 
     // MARK: - File helpers
 
+    /// The canonical directory for narration audio files.
+    /// Application Support is not user-visible and is backed up to iCloud/iTunes,
+    /// which is appropriate for user-created recordings.
+    private static let storageDirectory: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
+        return appSupport
+    }()
+
+    /// Returns the URL for a given audio file, migrating from the old Documents
+    /// location on first access if the file was saved by an earlier app version.
     static func narrationURL(fileName: String) -> URL {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return docs.appendingPathComponent(fileName)
+        let newURL = storageDirectory.appendingPathComponent(fileName)
+        if !FileManager.default.fileExists(atPath: newURL.path) {
+            let oldURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent(fileName)
+            if FileManager.default.fileExists(atPath: oldURL.path) {
+                try? FileManager.default.moveItem(at: oldURL, to: newURL)
+            }
+        }
+        return newURL
     }
 
     static func narrationExists(fileName: String?) -> Bool {
@@ -86,7 +104,18 @@ class AudioManager: NSObject, ObservableObject {
     func stopRecording() {
         durationTimer?.invalidate()
         durationTimer = nil
+        // Capture the URL before stopping so we can apply file protection
+        let recordedURL = audioRecorder?.url
         audioRecorder?.stop()
+        // Apply NSFileProtectionComplete now that the file is fully written.
+        // The recording only happens while the app is in the foreground (device unlocked),
+        // so the protection level is safe to apply immediately after stop.
+        if let url = recordedURL {
+            try? FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.complete],
+                ofItemAtPath: url.path
+            )
+        }
         DispatchQueue.main.async {
             self.isRecording = false
         }

@@ -2,13 +2,33 @@ import SwiftUI
 import PhotosUI
 
 // MARK: - ImageManager
-// Handles saving, loading, and deleting story images to/from the local Documents directory.
+// Handles saving, loading, and deleting story images.
+// Files are stored in Application Support (not user-visible in Files app).
+// Written with NSFileProtectionComplete so they are encrypted when the device is locked.
 
 enum ImageManager {
 
+    /// The canonical directory for story images.
+    /// Application Support is not user-visible and is backed up to iCloud/iTunes,
+    /// which is appropriate for user-created content.
+    private static let storageDirectory: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
+        return appSupport
+    }()
+
+    /// Returns the URL for a given image file, migrating from the old Documents
+    /// location on first access if the file was saved by an earlier app version.
     static func imageURL(fileName: String) -> URL {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return docs.appendingPathComponent(fileName)
+        let newURL = storageDirectory.appendingPathComponent(fileName)
+        if !FileManager.default.fileExists(atPath: newURL.path) {
+            let oldURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent(fileName)
+            if FileManager.default.fileExists(atPath: oldURL.path) {
+                try? FileManager.default.moveItem(at: oldURL, to: newURL)
+            }
+        }
+        return newURL
     }
 
     static func imageExists(fileName: String?) -> Bool {
@@ -16,7 +36,7 @@ enum ImageManager {
         return FileManager.default.fileExists(atPath: imageURL(fileName: name).path)
     }
 
-    /// Save a UIImage as JPEG to documents directory. Returns the new filename.
+    /// Save a UIImage as JPEG to Application Support. Returns the new filename.
     @discardableResult
     static func saveImage(_ image: UIImage, existingFileName: String? = nil) -> String? {
         // Delete old image if replacing
@@ -28,7 +48,8 @@ enum ImageManager {
         let fileName = UUID().uuidString + ".jpg"
         let url = imageURL(fileName: fileName)
         do {
-            try data.write(to: url)
+            // .completeFileProtection encrypts the file when the device is locked.
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
             return fileName
         } catch {
             return nil
@@ -40,7 +61,7 @@ enum ImageManager {
         try? FileManager.default.removeItem(at: url)
     }
 
-    /// Load a UIImage from documents directory.
+    /// Load a UIImage from Application Support.
     static func loadImage(fileName: String) -> UIImage? {
         let url = imageURL(fileName: fileName)
         guard let data = try? Data(contentsOf: url) else { return nil }
