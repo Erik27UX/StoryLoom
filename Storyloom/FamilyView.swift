@@ -1,6 +1,9 @@
 import SwiftUI
 import SwiftData
 import Supabase
+import OSLog
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "Family")
 
 // MARK: - Real Reader Model
 
@@ -214,7 +217,7 @@ struct ReadersView: View {
                     isLoadingReaders = false
                 }
             } catch {
-                print("ReadersView: fetch readers failed — \(error.localizedDescription)")
+                logger.error("fetch readers failed: \(error.localizedDescription, privacy: .private)")
                 await MainActor.run { isLoadingReaders = false }
             }
         }
@@ -384,7 +387,7 @@ struct ManageReadersSheet: View {
                     .in("story_id", values: storyIds)
                     .execute()
             } catch {
-                print("ManageReadersSheet: remove reader failed — \(error.localizedDescription)")
+                logger.error("remove reader failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -565,7 +568,7 @@ struct InviteReadersSheet: View {
                     isGenerating = false
                 }
             } catch {
-                print("InviteReadersSheet: generate code failed — \(error.localizedDescription)")
+                logger.error("generate invite code failed: \(error.localizedDescription, privacy: .private)")
                 await MainActor.run {
                     // Do NOT show the code — it was never saved to the DB and would fail on redemption.
                     generationFailed = true

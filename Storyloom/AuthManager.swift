@@ -1,6 +1,9 @@
 import SwiftUI
 import Combine
 import Supabase
+import OSLog
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "Auth")
 
 // MARK: - AuthManager
 // Handles Supabase authentication. Login and signup are async throws.
@@ -36,11 +39,11 @@ final class AuthManager: ObservableObject {
     // MARK: Init
 
     private init() {
-        print("AuthManager: init called")
+        logger.debug("init called")
         hasCompletedOnboarding = UserDefaults.standard.bool(forKey: onboardingKey)
-        print("AuthManager: starting auth listener...")
+        logger.debug("starting auth listener...")
         startAuthListener()
-        print("AuthManager: init complete")
+        logger.debug("init complete")
     }
 
     // MARK: - Auth State Listener
@@ -48,10 +51,10 @@ final class AuthManager: ObservableObject {
     private func startAuthListener() {
         authListenerTask = Task { @MainActor in
             for await (event, session) in SupabaseManager.shared.client.auth.authStateChanges {
-                print("AuthManager: auth event: \(event)")
+                logger.debug("auth event: \(String(describing: event))")
                 switch event {
                 case .initialSession:
-                    print("AuthManager: initialSession event, session exists: \(session != nil)")
+                    logger.debug("initialSession event, session exists: \(session != nil)")
                     if let session {
                         await self.handleSession(session)
                     } else {
@@ -59,31 +62,31 @@ final class AuthManager: ObservableObject {
                     }
 
                 case .signedIn:
-                    print("AuthManager: signedIn event, session exists: \(session != nil)")
+                    logger.debug("signedIn event, session exists: \(session != nil)")
                     if let session {
                         await self.handleSession(session)
                     }
                     self.isCheckingAuth = false
 
                 case .signedOut:
-                    print("AuthManager: signedOut event")
+                    logger.debug("signedOut event")
                     self.clearUser()
                     self.isCheckingAuth = false
 
                 case .passwordRecovery:
-                    print("AuthManager: passwordRecovery event")
+                    logger.debug("passwordRecovery event")
                     // User tapped a reset-password link — show the new password screen.
                     self.isPasswordRecovery = true
                     self.isCheckingAuth = false
 
                 case .tokenRefreshed:
-                    print("AuthManager: tokenRefreshed event")
+                    logger.debug("tokenRefreshed event")
                     if let session {
                         self.supabaseUserId = session.user.id
                     }
 
                 default:
-                    print("AuthManager: unknown auth event")
+                    logger.debug("unhandled auth event")
                     break
                 }
             }
@@ -94,11 +97,11 @@ final class AuthManager: ObservableObject {
 
     @MainActor
     private func handleSession(_ session: Session) async {
-        print("AuthManager: handleSession called for user \(session.user.id.uuidString)")
+        logger.debug("handleSession called")
         supabaseUserId = session.user.id
 
         do {
-            print("AuthManager: fetching profile...")
+            logger.debug("fetching profile...")
             let profile: SupabaseProfile = try await SupabaseManager.shared.client
                 .from("profiles")
                 .select()
@@ -107,7 +110,7 @@ final class AuthManager: ObservableObject {
                 .execute()
                 .value
 
-            print("AuthManager: profile fetched successfully")
+            logger.debug("profile fetched successfully")
             let user = buildUser(from: profile, session: session)
             currentUser = user
             isLoggedIn = true
@@ -118,7 +121,7 @@ final class AuthManager: ObservableObject {
             SyncManager.shared.pullAllUserData()
 
         } catch {
-            print("AuthManager: handleSession profile not found — creating now for \(session.user.id)")
+            logger.debug("profile not found — creating for new user")
             // Profile doesn't exist yet (first sign-in after email confirmation).
             // Create it now — user is authenticated so RLS will pass.
             let metadata = session.user.userMetadata
@@ -138,13 +141,13 @@ final class AuthManager: ObservableObject {
                     .from("profiles")
                     .insert(newProfile)
                     .execute()
-                print("AuthManager: profile created successfully")
+                logger.debug("profile created successfully")
                 let user = buildUser(from: newProfile, session: session)
                 currentUser = user
                 isLoggedIn = true
                 cacheProfile(newProfile)
             } catch {
-                print("AuthManager: failed to create profile — \(error.localizedDescription)")
+                logger.error("failed to create profile: \(error.localizedDescription, privacy: .private)")
                 if let user = loadCachedUser(session: session) {
                     currentUser = user
                     isLoggedIn = true
@@ -209,7 +212,7 @@ final class AuthManager: ObservableObject {
     }
 
     func signup(email: String, password: String, name: String, role: UserRole = .reader) async throws {
-        print("AuthManager: signup starting for email: \(email)")
+        logger.debug("signup starting")
 
         try await SupabaseManager.shared.client.auth.signUp(
             email: email,
@@ -223,7 +226,7 @@ final class AuthManager: ObservableObject {
 
         // Profile is created in handleSession once the user confirms their email
         // and a valid session exists — RLS requires auth.uid() to match the profile id.
-        print("AuthManager: signup complete — confirmation email sent")
+        logger.debug("signup complete — confirmation email sent")
     }
 
     // MARK: - Fire-and-Forget Auth Methods (synchronous public API)
@@ -248,9 +251,9 @@ final class AuthManager: ObservableObject {
                 try await SupabaseManager.shared.client
                     .rpc("delete_user_account")
                     .execute()
-                print("AuthManager: account deleted from Supabase")
+                logger.debug("account deleted from Supabase")
             } catch {
-                print("AuthManager: deleteAccount RPC failed — \(error.localizedDescription)")
+                logger.error("deleteAccount RPC failed: \(error.localizedDescription, privacy: .private)")
             }
             // Clear everything locally regardless of network result
             try? await SupabaseManager.shared.client.auth.signOut()

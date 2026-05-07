@@ -1,25 +1,28 @@
 import SwiftUI
 import SwiftData
 import Supabase
+import OSLog
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "App")
 
 @main
 struct StoryloomApp: App {
     let modelContainer: ModelContainer
 
     init() {
-        print("StoryloomApp: init starting...")
+        logger.debug("init starting...")
         do {
-            print("StoryloomApp: creating ModelContainer...")
+            logger.debug("creating ModelContainer...")
             modelContainer = try ModelContainer(
                 for: StoryEntry.self, Folder.self, StoryComment.self, StoryQuestion.self,
                     StoryAccess.self, StoryInvite.self, StoryReaction.self
             )
-            print("StoryloomApp: configuring SyncManager...")
+            logger.debug("configuring SyncManager...")
             // Give SyncManager access to the SwiftData main context
             SyncManager.shared.configure(with: modelContainer.mainContext)
-            print("StoryloomApp: init complete")
+            logger.debug("init complete")
         } catch {
-            print("StoryloomApp: FATAL ERROR - \(error)")
+            logger.critical("FATAL: ModelContainer init failed: \(error.localizedDescription, privacy: .private)")
             fatalError("Could not initialize ModelContainer: \(error)")
         }
     }
@@ -35,16 +38,26 @@ struct StoryloomApp: App {
         .modelContainer(modelContainer)
     }
 
+    /// Sanitizes a raw invite code from a URL, keeping only uppercase alphanumeric characters
+    /// and capping at 6. This prevents injection of arbitrary strings via deep links.
+    private func sanitizeInviteCode(_ raw: String) -> String {
+        String(raw.uppercased()
+            .filter { $0.isLetter || $0.isNumber }
+            .prefix(6))
+    }
+
     private func handleDeepLink(_ url: URL) {
-        print("StoryloomApp: received deep link: \(url)")
+        logger.debug("received deep link scheme: \(url.scheme ?? "unknown")")
 
         // Handle Universal Links: https://storyloom.live/join/CODE
         if url.scheme == "https" && url.host == "storyloom.live" {
             let pathComponents = url.pathComponents.filter { $0 != "/" }
-            if pathComponents.first == "join", let code = pathComponents.dropFirst().first, !code.isEmpty {
-                print("StoryloomApp: Universal Link invite code received: \(code)")
+            if pathComponents.first == "join", let raw = pathComponents.dropFirst().first, !raw.isEmpty {
+                let code = sanitizeInviteCode(raw)
+                guard !code.isEmpty else { return }
+                logger.debug("Universal Link invite code received")
                 NotificationCenter.default.post(
-                    name: Notification.Name("storyloom.joinCode"),
+                    name: .storyloomJoinCode,
                     object: nil,
                     userInfo: ["code": code]
                 )
@@ -56,11 +69,13 @@ struct StoryloomApp: App {
 
         // Handle invite join links: storyloom://join/CODE (fallback custom scheme)
         if url.host == "join" {
-            let code = url.pathComponents.dropFirst().first ?? url.lastPathComponent
-            if !code.isEmpty {
-                print("StoryloomApp: invite code deep link received: \(code)")
+            let raw = url.pathComponents.dropFirst().first ?? url.lastPathComponent
+            if !raw.isEmpty {
+                let code = sanitizeInviteCode(raw)
+                guard !code.isEmpty else { return }
+                logger.debug("invite code deep link received")
                 NotificationCenter.default.post(
-                    name: Notification.Name("storyloom.joinCode"),
+                    name: .storyloomJoinCode,
                     object: nil,
                     userInfo: ["code": code]
                 )
@@ -71,14 +86,14 @@ struct StoryloomApp: App {
         // Handle auth callbacks: storyloom://auth/...
         guard url.host == "auth" else { return }
 
-        print("StoryloomApp: processing auth callback")
+        logger.debug("processing auth callback")
         Task {
             do {
                 // session(from:) handles both PKCE code exchange and implicit token extraction
                 try await SupabaseManager.shared.client.auth.session(from: url)
-                print("StoryloomApp: session established from deep link")
+                logger.debug("session established from deep link")
             } catch {
-                print("StoryloomApp: deep link session failed: \(error)")
+                logger.error("deep link session failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }

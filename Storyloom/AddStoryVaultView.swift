@@ -1,5 +1,8 @@
 import SwiftUI
 import Supabase
+import OSLog
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "Vault")
 
 struct AddStoryVaultView: View {
     @Environment(\.dismiss) private var dismiss
@@ -7,6 +10,8 @@ struct AddStoryVaultView: View {
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
     @State private var successMessage: String? = nil
+    /// Guards against rapid deep-link re-submissions (e.g. repeated URL opens).
+    @State private var lastSubmitTime: Date = .distantPast
 
     var body: some View {
         NavigationStack {
@@ -125,7 +130,7 @@ struct AddStoryVaultView: View {
             .background(SL.background)
             .navigationBarHidden(true)
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("storyloom.joinCode"))) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: .storyloomJoinCode)) { notification in
             if let code = notification.userInfo?["code"] as? String {
                 enteredCode = String(code.uppercased().prefix(6))
                 if enteredCode.count == 6 {
@@ -136,8 +141,11 @@ struct AddStoryVaultView: View {
     }
 
     private func submitCode() {
+        let now = Date()
         guard enteredCode.count == 6,
-              AuthManager.shared.supabaseUserId != nil else { return }
+              AuthManager.shared.supabaseUserId != nil,
+              now.timeIntervalSince(lastSubmitTime) > 3 else { return }
+        lastSubmitTime = now
 
         isLoading = true
         errorMessage = nil
@@ -179,7 +187,7 @@ struct AddStoryVaultView: View {
                         errorMessage = "Something went wrong. Please try again."
                     }
                     isLoading = false
-                    print("AddStoryVaultView: redeem_invite failed — \(msg)")
+                    logger.error("redeem_invite failed: \(msg, privacy: .private)")
                 }
             }
         }

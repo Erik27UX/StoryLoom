@@ -1,6 +1,9 @@
 import Foundation
 import Supabase
 import Combine
+import OSLog
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "Realtime")
 
 // MARK: - RealtimeManager
 // Subscribes to Supabase Realtime postgres_changes for comments and questions tables.
@@ -57,7 +60,7 @@ final class RealtimeManager: ObservableObject {
         }
 
         channel = newChannel
-        print("RealtimeManager: subscribed to activity for \(storyIds.count) stories")
+        logger.debug("subscribed to activity for \(storyIds.count) stories")
     }
 
     // MARK: - Stop Listening
@@ -69,7 +72,7 @@ final class RealtimeManager: ObservableObject {
         }
         channel = nil
         allowedStoryIds = []
-        print("RealtimeManager: unsubscribed from activity channel")
+        logger.debug("unsubscribed from activity channel")
     }
 
     // MARK: - Handle Incoming Change
@@ -85,15 +88,15 @@ final class RealtimeManager: ObservableObject {
             }()
             if let s = storyIdString, let storyId = UUID(uuidString: s) {
                 guard allowedStoryIds.contains(storyId) else {
-                    print("RealtimeManager: dropped event for unsubscribed story \(s)")
+                    logger.debug("dropped event for unsubscribed story")
                     return
                 }
             }
         }
 
-        print("RealtimeManager: new activity received")
+        logger.debug("new activity received")
         NotificationCenter.default.post(
-            name: Notification.Name("storyloom.newActivity"),
+            name: .storyloomNewActivity,
             object: nil,
             userInfo: ["record": record]
         )

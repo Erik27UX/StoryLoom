@@ -1,6 +1,9 @@
 import Foundation
 import SwiftData
 import Supabase
+import OSLog
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "Sync")
 
 // MARK: - SyncManager
 // Handles two-way sync between SwiftData (local cache) and Supabase (source of truth).
@@ -38,9 +41,9 @@ final class SyncManager {
             try context.delete(model: StoryQuestion.self)
             try context.delete(model: StoryEntry.self)
             try context.delete(model: Folder.self)
-            print("SyncManager: local data cleared on logout")
+            logger.debug("local data cleared on logout")
         } catch {
-            print("SyncManager: clearLocalData failed — \(error.localizedDescription)")
+            logger.error("clearLocalData failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -103,7 +106,7 @@ final class SyncManager {
                     self.applyRemoteQuestions(remoteQuestions, context: context)
                 }
             } catch {
-                print("SyncManager: pullAllUserData failed — \(error.localizedDescription)")
+                logger.error("pullAllUserData failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -143,7 +146,7 @@ final class SyncManager {
             self.applyRemoteComments(remoteComments, context: context)
             self.applyRemoteQuestions(remoteQuestions, context: context)
         } catch {
-            print("SyncManager: pullAllUserDataAsync failed — \(error.localizedDescription)")
+            logger.error("pullAllUserDataAsync failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -175,7 +178,7 @@ final class SyncManager {
                     await uploadImage(storyUUID: storyUUID, localFileName: imgFile)
                 }
             } catch {
-                print("SyncManager: pushStory failed — \(error.localizedDescription)")
+                logger.error("pushStory failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -185,7 +188,7 @@ final class SyncManager {
     private func uploadAudio(storyUUID: UUID, localFileName: String) async {
         let url = AudioManager.narrationURL(fileName: localFileName)
         guard let data = try? Data(contentsOf: url) else {
-            print("SyncManager: uploadAudio — local file not found: \(localFileName)")
+            logger.error("uploadAudio — local file not found")
             return
         }
         let storagePath = "\(storyUUID.uuidString).m4a"
@@ -193,16 +196,16 @@ final class SyncManager {
             try await SupabaseManager.shared.client.storage
                 .from("story-audio")
                 .upload(storagePath, data: data, options: FileOptions(contentType: "audio/mp4", upsert: true))
-            print("SyncManager: uploaded audio to story-audio/\(storagePath)")
+            logger.debug("uploaded audio successfully")
         } catch {
-            print("SyncManager: uploadAudio failed — \(error.localizedDescription)")
+            logger.error("uploadAudio failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 
     private func uploadImage(storyUUID: UUID, localFileName: String) async {
         let url = ImageManager.imageURL(fileName: localFileName)
         guard let data = try? Data(contentsOf: url) else {
-            print("SyncManager: uploadImage — local file not found: \(localFileName)")
+            logger.error("uploadImage — local file not found")
             return
         }
         let storagePath = "\(storyUUID.uuidString).jpg"
@@ -210,9 +213,9 @@ final class SyncManager {
             try await SupabaseManager.shared.client.storage
                 .from("story-images")
                 .upload(storagePath, data: data, options: FileOptions(contentType: "image/jpeg", upsert: true))
-            print("SyncManager: uploaded image to story-images/\(storagePath)")
+            logger.debug("uploaded image successfully")
         } catch {
-            print("SyncManager: uploadImage failed — \(error.localizedDescription)")
+            logger.error("uploadImage failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -245,7 +248,7 @@ final class SyncManager {
                 .download(path: storagePath)
             let destURL = AudioManager.narrationURL(fileName: localName)
             try data.write(to: destURL)
-            print("SyncManager: downloaded audio to \(localName)")
+            logger.debug("downloaded audio successfully")
             // Update narrationFileName on the matching local StoryEntry
             await MainActor.run {
                 guard let context = self.modelContext else { return }
@@ -255,7 +258,7 @@ final class SyncManager {
                 }
             }
         } catch {
-            print("SyncManager: downloadAudio failed — \(error.localizedDescription)")
+            logger.error("downloadAudio failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -267,7 +270,7 @@ final class SyncManager {
                 .download(path: storagePath)
             let destURL = ImageManager.imageURL(fileName: localName)
             try data.write(to: destURL)
-            print("SyncManager: downloaded image to \(localName)")
+            logger.debug("downloaded image successfully")
             // Update imageFileName on the matching local StoryEntry
             await MainActor.run {
                 guard let context = self.modelContext else { return }
@@ -277,7 +280,7 @@ final class SyncManager {
                 }
             }
         } catch {
-            print("SyncManager: downloadImage failed — \(error.localizedDescription)")
+            logger.error("downloadImage failed: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -294,7 +297,7 @@ final class SyncManager {
                     .eq("owner_id", value: uid.uuidString)
                     .execute()
             } catch {
-                print("SyncManager: deleteStory failed — \(error.localizedDescription)")
+                logger.error("deleteStory failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -312,7 +315,7 @@ final class SyncManager {
                     .upsert(payload)
                     .execute()
             } catch {
-                print("SyncManager: pushFolder failed — \(error.localizedDescription)")
+                logger.error("pushFolder failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -331,7 +334,7 @@ final class SyncManager {
                     .eq("owner_id", value: uid.uuidString)
                     .execute()
             } catch {
-                print("SyncManager: deleteFolder failed — \(error.localizedDescription)")
+                logger.error("deleteFolder failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -348,7 +351,7 @@ final class SyncManager {
                     .upsert(payload)
                     .execute()
             } catch {
-                print("SyncManager: pushComment failed — \(error.localizedDescription)")
+                logger.error("pushComment failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -365,7 +368,7 @@ final class SyncManager {
                     .upsert(payload)
                     .execute()
             } catch {
-                print("SyncManager: pushQuestion failed — \(error.localizedDescription)")
+                logger.error("pushQuestion failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -389,7 +392,7 @@ final class SyncManager {
                     .rpc("increment_like_count", params: IncrementLikeParams(pStoryId: storyUUID, delta: 1))
                     .execute()
             } catch {
-                print("SyncManager: pushLike failed — \(error.localizedDescription)")
+                logger.error("pushLike failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }
@@ -412,7 +415,7 @@ final class SyncManager {
                     .rpc("increment_like_count", params: IncrementLikeParams(pStoryId: storyUUID, delta: -1))
                     .execute()
             } catch {
-                print("SyncManager: removeLike failed — \(error.localizedDescription)")
+                logger.error("removeLike failed: \(error.localizedDescription, privacy: .private)")
             }
         }
     }

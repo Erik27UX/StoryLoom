@@ -287,7 +287,7 @@ struct StoryReadingView: View {
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
         .onAppear { isLiked = LikeManager.shared.isLiked(story.uuid) }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("storyloom.newActivity"))) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .storyloomNewActivity)) { _ in
             // SwiftData will auto-refresh via @Query; no manual fetch needed
         }
         .toolbar {
