@@ -23,6 +23,27 @@ final class SyncManager {
         modelContext = context
     }
 
+    // MARK: - Clear Local Data (called on logout)
+
+    /// Deletes all SwiftData records so a subsequent user on the same device
+    /// cannot see the previous user's stories before a fresh sync overwrites them.
+    @MainActor
+    func clearLocalData() {
+        guard let context = modelContext else { return }
+        do {
+            try context.delete(model: StoryReaction.self)
+            try context.delete(model: StoryAccess.self)
+            try context.delete(model: StoryInvite.self)
+            try context.delete(model: StoryComment.self)
+            try context.delete(model: StoryQuestion.self)
+            try context.delete(model: StoryEntry.self)
+            try context.delete(model: Folder.self)
+            print("SyncManager: local data cleared on logout")
+        } catch {
+            print("SyncManager: clearLocalData failed — \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Pull (Supabase → SwiftData)
 
     /// Fetches all folders and stories for the current user from Supabase
@@ -261,13 +282,16 @@ final class SyncManager {
     }
 
     /// Deletes a story from Supabase by its UUID.
+    /// The owner_id filter is belt-and-suspenders — RLS enforces this server-side too.
     func deleteStory(uuid: UUID) {
+        guard let uid = AuthManager.shared.supabaseUserId else { return }
         Task {
             do {
                 try await SupabaseManager.shared.client
                     .from("stories")
                     .delete()
                     .eq("id", value: uuid.uuidString)
+                    .eq("owner_id", value: uid.uuidString)
                     .execute()
             } catch {
                 print("SyncManager: deleteStory failed — \(error.localizedDescription)")
@@ -295,13 +319,16 @@ final class SyncManager {
 
     /// Deletes a folder from Supabase by its UUID.
     /// Stories in the folder will have their folder_id set to NULL by the ON DELETE SET NULL constraint.
+    /// The owner_id filter is belt-and-suspenders — RLS enforces this server-side too.
     func deleteFolder(id: UUID) {
+        guard let uid = AuthManager.shared.supabaseUserId else { return }
         Task {
             do {
                 try await SupabaseManager.shared.client
                     .from("folders")
                     .delete()
                     .eq("id", value: id.uuidString)
+                    .eq("owner_id", value: uid.uuidString)
                     .execute()
             } catch {
                 print("SyncManager: deleteFolder failed — \(error.localizedDescription)")

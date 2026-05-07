@@ -240,6 +240,8 @@ struct AskQuestionSheet: View {
     @State private var questionText = ""
     @State private var pendingAudioFileName: String? = nil
 
+    private let maxQuestionLength = 1000
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -247,7 +249,7 @@ struct AskQuestionSheet: View {
                     .font(SL.heading(22))
                     .foregroundColor(SL.textPrimary)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Type your question")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(SL.textSecondary)
@@ -258,6 +260,20 @@ struct AskQuestionSheet: View {
                         .background(SL.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                        .onChange(of: questionText) { _, value in
+                            if value.count > maxQuestionLength {
+                                questionText = String(value.prefix(maxQuestionLength))
+                            }
+                        }
+                    // Counter — only visible in the last 20% of the limit
+                    if questionText.count > maxQuestionLength * 4 / 5 {
+                        HStack {
+                            Spacer()
+                            Text("\(questionText.count)/\(maxQuestionLength)")
+                                .font(.system(size: 11))
+                                .foregroundColor(questionText.count >= maxQuestionLength ? .red : SL.textSecondary)
+                        }
+                    }
                 }
 
                 if audio.isRecording {

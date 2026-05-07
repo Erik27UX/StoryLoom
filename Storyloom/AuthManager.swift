@@ -231,6 +231,7 @@ final class AuthManager: ObservableObject {
     func logout() {
         Task { @MainActor in
             try? await SupabaseManager.shared.client.auth.signOut()
+            SyncManager.shared.clearLocalData()   // wipe cached stories/comments before next user logs in
             LikeManager.shared.clearAll()
             clearUser()
             hasCompletedOnboarding = false
@@ -253,6 +254,7 @@ final class AuthManager: ObservableObject {
             }
             // Clear everything locally regardless of network result
             try? await SupabaseManager.shared.client.auth.signOut()
+            SyncManager.shared.clearLocalData()   // wipe cached stories/comments
             LikeManager.shared.clearAll()
             clearUser()
             hasCompletedOnboarding = false
@@ -304,6 +306,13 @@ final class AuthManager: ObservableObject {
         }
     }
 
+    /// Updates the subscription tier locally and writes it to Supabase.
+    ///
+    /// ⚠️  SECURITY NOTE — called ONLY from `#if DEBUG` code in UpgradeView for local testing.
+    /// In production, subscription_tier must NEVER be written from the client.
+    /// When RevenueCat is wired up, replace this with a backend webhook (RevenueCat → Supabase
+    /// Edge Function via service_role key) so the client cannot self-upgrade.
+    /// The Supabase RLS migration (supabase_security_migration.sql) blocks this write in production.
     func updateSubscriptionTier(_ tier: SubscriptionTier) {
         guard var user = currentUser else { return }
         user.subscriptionTier = tier

@@ -407,6 +407,7 @@ struct InviteReadersSheet: View {
     @State private var isGenerating = true
     @State private var showShareSheet = false
     @State private var didCopy = false
+    @State private var generationFailed = false
 
     private var inviteLink: String { "https://storyloom.live/join/\(inviteCode)" }
     private var shareMessage: String {
@@ -440,6 +441,20 @@ struct InviteReadersSheet: View {
                 if isGenerating {
                     ProgressView()
                         .tint(SL.accent)
+                } else if generationFailed {
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.circle")
+                            .font(.system(size: 28))
+                            .foregroundColor(.red.opacity(0.7))
+                        Text("Couldn't generate invite code.")
+                            .font(SL.body(14))
+                            .foregroundColor(SL.textSecondary)
+                        Button("Try again") { generateInviteCode() }
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(SL.accent)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(20)
                 } else {
                     VStack(spacing: 6) {
                         Text("Invite code")
@@ -517,6 +532,8 @@ struct InviteReadersSheet: View {
     }
 
     private func generateInviteCode() {
+        isGenerating = true
+        generationFailed = false
         guard let uid = AuthManager.shared.supabaseUserId else {
             isGenerating = false
             return
@@ -550,8 +567,8 @@ struct InviteReadersSheet: View {
             } catch {
                 print("InviteReadersSheet: generate code failed — \(error.localizedDescription)")
                 await MainActor.run {
-                    // Still show a code locally even if insert failed
-                    inviteCode = code
+                    // Do NOT show the code — it was never saved to the DB and would fail on redemption.
+                    generationFailed = true
                     isGenerating = false
                 }
             }

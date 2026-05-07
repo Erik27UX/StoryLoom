@@ -11,6 +11,9 @@ final class RealtimeManager: ObservableObject {
     static let shared = RealtimeManager()
 
     private var channel: RealtimeChannelV2?
+    /// Set of story UUIDs we are legitimately subscribed to.
+    /// Events for any other story_id are silently dropped client-side.
+    private var allowedStoryIds: Set<UUID> = []
 
     private init() {}
 
@@ -20,6 +23,7 @@ final class RealtimeManager: ObservableObject {
     func startListening(storyIds: [UUID]) {
         guard !storyIds.isEmpty else { return }
         stopListening()
+        allowedStoryIds = Set(storyIds)
 
         let client = SupabaseManager.shared.client
         let channelName = "storyloom_activity_\(UUID().uuidString.prefix(8))"
@@ -64,12 +68,29 @@ final class RealtimeManager: ObservableObject {
             await ch.unsubscribe()
         }
         channel = nil
+        allowedStoryIds = []
         print("RealtimeManager: unsubscribed from activity channel")
     }
 
     // MARK: - Handle Incoming Change
 
     private func handleNewActivity(_ record: [String: AnyJSON]) {
+        // Security: drop events for stories we are not subscribed to.
+        // This prevents leaking activity from other storytellers' stories
+        // that arrive due to the broad channel subscription.
+        if let storyIdValue = record["story_id"] {
+            let storyIdString: String? = {
+                if case .string(let s) = storyIdValue { return s }
+                return nil
+            }()
+            if let s = storyIdString, let storyId = UUID(uuidString: s) {
+                guard allowedStoryIds.contains(storyId) else {
+                    print("RealtimeManager: dropped event for unsubscribed story \(s)")
+                    return
+                }
+            }
+        }
+
         print("RealtimeManager: new activity received")
         NotificationCenter.default.post(
             name: Notification.Name("storyloom.newActivity"),

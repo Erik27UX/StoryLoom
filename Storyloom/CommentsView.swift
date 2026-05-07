@@ -11,6 +11,8 @@ struct CommentsView: View {
     @State private var replyingTo: StoryComment? = nil
     @State private var replyText = ""
 
+    private let maxCommentLength = 2000
+
     var allComments: [StoryComment] {
         comments.filter { $0.storyId == story.uuid }
     }
@@ -70,6 +72,11 @@ struct CommentsView: View {
                                                 .padding(.vertical, 10)
                                                 .background(SL.surface)
                                                 .clipShape(RoundedRectangle(cornerRadius: 20))
+                                                .onChange(of: replyText) { _, value in
+                                                    if value.count > maxCommentLength {
+                                                        replyText = String(value.prefix(maxCommentLength))
+                                                    }
+                                                }
                                             Button(action: postReply) {
                                                 Image(systemName: "paperplane.fill")
                                                     .foregroundColor(replyText.isEmpty ? SL.textSecondary : SL.accent)
@@ -96,19 +103,36 @@ struct CommentsView: View {
 
                 if !isStoryteller {
                     Divider().background(SL.border)
-                    HStack(spacing: 12) {
-                        TextField("Add a comment...", text: $newComment)
-                            .font(SL.body(14))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(SL.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                        Button(action: postComment) {
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(newComment.isEmpty ? SL.textSecondary : SL.accent)
+                    VStack(spacing: 4) {
+                        HStack(spacing: 12) {
+                            TextField("Add a comment...", text: $newComment)
+                                .font(SL.body(14))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(SL.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
+                                .onChange(of: newComment) { _, value in
+                                    if value.count > maxCommentLength {
+                                        newComment = String(value.prefix(maxCommentLength))
+                                    }
+                                }
+                            Button(action: postComment) {
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(newComment.isEmpty ? SL.textSecondary : SL.accent)
+                            }
+                            .disabled(newComment.isEmpty)
                         }
-                        .disabled(newComment.isEmpty)
+                        // Character counter — only visible in the last 20% of the limit
+                        if newComment.count > maxCommentLength * 4 / 5 {
+                            HStack {
+                                Spacer()
+                                Text("\(newComment.count)/\(maxCommentLength)")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(newComment.count >= maxCommentLength ? .red : SL.textSecondary)
+                            }
+                            .padding(.horizontal, 16)
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)

@@ -137,7 +137,7 @@ struct AddStoryVaultView: View {
 
     private func submitCode() {
         guard enteredCode.count == 6,
-              let currentUserId = AuthManager.shared.supabaseUserId else { return }
+              AuthManager.shared.supabaseUserId != nil else { return }
 
         isLoading = true
         errorMessage = nil
@@ -145,102 +145,41 @@ struct AddStoryVaultView: View {
 
         Task {
             do {
-                // Look up the invite code
-                struct InviteRow: Decodable {
-                    let ownerId: UUID
-                    let expiresAt: Date
-                    enum CodingKeys: String, CodingKey {
-                        case ownerId = "owner_id"
-                        case expiresAt = "expires_at"
-                    }
+                // Server-side redemption via RPC — validates expiry, prevents self-invite,
+                // grants access to all published stories, and increments uses_count atomically.
+                struct RedeemResult: Decodable {
+                    let ownerName: String
+                    enum CodingKeys: String, CodingKey { case ownerName = "owner_name" }
                 }
-                let invites: [InviteRow] = try await SupabaseManager.shared.client
-                    .from("story_invites")
-                    .select("owner_id, expires_at")
-                    .eq("code", value: enteredCode)
+                struct RedeemParams: Encodable {
+                    let pCode: String
+                    enum CodingKeys: String, CodingKey { case pCode = "p_code" }
+                }
+                let result: RedeemResult = try await SupabaseManager.shared.client
+                    .rpc("redeem_invite", params: RedeemParams(pCode: enteredCode))
                     .execute()
                     .value
 
-                guard let invite = invites.first else {
-                    await MainActor.run {
-                        errorMessage = "Invalid or expired code. Please check with your storyteller."
-                        isLoading = false
-                    }
-                    return
-                }
-
-                // Check expiry
-                guard invite.expiresAt > Date() else {
-                    await MainActor.run {
-                        errorMessage = "This invite code has expired. Ask your storyteller for a new one."
-                        isLoading = false
-                    }
-                    return
-                }
-
-                let ownerId = invite.ownerId
-
-                // Fetch owner profile name
-                struct ProfileRow: Decodable {
-                    let name: String?
-                }
-                let profiles: [ProfileRow] = try await SupabaseManager.shared.client
-                    .from("profiles")
-                    .select("name")
-                    .eq("id", value: ownerId.uuidString)
-                    .execute()
-                    .value
-                let ownerName = profiles.first?.name ?? "your storyteller"
-
-                // Fetch all published stories by that owner
-                struct StoryIdRow: Decodable { let id: UUID }
-                let stories: [StoryIdRow] = try await SupabaseManager.shared.client
-                    .from("stories")
-                    .select("id")
-                    .eq("owner_id", value: ownerId.uuidString)
-                    .eq("is_published", value: true)
-                    .execute()
-                    .value
-
-                // Insert story_access for each story (ignore duplicates via upsert)
-                struct AccessInsert: Encodable {
-                    let storyId: UUID
-                    let userId: UUID
-                    let accessLevel: String
-                    let dateGranted: Date
-                    enum CodingKeys: String, CodingKey {
-                        case storyId = "story_id"
-                        case userId = "user_id"
-                        case accessLevel = "access_level"
-                        case dateGranted = "date_granted"
-                    }
-                }
-                let accessRows = stories.map { story in
-                    AccessInsert(storyId: story.id, userId: currentUserId, accessLevel: "view", dateGranted: Date())
-                }
-                if !accessRows.isEmpty {
-                    try await SupabaseManager.shared.client
-                        .from("story_access")
-                        .upsert(accessRows, onConflict: "story_id,user_id")
-                        .execute()
-                }
-
-                // Pull updated data
                 SyncManager.shared.pullAllUserData()
 
                 await MainActor.run {
-                    successMessage = "You've been added to \(ownerName)'s vault."
+                    successMessage = "You've been added to \(result.ownerName)'s vault."
                     isLoading = false
-                    // Auto-dismiss after a moment
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        dismiss()
-                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { dismiss() }
                 }
             } catch {
+                // Map Supabase error messages to user-friendly strings
+                let msg = error.localizedDescription
                 await MainActor.run {
-                    errorMessage = "Something went wrong. Please try again."
+                    if msg.contains("invalid_code") || msg.contains("invalid or expired") {
+                        errorMessage = "Invalid or expired code. Please check with your storyteller."
+                    } else if msg.contains("self_invite") {
+                        errorMessage = "You can't use your own invite code."
+                    } else {
+                        errorMessage = "Something went wrong. Please try again."
+                    }
                     isLoading = false
-                    print("AddStoryVaultView: error — \(error.localizedDescription)")
+                    print("AddStoryVaultView: redeem_invite failed — \(msg)")
                 }
             }
         }

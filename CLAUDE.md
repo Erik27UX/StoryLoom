@@ -1,5 +1,15 @@
 # Storyloom — Claude Code Reference
 
+## ⚠️ Security Checkpoints — DO NOT FORGET
+These must be triggered manually at the right moments. Remind the user proactively.
+
+1. **Before testing with real users / soft launch** → re-run full security review (`/security-review` or manual file audit). Confirm the Supabase SQL migration (`supabase_security_migration.sql`) has been run in production.
+2. **Before adding RevenueCat / any payment system** → full security review with focus on: subscription tier write paths, webhook authentication, receipt validation, and ensuring `updateSubscriptionTier()` in AuthManager is replaced by a backend webhook (never called from client in production).
+3. **Before App Store submission** → remove `#if DEBUG` dev tier overrides in `AuthManager.swift` (`devTierOverrides` dict), replace App Store placeholder ID `id000000000` in `join.html` and `index.html`, and run security review.
+4. **After any Supabase schema change** → re-verify RLS policies cover the new tables/columns.
+
+---
+
 ## Project
 Storyloom is an iOS app (SwiftUI + SwiftData + Supabase) for preserving and sharing family stories. Storytellers write, record narration, and attach images to stories; readers access them via invite codes.
 
