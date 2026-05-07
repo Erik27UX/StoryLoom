@@ -40,7 +40,7 @@ final class RealtimeManager: ObservableObject {
             table: "comments"
         ) { [weak self] change in
             Task { @MainActor in
-                self?.handleNewActivity(change.record)
+                self?.handleInsert(table: "comments", record: change.record)
             }
         }
 
@@ -51,7 +51,7 @@ final class RealtimeManager: ObservableObject {
             table: "questions"
         ) { [weak self] change in
             Task { @MainActor in
-                self?.handleNewActivity(change.record)
+                self?.handleInsert(table: "questions", record: change.record)
             }
         }
 
@@ -77,30 +77,25 @@ final class RealtimeManager: ObservableObject {
 
     // MARK: - Handle Incoming Change
 
-    private func handleNewActivity(_ record: [String: AnyJSON]) {
+    private func handleInsert(table: String, record: [String: AnyJSON]) {
         // Security: drop events for stories we are not subscribed to.
-        // This prevents leaking activity from other storytellers' stories
-        // that arrive due to the broad channel subscription.
-        if let storyIdValue = record["story_id"] {
-            let storyIdString: String? = {
-                if case .string(let s) = storyIdValue { return s }
-                return nil
-            }()
-            if let s = storyIdString, let storyId = UUID(uuidString: s) {
-                guard allowedStoryIds.contains(storyId) else {
-                    logger.debug("dropped event for unsubscribed story")
-                    return
-                }
+        if let storyIdValue = record["story_id"],
+           case .string(let s) = storyIdValue,
+           let storyId = UUID(uuidString: s) {
+            guard allowedStoryIds.contains(storyId) else {
+                logger.debug("dropped event for unsubscribed story")
+                return
             }
         }
 
-        logger.debug("new activity received")
+        logger.debug("new activity received on \(table)")
+        // Upsert just this one record into SwiftData — no network round-trip.
+        SyncManager.shared.ingestRealtimeRecord(table: table, record: record)
+        // Notify views so activity indicators / unread badges can update.
         NotificationCenter.default.post(
             name: .storyloomNewActivity,
             object: nil,
             userInfo: ["record": record]
         )
-        // Also trigger a full sync pull so SwiftData reflects the latest data
-        SyncManager.shared.pullAllUserData()
     }
 }

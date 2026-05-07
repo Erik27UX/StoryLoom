@@ -77,22 +77,32 @@ enum ImageManager {
 
 // MARK: - StoryImageView
 // Drop-in replacement for StoryImagePlaceholder that renders real images when available.
+// The JPEG is loaded off the main thread via Task.detached so scrolling stays smooth.
 
 struct StoryImageView: View {
     let story: StoryEntry
     var height: CGFloat = 130
+    @State private var image: UIImage? = nil
 
     var body: some View {
-        if let name = story.imageFileName,
-           let uiImage = ImageManager.loadImage(fileName: name) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity)
-                .frame(height: height)
-                .clipped()
+        Group {
+            if let uiImage = image {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: height)
+                    .clipped()
+            }
+            // No fallback — renders nothing when no image (preserves previous layout behaviour)
         }
-        // No fallback — when no image, renders nothing (EmptyView)
+        .task(id: story.imageFileName) {
+            guard let name = story.imageFileName else { image = nil; return }
+            // Detached task: file read happens off the main thread.
+            image = await Task.detached(priority: .userInitiated) {
+                ImageManager.loadImage(fileName: name)
+            }.value
+        }
     }
 }
 

@@ -213,7 +213,9 @@ class AudioManager: NSObject, ObservableObject {
 
     private func startPlaybackTimer() {
         playbackTimer?.invalidate()
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // 4 Hz (0.25 s) is smooth enough for a progress scrubber and avoids
+        // driving 10 view re-renders per second across every observing view.
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.currentTime = self?.audioPlayer?.currentTime ?? 0
             }

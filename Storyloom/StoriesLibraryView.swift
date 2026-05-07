@@ -9,6 +9,9 @@ struct StoriesLibraryView: View {
     @State private var sortBy: SortOption = .created
     @State private var navigationPath = NavigationPath()
     @State private var searchText = ""
+    /// Debounced copy — updated 250 ms after the user stops typing.
+    /// Using this in groupedStories prevents an O(n) full-content scan on every keystroke.
+    @State private var debouncedSearch = ""
 
     private var groupedStories: [(folder: Folder?, stories: [StoryEntry])] {
         // Filter stories based on sort option
@@ -22,10 +25,11 @@ struct StoriesLibraryView: View {
             sortFiltered = allStories
         }
 
-        // Apply search filter
-        let filtered = searchText.isEmpty ? sortFiltered : sortFiltered.filter { story in
-            story.title.localizedCaseInsensitiveContains(searchText) ||
-            story.content.localizedCaseInsensitiveContains(searchText)
+        // Apply search filter against the debounced text so full-content
+        // scans only run after the user pauses typing, not on every keystroke.
+        let filtered = debouncedSearch.isEmpty ? sortFiltered : sortFiltered.filter { story in
+            story.title.localizedCaseInsensitiveContains(debouncedSearch) ||
+            story.content.localizedCaseInsensitiveContains(debouncedSearch)
         }
 
         // Create a dictionary grouped by folder
@@ -214,6 +218,13 @@ struct StoriesLibraryView: View {
             }
             .background(SL.background)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search stories")
+            // Debounce: update debouncedSearch 250 ms after the user stops typing.
+            // .task(id:) cancels the previous sleep automatically on each new keystroke.
+            .task(id: searchText) {
+                if searchText.isEmpty { debouncedSearch = ""; return }
+                try? await Task.sleep(for: .milliseconds(250))
+                debouncedSearch = searchText
+            }
             .toolbarBackground(SL.background, for: .navigationBar)
             .navigationDestination(for: UUID.self) { storyId in
                 if let story = allStories.first(where: { $0.uuid == storyId }) {
@@ -314,10 +325,7 @@ struct StoryLibraryCard: View {
     }
 
     private func formatYear(_ year: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.groupingSeparator = ""
-        formatter.usesGroupingSeparator = false
-        return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
+        String(year)
     }
 }
 

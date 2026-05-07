@@ -276,15 +276,25 @@ class StoryEntry {
     }
 
     var dateFormatted: String {
-        let f = DateFormatter()
-        f.dateStyle = .long
-        return f.string(from: dateCreated)
+        StoryEntry.dateFormatter.string(from: dateCreated)
     }
 
+    // DateFormatter is expensive to create — share one instance across all renders.
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .long
+        return f
+    }()
+
     var preview: String {
-        let words = content.components(separatedBy: " ")
-        if words.count > 22 {
-            return words.prefix(22).joined(separator: " ") + "..."
+        // Avoid splitting the full content into an array just to take 22 words.
+        // Walk character-by-character until 22 word boundaries are found.
+        var wordCount = 0
+        var index = content.startIndex
+        while index < content.endIndex {
+            if content[index] == " " { wordCount += 1 }
+            if wordCount == 22 { return content[..<index] + "..." }
+            index = content.index(after: index)
         }
         return content
     }

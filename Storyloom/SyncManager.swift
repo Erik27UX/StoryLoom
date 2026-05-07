@@ -249,11 +249,15 @@ final class SyncManager {
             let destURL = AudioManager.narrationURL(fileName: localName)
             try data.write(to: destURL)
             logger.debug("downloaded audio successfully")
-            // Update narrationFileName on the matching local StoryEntry
+            // Update narrationFileName on just the matching StoryEntry row.
             await MainActor.run {
                 guard let context = self.modelContext else { return }
-                let stories = (try? context.fetch(FetchDescriptor<StoryEntry>())) ?? []
-                if let entry = stories.first(where: { $0.uuid == storyUUID }) {
+                let uuid = storyUUID
+                var descriptor = FetchDescriptor<StoryEntry>(
+                    predicate: #Predicate { $0.uuid == uuid }
+                )
+                descriptor.fetchLimit = 1
+                if let entry = try? context.fetch(descriptor).first {
                     entry.narrationFileName = localName
                 }
             }
@@ -271,11 +275,15 @@ final class SyncManager {
             let destURL = ImageManager.imageURL(fileName: localName)
             try data.write(to: destURL)
             logger.debug("downloaded image successfully")
-            // Update imageFileName on the matching local StoryEntry
+            // Update imageFileName on just the matching StoryEntry row.
             await MainActor.run {
                 guard let context = self.modelContext else { return }
-                let stories = (try? context.fetch(FetchDescriptor<StoryEntry>())) ?? []
-                if let entry = stories.first(where: { $0.uuid == storyUUID }) {
+                let uuid = storyUUID
+                var descriptor = FetchDescriptor<StoryEntry>(
+                    predicate: #Predicate { $0.uuid == uuid }
+                )
+                descriptor.fetchLimit = 1
+                if let entry = try? context.fetch(descriptor).first {
                     entry.imageFileName = localName
                 }
             }
@@ -417,6 +425,83 @@ final class SyncManager {
             } catch {
                 logger.error("removeLike failed: \(error.localizedDescription, privacy: .private)")
             }
+        }
+    }
+
+    // MARK: - Realtime Single-Record Ingest
+
+    /// Called by RealtimeManager when a single INSERT event arrives.
+    /// Decodes the AnyJSON record directly into SwiftData — no network round-trip needed.
+    /// Falls back to a full pull only if decoding fails (e.g. schema mismatch).
+    @MainActor
+    func ingestRealtimeRecord(table: String, record: [String: AnyJSON]) {
+        guard let context = modelContext else { return }
+        do {
+            // AnyJSON is Encodable; round-trip through JSON to use the existing Codable models.
+            let data = try JSONEncoder().encode(record)
+            switch table {
+            case "comments":
+                let comment = try JSONDecoder().decode(SupabaseComment.self, from: data)
+                upsertComment(comment, context: context)
+            case "questions":
+                let question = try JSONDecoder().decode(SupabaseQuestion.self, from: data)
+                upsertQuestion(question, context: context)
+            default:
+                break
+            }
+        } catch {
+            logger.error("ingestRealtimeRecord failed, falling back to full pull: \(error.localizedDescription, privacy: .private)")
+            pullAllUserData()
+        }
+    }
+
+    @MainActor
+    private func upsertComment(_ rc: SupabaseComment, context: ModelContext) {
+        let id = rc.id
+        var descriptor = FetchDescriptor<StoryComment>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        if let local = (try? context.fetch(descriptor))?.first {
+            local.text = rc.text
+        } else {
+            let comment = StoryComment(
+                storyId: rc.storyId,
+                userName: rc.userName,
+                text: rc.text,
+                parentCommentId: rc.parentCommentId,
+                replyToUserName: rc.replyToUserName
+            )
+            comment.id = rc.id
+            comment.userId = rc.userId
+            if let createdAt = rc.createdAt { comment.dateCreated = createdAt }
+            context.insert(comment)
+        }
+    }
+
+    @MainActor
+    private func upsertQuestion(_ rq: SupabaseQuestion, context: ModelContext) {
+        let id = rq.id
+        var descriptor = FetchDescriptor<StoryQuestion>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        if let local = (try? context.fetch(descriptor))?.first {
+            local.text = rq.text
+            local.answerText = rq.answerText
+            local.isAnswered = rq.isAnswered
+            local.answeredDate = rq.answeredAt
+        } else {
+            let question = StoryQuestion(
+                storyId: rq.storyId,
+                userName: rq.userName,
+                text: rq.text,
+                isAudio: rq.isAudio,
+                audioFileName: rq.audioFileURL
+            )
+            question.id = rq.id
+            question.userId = rq.userId
+            question.answerText = rq.answerText
+            question.isAnswered = rq.isAnswered
+            question.answeredDate = rq.answeredAt
+            if let createdAt = rq.createdAt { question.dateCreated = createdAt }
+            context.insert(question)
         }
     }
 

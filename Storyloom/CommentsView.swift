@@ -13,26 +13,33 @@ struct CommentsView: View {
 
     private let maxCommentLength = 2000
 
-    var allComments: [StoryComment] {
-        comments.filter { $0.storyId == story.uuid }
-    }
-
-    var topLevelComments: [StoryComment] {
-        allComments.filter { $0.parentCommentId == nil }.sorted { $0.dateCreated < $1.dateCreated }
-    }
-
-    func replies(for comment: StoryComment) -> [StoryComment] {
-        allComments.filter { $0.parentCommentId == comment.id }.sorted { $0.dateCreated < $1.dateCreated }
+    /// Single-pass over the story's comments — avoids an O(n²) scan when rendering replies.
+    /// Returns sorted top-level comments and a [parentId → replies] dictionary.
+    private var processedComments: (topLevel: [StoryComment], byParent: [UUID: [StoryComment]]) {
+        let storyComments = comments.filter { $0.storyId == story.uuid }
+        var topLevel: [StoryComment] = []
+        var byParent: [UUID: [StoryComment]] = [:]
+        for c in storyComments {
+            if let parentId = c.parentCommentId {
+                byParent[parentId, default: []].append(c)
+            } else {
+                topLevel.append(c)
+            }
+        }
+        topLevel.sort { $0.dateCreated < $1.dateCreated }
+        for key in byParent.keys { byParent[key]!.sort { $0.dateCreated < $1.dateCreated } }
+        return (topLevel, byParent)
     }
 
     var isStoryteller: Bool { authManager.currentUser?.role == .storyteller }
 
     var body: some View {
+        let (topComments, byParent) = processedComments
         ZStack(alignment: .bottom) {
             SL.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 ScrollView {
-                    if topLevelComments.isEmpty {
+                    if topComments.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "bubble.left")
                                 .font(.system(size: 40))
@@ -47,13 +54,13 @@ struct CommentsView: View {
                         .padding(40)
                     } else {
                         LazyVStack(spacing: 0) {
-                            ForEach(topLevelComments) { comment in
+                            ForEach(topComments) { comment in
                                 VStack(spacing: 0) {
                                     CommentRow(comment: comment, isStoryteller: isStoryteller, isReply: false, onReply: {
                                         withAnimation { replyingTo = (replyingTo?.id == comment.id) ? nil : comment }
                                     })
 
-                                    ForEach(replies(for: comment)) { reply in
+                                    ForEach(byParent[comment.id] ?? []) { reply in
                                         HStack(alignment: .top, spacing: 0) {
                                             Rectangle()
                                                 .fill(SL.accent.opacity(0.25))

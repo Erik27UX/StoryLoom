@@ -222,10 +222,7 @@ struct ReaderStoryCard: View {
     }
 
     private func formatCardYear(_ year: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.groupingSeparator = ""
-        formatter.usesGroupingSeparator = false
-        return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
+        String(year)
     }
 }
 

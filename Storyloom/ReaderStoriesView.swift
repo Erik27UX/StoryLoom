@@ -9,6 +9,8 @@ struct ReaderStoriesView: View {
     @State private var sortBy: SortOption = .created
     @State private var showAddVault = false
     @State private var searchText = ""
+    /// Debounced copy — updated 250 ms after the user stops typing.
+    @State private var debouncedSearch = ""
 
     var uniqueAuthors: [String] {
         let authors = stories.compactMap { $0.authorName ?? "Your Stories" }
@@ -23,10 +25,11 @@ struct ReaderStoriesView: View {
             return story.isInVault && activeAuthors.contains(author)
         }
 
-        // Apply search filter
-        let filtered = searchText.isEmpty ? baseFiltered : baseFiltered.filter { story in
-            story.title.localizedCaseInsensitiveContains(searchText) ||
-            story.content.localizedCaseInsensitiveContains(searchText)
+        // Apply search filter against the debounced text so full-content
+        // scans only run after the user pauses typing, not on every keystroke.
+        let filtered = debouncedSearch.isEmpty ? baseFiltered : baseFiltered.filter { story in
+            story.title.localizedCaseInsensitiveContains(debouncedSearch) ||
+            story.content.localizedCaseInsensitiveContains(debouncedSearch)
         }
 
         // Group by folder
@@ -68,15 +71,12 @@ struct ReaderStoriesView: View {
         return result
     }
 
-    var hasAnyStories: Bool {
-        !groupedFilteredStories.isEmpty
-    }
-
     var showAuthorFilter: Bool {
         uniqueAuthors.count >= 2
     }
 
     var body: some View {
+        let groups = groupedFilteredStories
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -201,7 +201,7 @@ struct ReaderStoriesView: View {
                     }
 
                     // Stories grouped by folder
-                    if !hasAnyStories {
+                    if groups.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "book.closed")
                                 .font(.system(size: 40))
@@ -217,7 +217,7 @@ struct ReaderStoriesView: View {
                         .padding(40)
                     } else {
                         LazyVStack(alignment: .leading, spacing: 24) {
-                            ForEach(Array(groupedFilteredStories.enumerated()), id: \.offset) { _, group in
+                            ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
                                 VStack(alignment: .leading, spacing: 12) {
                                     // Folder section header
                                     HStack(spacing: 6) {
@@ -257,6 +257,13 @@ struct ReaderStoriesView: View {
             }
             .background(SL.background)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search stories")
+            // Debounce: update debouncedSearch 250 ms after the user stops typing.
+            // .task(id:) cancels the previous sleep automatically on each new keystroke.
+            .task(id: searchText) {
+                if searchText.isEmpty { debouncedSearch = ""; return }
+                try? await Task.sleep(for: .milliseconds(250))
+                debouncedSearch = searchText
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(SL.background, for: .navigationBar)
         }
