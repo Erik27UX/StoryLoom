@@ -21,6 +21,7 @@ struct StoryDetailView: View {
     @State private var selectedPlaybackSpeed: Float = 1.0
     @State private var isLiked = false
     @State private var isImageExpanded = false
+    @State private var expandedImage: UIImage? = nil
 
     var body: some View {
         if isEditingMode {
@@ -368,6 +369,13 @@ struct StoryDetailView: View {
             .onAppear {
                 isLiked = LikeManager.shared.isLiked(story.uuid)
             }
+            .onChange(of: isImageExpanded) { _, expanded in
+                guard expanded, let name = story.imageFileName else { return }
+                Task.detached(priority: .userInitiated) {
+                    let img = ImageManager.loadImage(fileName: name)
+                    await MainActor.run { expandedImage = img }
+                }
+            }
             .fullScreenCover(isPresented: $isImageExpanded) {
                 ZStack {
                     Color.black.ignoresSafeArea()
@@ -389,8 +397,7 @@ struct StoryDetailView: View {
                         Spacer()
 
                         // Use scaledToFit so the full image is visible without cropping
-                        if let name = story.imageFileName,
-                           let uiImage = ImageManager.loadImage(fileName: name) {
+                        if let uiImage = expandedImage {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .scaledToFit()

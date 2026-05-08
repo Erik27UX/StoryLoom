@@ -293,9 +293,6 @@ struct StoryReadingView: View {
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
         .onAppear { isLiked = LikeManager.shared.isLiked(story.uuid) }
-        .onReceive(NotificationCenter.default.publisher(for: .storyloomNewActivity)) { _ in
-            // SwiftData will auto-refresh via @Query; no manual fetch needed
-        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: { dismiss() }) {
@@ -477,10 +474,7 @@ struct StoryReadingView: View {
     // MARK: - Helpers
 
     private func formatYear(_ year: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.groupingSeparator = ""
-        formatter.usesGroupingSeparator = false
-        return formatter.string(from: NSNumber(value: year)) ?? "\(year)"
+        String(year)
     }
 
     private func formatTime(_ seconds: TimeInterval) -> String {

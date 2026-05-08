@@ -5,6 +5,18 @@ import OSLog
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "Family")
 
+// MARK: - Shared Helpers
+
+/// Deterministic pastel colour for an avatar based on a UUID.
+/// Shared by ReadersView and ManageReadersSheet to avoid duplication.
+private func readerAvatarColor(for id: UUID) -> Color {
+    let colors: [Color] = [
+        Color(hex: "EAE0C8"), Color(hex: "D5E0CC"), Color(hex: "E8D5C4"),
+        Color(hex: "D8E8E0"), Color(hex: "E8DCE8"), Color(hex: "E0E8D8")
+    ]
+    return colors[abs(id.hashValue) % colors.count]
+}
+
 // MARK: - Real Reader Model
 
 struct RealReader: Identifiable {
@@ -130,6 +142,7 @@ struct ReadersView: View {
                 }
             }
             .onAppear { fetchReaders() }
+            .refreshable { fetchReaders() }
         }
         .sheet(isPresented: $showManageSheet) {
             ManageReadersSheet(readers: $readers, isPresented: $showManageSheet)
@@ -223,14 +236,7 @@ struct ReadersView: View {
         }
     }
 
-    private func avatarColor(for id: UUID) -> Color {
-        let colors: [Color] = [
-            Color(hex: "EAE0C8"), Color(hex: "D5E0CC"), Color(hex: "E8D5C4"),
-            Color(hex: "D8E8E0"), Color(hex: "E8DCE8"), Color(hex: "E0E8D8")
-        ]
-        let index = abs(id.hashValue) % colors.count
-        return colors[index]
-    }
+    private func avatarColor(for id: UUID) -> Color { readerAvatarColor(for: id) }
 }
 
 // MARK: - Manage Readers Sheet
@@ -392,14 +398,7 @@ struct ManageReadersSheet: View {
         }
     }
 
-    private func avatarColor(for id: UUID) -> Color {
-        let colors: [Color] = [
-            Color(hex: "EAE0C8"), Color(hex: "D5E0CC"), Color(hex: "E8D5C4"),
-            Color(hex: "D8E8E0"), Color(hex: "E8DCE8"), Color(hex: "E0E8D8")
-        ]
-        let index = abs(id.hashValue) % colors.count
-        return colors[index]
-    }
+    private func avatarColor(for id: UUID) -> Color { readerAvatarColor(for: id) }
 }
 
 // MARK: - Invite Readers Sheet

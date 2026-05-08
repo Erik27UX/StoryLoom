@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var isEditingName = false
     @State private var editedName = ""
     @State private var showDeleteConfirm = false
+    @State private var avatarImage: UIImage? = nil
 
     var body: some View {
         NavigationStack {
@@ -22,8 +23,7 @@ struct SettingsView: View {
                                     .frame(width: 80, height: 80)
                                     .overlay(Circle().stroke(SL.border, lineWidth: 1))
 
-                                if let fileName = authManager.currentUser?.profilePhotoURL,
-                                   let uiImg = ImageManager.loadImage(fileName: fileName) {
+                                if let uiImg = avatarImage {
                                     Image(uiImage: uiImg)
                                         .resizable()
                                         .scaledToFill()
@@ -171,6 +171,15 @@ struct SettingsView: View {
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(SL.background, for: .navigationBar)
+            .task(id: authManager.currentUser?.profilePhotoURL) {
+                guard let fileName = authManager.currentUser?.profilePhotoURL else {
+                    avatarImage = nil
+                    return
+                }
+                avatarImage = await Task.detached(priority: .userInitiated) {
+                    ImageManager.loadImage(fileName: fileName)
+                }.value
+            }
         }
         .sheet(isPresented: $showImagePicker) {
             EditProfileImageSheet(isPresented: $showImagePicker, authManager: authManager)
