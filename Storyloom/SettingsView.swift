@@ -187,6 +187,14 @@ struct SettingsView: View {
         } message: {
             Text("This permanently deletes your account and all your stories. This cannot be undone.")
         }
+        .alert("Couldn't delete account", isPresented: Binding(
+            get: { authManager.deleteAccountError != nil },
+            set: { if !$0 { authManager.deleteAccountError = nil } }
+        )) {
+            Button("OK", role: .cancel) { authManager.deleteAccountError = nil }
+        } message: {
+            Text(authManager.deleteAccountError ?? "An unknown error occurred. Please try again.")
+        }
     }
 }
 

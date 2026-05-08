@@ -27,6 +27,8 @@ final class AuthManager: ObservableObject {
     @Published var currentUserRole: UserRole = .reader
     /// True when the user arrived via a password-reset link and needs to set a new password.
     @Published var isPasswordRecovery: Bool = false
+    /// Set when deleteAccount() RPC fails — observed by SettingsView to show an alert.
+    @Published var deleteAccountError: String? = nil
 
     // MARK: Internal state
 
@@ -247,6 +249,8 @@ final class AuthManager: ObservableObject {
 
     /// Permanently deletes the user's account and all their data via a Supabase RPC.
     /// Requires the `delete_user_account` SQL function to be created in Supabase first.
+    /// Local data is only cleared AFTER the server confirms deletion — if the RPC fails
+    /// the user remains logged in so they can retry rather than being locked out.
     func deleteAccount() {
         Task { @MainActor in
             do {
@@ -254,18 +258,20 @@ final class AuthManager: ObservableObject {
                     .rpc("delete_user_account")
                     .execute()
                 logger.debug("account deleted from Supabase")
+                // Server confirmed — now safe to wipe local state
+                try? await SupabaseManager.shared.client.auth.signOut()
+                LikeManager.shared.clearAll()
+                SyncManager.shared.clearLocalData()
+                clearUser()
+                hasCompletedOnboarding = false
+                UserDefaults.standard.removeObject(forKey: onboardingKey)
+                UserDefaults.standard.removeObject(forKey: cachedProfileKey)
+                ProfileKeychain.delete(account: cachedProfileKey)
             } catch {
-                logger.error("deleteAccount RPC failed: \(error.localizedDescription, privacy: .private)")
+                logger.error("deleteAccount failed — local session preserved so user can retry: \(error.localizedDescription, privacy: .private)")
+                // Publish error so the UI can show an alert instead of silently failing
+                deleteAccountError = error.localizedDescription
             }
-            // Clear everything locally regardless of network result
-            try? await SupabaseManager.shared.client.auth.signOut()
-            SyncManager.shared.clearLocalData()   // wipe cached stories/comments
-            LikeManager.shared.clearAll()
-            clearUser()
-            hasCompletedOnboarding = false
-            UserDefaults.standard.removeObject(forKey: onboardingKey)
-            UserDefaults.standard.removeObject(forKey: cachedProfileKey) // legacy fallback
-            ProfileKeychain.delete(account: cachedProfileKey)
         }
     }
 

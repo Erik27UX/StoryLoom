@@ -13,7 +13,8 @@ class AudioManager: NSObject, ObservableObject {
     private var audioPlayer: AVAudioPlayer?
     private var durationTimer: Timer?
     private var playbackTimer: Timer?
-    private var currentFileName: String?
+    /// Exposed so views can guard scrubber gestures against controlling the wrong story.
+    @Published private(set) var currentFileName: String?
     /// Persists the selected playback rate so it's applied on every play/resume
     private(set) var playbackRate: Float = 1.0
 

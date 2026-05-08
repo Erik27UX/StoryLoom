@@ -10,8 +10,7 @@ struct AddStoryVaultView: View {
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
     @State private var successMessage: String? = nil
-    /// Guards against rapid deep-link re-submissions (e.g. repeated URL opens).
-    @State private var lastSubmitTime: Date = .distantPast
+    // Rate-limit lives in AppCoordinator (singleton) so it persists across sheet dismiss/re-open.
 
     var body: some View {
         NavigationStack {
@@ -144,8 +143,8 @@ struct AddStoryVaultView: View {
         let now = Date()
         guard enteredCode.count == 6,
               AuthManager.shared.supabaseUserId != nil,
-              now.timeIntervalSince(lastSubmitTime) > 3 else { return }
-        lastSubmitTime = now
+              now.timeIntervalSince(AppCoordinator.shared.lastVaultJoinTime) > 3 else { return }
+        AppCoordinator.shared.lastVaultJoinTime = now
 
         isLoading = true
         errorMessage = nil

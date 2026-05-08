@@ -19,6 +19,10 @@ final class AppCoordinator: ObservableObject {
     /// Cleared immediately after reset.
     @Published var tabToReset: Int? = nil
 
+    /// Tracks the last vault-join submission time across sheet presentations
+    /// so the 3-second rate-limit isn't reset every time the sheet is dismissed.
+    var lastVaultJoinTime: Date = .distantPast
+
     private init() {}
 
     /// Switch to the Stories tab and open the story with the given UUID.

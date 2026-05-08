@@ -541,39 +541,51 @@ struct InviteReadersSheet: View {
             isGenerating = false
             return
         }
-        // Generate a 6-char alphanumeric code
-        let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        let code = String((0..<6).map { _ in chars.randomElement()! })
-        let expiresAt = Date().addingTimeInterval(7 * 24 * 60 * 60)
 
         Task {
             do {
+                // Reuse any unexpired code for this owner — prevents a new DB row every sheet open.
+                struct ExistingInvite: Decodable {
+                    let code: String
+                }
+                let iso = ISO8601DateFormatter()
+                let nowString = iso.string(from: Date())
+                let existing: [ExistingInvite] = try await SupabaseManager.shared.client
+                    .from("story_invites")
+                    .select("code")
+                    .eq("owner_id", value: uid.uuidString)
+                    .gt("expires_at", value: nowString)
+                    .order("expires_at", ascending: false)
+                    .limit(1)
+                    .execute()
+                    .value
+
+                if let found = existing.first {
+                    await MainActor.run { inviteCode = found.code; isGenerating = false }
+                    return
+                }
+
+                // No valid code exists — create a fresh one.
+                let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+                let code = String((0..<6).map { _ in chars.randomElement()! })
+                let expiresAt = Date().addingTimeInterval(7 * 24 * 60 * 60)
+
                 struct InviteInsert: Encodable {
                     let ownerId: UUID
                     let code: String
                     let expiresAt: Date
                     enum CodingKeys: String, CodingKey {
-                        case ownerId = "owner_id"
-                        case code
-                        case expiresAt = "expires_at"
+                        case ownerId = "owner_id"; case code; case expiresAt = "expires_at"
                     }
                 }
-                let payload = InviteInsert(ownerId: uid, code: code, expiresAt: expiresAt)
                 try await SupabaseManager.shared.client
                     .from("story_invites")
-                    .insert(payload)
+                    .insert(InviteInsert(ownerId: uid, code: code, expiresAt: expiresAt))
                     .execute()
-                await MainActor.run {
-                    inviteCode = code
-                    isGenerating = false
-                }
+                await MainActor.run { inviteCode = code; isGenerating = false }
             } catch {
                 logger.error("generate invite code failed: \(error.localizedDescription, privacy: .private)")
-                await MainActor.run {
-                    // Do NOT show the code — it was never saved to the DB and would fail on redemption.
-                    generationFailed = true
-                    isGenerating = false
-                }
+                await MainActor.run { generationFailed = true; isGenerating = false }
             }
         }
     }

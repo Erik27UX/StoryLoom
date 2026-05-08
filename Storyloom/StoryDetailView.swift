@@ -85,13 +85,17 @@ struct StoryDetailView: View {
                             if reactionsEnabled {
                                 if authManager.currentUser?.role == .reader {
                                     Button(action: {
+                                        // Read from LikeManager directly — not from @State —
+                                        // so two views on the same story can't double-fire.
+                                        let alreadyLiked = LikeManager.shared.isLiked(story.uuid)
                                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                            isLiked.toggle()
-                                            if isLiked {
+                                            if !alreadyLiked {
+                                                isLiked = true
                                                 story.likeCount += 1
                                                 LikeManager.shared.like(story.uuid)
                                                 SyncManager.shared.pushLike(storyUUID: story.uuid)
                                             } else {
+                                                isLiked = false
                                                 story.likeCount = max(0, story.likeCount - 1)
                                                 LikeManager.shared.unlike(story.uuid)
                                                 SyncManager.shared.removeLike(storyUUID: story.uuid)
@@ -302,6 +306,8 @@ struct StoryDetailView: View {
                                             .frame(width: geo.size.width * progress)
                                     }
                                     .gesture(DragGesture().onChanged { value in
+                                        // Guard: only seek if this story's file is the one loaded.
+                                        guard audio.currentFileName == story.narrationFileName else { return }
                                         let percentage = min(max(value.location.x / geo.size.width, 0), 1)
                                         audio.seek(to: percentage * audio.duration)
                                     })

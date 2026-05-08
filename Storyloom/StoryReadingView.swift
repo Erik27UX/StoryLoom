@@ -14,20 +14,25 @@ struct StoryReadingView: View {
 
     let story: StoryEntry
 
-    @Query private var allComments: [StoryComment]
-    @Query private var allQuestions: [StoryQuestion]
+    // Predicated @Query — only fetches records for this story, not the entire DB.
+    @Query private var storyComments: [StoryComment]
+    @Query private var storyQuestions: [StoryQuestion]
 
     @AppStorage("setting.commentsEnabled") private var commentsEnabled = true
     @AppStorage("setting.reactionsEnabled") private var reactionsEnabled = true
     @AppStorage("setting.questionsEnabled") private var questionsEnabled = true
 
-    private var storyComments: [StoryComment] {
-        allComments.filter { $0.storyId == story.uuid }
-            .sorted { $0.dateCreated < $1.dateCreated }
-    }
-    private var storyQuestions: [StoryQuestion] {
-        allQuestions.filter { $0.storyId == story.uuid }
-            .sorted { $0.dateCreated < $1.dateCreated }
+    init(story: StoryEntry) {
+        self.story = story
+        let storyId = story.uuid
+        _storyComments = Query(
+            filter: #Predicate<StoryComment> { $0.storyId == storyId },
+            sort: \.dateCreated, order: .forward
+        )
+        _storyQuestions = Query(
+            filter: #Predicate<StoryQuestion> { $0.storyId == storyId },
+            sort: \.dateCreated, order: .forward
+        )
     }
 
     @State private var selectedPlaybackSpeed: Float = 1.0
@@ -138,6 +143,7 @@ struct StoryReadingView: View {
                                         .frame(width: geo.size.width * CGFloat(progress))
                                 }
                                 .gesture(DragGesture().onChanged { value in
+                                    guard audio.currentFileName == story.narrationFileName else { return }
                                     let pct = min(max(value.location.x / geo.size.width, 0), 1)
                                     audio.seek(to: Double(pct) * audio.duration)
                                 })
@@ -191,13 +197,15 @@ struct StoryReadingView: View {
                 if reactionsEnabled && authManager.currentUser?.role == .reader {
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        let alreadyLiked = LikeManager.shared.isLiked(story.uuid)
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            isLiked.toggle()
-                            if isLiked {
+                            if !alreadyLiked {
+                                isLiked = true
                                 story.likeCount += 1
                                 LikeManager.shared.like(story.uuid)
                                 SyncManager.shared.pushLike(storyUUID: story.uuid)
                             } else {
+                                isLiked = false
                                 story.likeCount = max(0, story.likeCount - 1)
                                 LikeManager.shared.unlike(story.uuid)
                                 SyncManager.shared.removeLike(storyUUID: story.uuid)

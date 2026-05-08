@@ -6,7 +6,11 @@ final class LikeManager {
 
     static let shared = LikeManager()
 
-    private let defaultsKey = "storyloom_liked_story_uuids"
+    /// Key is namespaced by user ID so two accounts on the same device never share like state.
+    private var defaultsKey: String {
+        let uid = AuthManager.shared.supabaseUserId?.uuidString ?? "anon"
+        return "storyloom_liked_\(uid)"
+    }
 
     private init() {}
 

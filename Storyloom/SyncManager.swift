@@ -511,6 +511,7 @@ final class SyncManager {
     private func applyRemoteComments(_ remoteComments: [SupabaseComment], context: ModelContext) {
         let existing = (try? context.fetch(FetchDescriptor<StoryComment>())) ?? []
         let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        let remoteIds = Set(remoteComments.map { $0.id })
 
         for rc in remoteComments {
             if let local = existingById[rc.id] {
@@ -529,12 +530,17 @@ final class SyncManager {
                 context.insert(comment)
             }
         }
+        // Remove local records that no longer exist on the server.
+        for local in existing where !remoteIds.contains(local.id) {
+            context.delete(local)
+        }
     }
 
     @MainActor
     private func applyRemoteQuestions(_ remoteQuestions: [SupabaseQuestion], context: ModelContext) {
         let existing = (try? context.fetch(FetchDescriptor<StoryQuestion>())) ?? []
         let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        let remoteIds = Set(remoteQuestions.map { $0.id })
 
         for rq in remoteQuestions {
             if let local = existingById[rq.id] {
@@ -558,6 +564,10 @@ final class SyncManager {
                 if let createdAt = rq.createdAt { question.dateCreated = createdAt }
                 context.insert(question)
             }
+        }
+        // Remove local records that no longer exist on the server.
+        for local in existing where !remoteIds.contains(local.id) {
+            context.delete(local)
         }
     }
 
