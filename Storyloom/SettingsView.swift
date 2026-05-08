@@ -303,12 +303,11 @@ struct EditProfileImageSheet: View {
     private func savePhoto() {
         guard let image = previewImage else { return }
         isSaving = true
-        DispatchQueue.global(qos: .userInitiated).async {
-            let fileName = ImageManager.saveImage(
-                image,
-                existingFileName: authManager.currentUser?.profilePhotoURL
-            )
-            DispatchQueue.main.async {
+        // Capture values needed off-thread before leaving the main actor.
+        let existingFileName = authManager.currentUser?.profilePhotoURL
+        Task.detached(priority: .userInitiated) {
+            let fileName = ImageManager.saveImage(image, existingFileName: existingFileName)
+            await MainActor.run {
                 authManager.updateUserProfile(
                     name: authManager.currentUser?.name ?? "",
                     birthYear: authManager.currentUser?.birthYear,

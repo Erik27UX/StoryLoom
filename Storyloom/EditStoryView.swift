@@ -301,8 +301,11 @@ struct EditStoryView: View {
                 .textCase(.uppercase)
                 .foregroundColor(SL.textSecondary)
 
-            let hasExistingImage = story?.imageFileName != nil && ImageManager.imageExists(fileName: story?.imageFileName)
-            let displayImage = selectedUIImage ?? (hasExistingImage ? ImageManager.loadImage(fileName: story!.imageFileName!) : nil)
+            let existingImage: UIImage? = story.flatMap { s in
+                guard let name = s.imageFileName, ImageManager.imageExists(fileName: name) else { return nil }
+                return ImageManager.loadImage(fileName: name)
+            }
+            let displayImage = selectedUIImage ?? existingImage
 
             if let uiImage = displayImage {
                 ZStack(alignment: .topTrailing) {

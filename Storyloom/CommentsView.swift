@@ -27,7 +27,7 @@ struct CommentsView: View {
             }
         }
         topLevel.sort { $0.dateCreated < $1.dateCreated }
-        for key in byParent.keys { byParent[key]!.sort { $0.dateCreated < $1.dateCreated } }
+        for key in byParent.keys { byParent[key]?.sort { $0.dateCreated < $1.dateCreated } }
         return (topLevel, byParent)
     }
 
@@ -218,11 +218,18 @@ struct CommentRow: View {
         .padding(.vertical, 12)
     }
 
+    // Static formatters — DateFormatter is expensive to allocate; share one per style.
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .none; f.timeStyle = .short; return f
+    }()
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .short; f.timeStyle = .none; return f
+    }()
+
     private func formatDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateStyle = Calendar.current.isDateInToday(comment.dateCreated) ? .none : .short
-        f.timeStyle = Calendar.current.isDateInToday(comment.dateCreated) ? .short : .none
-        return f.string(from: date)
+        Calendar.current.isDateInToday(date)
+            ? CommentRow.timeFormatter.string(from: date)
+            : CommentRow.dateFormatter.string(from: date)
     }
 }
 

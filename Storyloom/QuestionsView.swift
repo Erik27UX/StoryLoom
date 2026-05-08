@@ -217,17 +217,18 @@ struct QuestionCard: View {
         }
     }
 
+    // Static formatters — DateFormatter is expensive to allocate; share one per style.
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .none; f.timeStyle = .short; return f
+    }()
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .short; f.timeStyle = .none; return f
+    }()
+
     private func formatDate(_ date: Date) -> String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            return formatter.string(from: date)
-        }
+        Calendar.current.isDateInToday(date)
+            ? QuestionCard.timeFormatter.string(from: date)
+            : QuestionCard.dateFormatter.string(from: date)
     }
 }
 

@@ -21,15 +21,17 @@ struct StoryLimitChecker {
         }
     }
 
+    // Static formatter — DateFormatter is expensive to allocate; share one instance.
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .none; f.timeStyle = .short; return f
+    }()
+
     static func tomorrowResetTime() -> String {
         let tomorrow = Calendar.current.date(
             byAdding: .day, value: 1,
             to: Calendar.current.startOfDay(for: Date())
         ) ?? Date()
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
-        return formatter.string(from: tomorrow)
+        return timeFormatter.string(from: tomorrow)
     }
 }
 
