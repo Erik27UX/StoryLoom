@@ -564,26 +564,6 @@ struct SectionCard<Content: View>: View {
     }
 }
 
-struct AudioSpeedSelector: View {
-    @State private var selectedSpeed: Float = 1.0
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach([0.75, 1.0, 1.25], id: \.self) { speed in
-                Button(action: { selectedSpeed = Float(speed) }) {
-                    Text("\(String(format: "%.2f", speed))x")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(selectedSpeed == Float(speed) ? Color(hex: "FDF9F0") : SL.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(selectedSpeed == Float(speed) ? SL.accent : SL.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-            }
-        }
-    }
-}
-
 #Preview {
     let authManager = AuthManager.shared
     let mockUser = User(email: "preview@test.com", name: "Preview User", role: .storyteller)

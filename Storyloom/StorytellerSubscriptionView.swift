@@ -152,7 +152,7 @@ struct StorytellerSubscriptionView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(SL.textPrimary)
 
-                        Button(action: {}) {
+                        Button(action: { openSubscriptionSettings() }) {
                             HStack {
                                 Text("Update payment method")
                                     .font(SL.body(15))
@@ -167,7 +167,7 @@ struct StorytellerSubscriptionView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
-                        Button(action: {}) {
+                        Button(action: { openSubscriptionSettings() }) {
                             HStack {
                                 Text("Cancel subscription")
                                     .font(SL.body(15))
@@ -201,6 +201,12 @@ struct StorytellerSubscriptionView: View {
                     .foregroundColor(SL.accent)
                 }
             }
+        }
+    }
+
+    private func openSubscriptionSettings() {
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            UIApplication.shared.open(url)
         }
     }
 }

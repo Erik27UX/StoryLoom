@@ -34,6 +34,12 @@ struct StoryReadyView: View {
         SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
     }
 
+    /// True when the user has neither typed text nor recorded narration — prevent saving an empty story.
+    private var hasNoContent: Bool {
+        editableText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && pendingNarrationFileName == nil
+    }
+
     init(
         prompt: StoryPrompt?,
         storyText: String = SampleData.sampleStoryText,
@@ -378,7 +384,7 @@ struct StoryReadyView: View {
                                 .foregroundColor(SL.textPrimary)
                                 .keyboardType(.numberPad)
                                 .focused($yearFocused)
-                                .onChange(of: yearText) { newValue in
+                                .onChange(of: yearText) { _, newValue in
                                     let filtered = newValue.filter { $0.isNumber }
                                     if filtered.count <= 4 {
                                         yearText = filtered
@@ -449,7 +455,7 @@ struct StoryReadyView: View {
                         .background(SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .disabled(showConfirmation)
+                    .disabled(showConfirmation || hasNoContent)
 
                     Button(action: {
                         if StoryLimitChecker.isAtLimit(stories: allStories, tier: currentTier) {
@@ -471,7 +477,7 @@ struct StoryReadyView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1.5))
                     }
-                    .disabled(showConfirmation)
+                    .disabled(showConfirmation || hasNoContent)
                 }
             }
             .padding(.horizontal, 20)

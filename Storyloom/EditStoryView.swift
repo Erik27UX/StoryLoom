@@ -318,7 +318,10 @@ struct EditStoryView: View {
 
                     Button(action: {
                         selectedUIImage = nil
-                        // Mark existing image for deletion on save
+                        // Delete the file from disk and clear the reference.
+                        if let name = story?.imageFileName {
+                            ImageManager.deleteImage(fileName: name)
+                        }
                         story?.imageFileName = nil
                     }) {
                         Image(systemName: "xmark.circle.fill")

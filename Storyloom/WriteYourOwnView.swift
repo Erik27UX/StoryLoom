@@ -8,6 +8,7 @@ struct WriteYourOwnView: View {
     @State private var title: String = ""
     @State private var content: String = ""
     @State private var pendingNarrationFileName: String? = nil
+    @State private var showMicDeniedAlert = false
 
     private var canContinue: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -231,6 +232,16 @@ struct WriteYourOwnView: View {
         }
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
+        .alert("Microphone Access Required", isPresented: $showMicDeniedAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("To record a narration, allow microphone access in Settings.")
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: {
@@ -258,7 +269,10 @@ struct WriteYourOwnView: View {
         }
         Task {
             let granted = await AudioManager.shared.requestMicrophonePermission()
-            guard granted else { return }
+            guard granted else {
+                await MainActor.run { showMicDeniedAlert = true }
+                return
+            }
             await MainActor.run {
                 pendingNarrationFileName = AudioManager.shared.startRecording()
             }

@@ -71,7 +71,8 @@ struct HomeView: View {
                             }
                             .frame(height: 8)
 
-                            Text("\(remainingToday) left today")
+                            // Free tier has a lifetime cap, not a daily one — label accordingly.
+                            Text(isFree ? "\(remainingToday) left" : "\(remainingToday) left today")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(remainingToday == 0 ? Color(hex: "E63946") : SL.textSecondary)
                                 .fixedSize()
@@ -79,13 +80,16 @@ struct HomeView: View {
 
                         // Reset info + upgrade
                         HStack {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock")
-                                    .font(.system(size: 14))
-                                Text("Resets in \(resetHours)h")
-                                    .font(SL.body(14))
+                            // Free tier is a lifetime cap — no daily reset countdown.
+                            if !isFree {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock")
+                                        .font(.system(size: 14))
+                                    Text("Resets in \(resetHours)h")
+                                        .font(SL.body(14))
+                                }
+                                .foregroundColor(SL.textSecondary)
                             }
-                            .foregroundColor(SL.textSecondary)
 
                             Spacer()
 

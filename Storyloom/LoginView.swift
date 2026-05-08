@@ -256,7 +256,9 @@ struct LoginView: View {
                     }
                 } else {
                     try await authManager.login(email: email, password: password)
-                    // Auth state listener handles setting isLoggedIn
+                    // Auth state listener drives the navigation transition; clear spinner here
+                    // so it doesn't linger if the listener fires with a short delay.
+                    await MainActor.run { isLoading = false }
                 }
             } catch {
                 await MainActor.run {

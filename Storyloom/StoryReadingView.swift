@@ -32,9 +32,7 @@ struct StoryReadingView: View {
 
     @State private var selectedPlaybackSpeed: Float = 1.0
     @State private var newCommentText = ""
-    @State private var isSubmittingComment = false
     @State private var newQuestionText = ""
-    @State private var isSubmittingQuestion = false
     @State private var isLiked = false
     @State private var showShareSheet = false
 
@@ -189,8 +187,8 @@ struct StoryReadingView: View {
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(audio.isPlaying ? SL.accent.opacity(0.4) : SL.border, lineWidth: audio.isPlaying ? 1.5 : 1))
                 }
 
-                // Likes row (if reactions enabled)
-                if reactionsEnabled {
+                // Likes row — readers only, and only when reactions are enabled
+                if reactionsEnabled && authManager.currentUser?.role == .reader {
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
@@ -350,22 +348,14 @@ struct StoryReadingView: View {
 
                 if !newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Button(action: { submitComment() }) {
-                        HStack(spacing: 6) {
-                            if isSubmittingComment {
-                                ProgressView()
-                                    .tint(.white)
-                                    .scaleEffect(0.8)
-                            }
-                            Text("Post Comment")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                        .foregroundColor(Color(hex: "FDF9F0"))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(isSubmittingComment ? SL.primary.opacity(0.6) : SL.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Text("Post Comment")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "FDF9F0"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(SL.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    .disabled(isSubmittingComment)
                 }
             }
         }
@@ -441,22 +431,14 @@ struct StoryReadingView: View {
 
                 if !newQuestionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Button(action: { submitQuestion() }) {
-                        HStack(spacing: 6) {
-                            if isSubmittingQuestion {
-                                ProgressView()
-                                    .tint(.white)
-                                    .scaleEffect(0.8)
-                            }
-                            Text("Submit Question")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                        .foregroundColor(Color(hex: "FDF9F0"))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(isSubmittingQuestion ? SL.primary.opacity(0.6) : SL.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Text("Submit Question")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "FDF9F0"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(SL.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    .disabled(isSubmittingQuestion)
                 }
             }
         }
@@ -467,41 +449,21 @@ struct StoryReadingView: View {
     private func submitComment() {
         let trimmed = newCommentText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        isSubmittingComment = true
-
-        let comment = StoryComment(
-            storyId: story.uuid,
-            userName: currentUserName,
-            text: trimmed
-        )
-        if let uid = authManager.supabaseUserId {
-            comment.userId = uid
-        }
+        let comment = StoryComment(storyId: story.uuid, userName: currentUserName, text: trimmed)
+        if let uid = authManager.supabaseUserId { comment.userId = uid }
         modelContext.insert(comment)
         SyncManager.shared.pushComment(comment)
-
         newCommentText = ""
-        isSubmittingComment = false
     }
 
     private func submitQuestion() {
         let trimmed = newQuestionText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        isSubmittingQuestion = true
-
-        let question = StoryQuestion(
-            storyId: story.uuid,
-            userName: currentUserName,
-            text: trimmed
-        )
-        if let uid = authManager.supabaseUserId {
-            question.userId = uid
-        }
+        let question = StoryQuestion(storyId: story.uuid, userName: currentUserName, text: trimmed)
+        if let uid = authManager.supabaseUserId { question.userId = uid }
         modelContext.insert(question)
         SyncManager.shared.pushQuestion(question)
-
         newQuestionText = ""
-        isSubmittingQuestion = false
     }
 
     // MARK: - Helpers
