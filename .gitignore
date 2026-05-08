@@ -1,0 +1,16 @@
+# Supabase credentials — never commit real keys
+# Copy SupabaseConfig.swift.example → SupabaseConfig.swift and fill in real values
+Storyloom/SupabaseConfig.swift
+# xcconfig overrides (reserved for future env-specific build settings)
+Config.xcconfig
+
+# Xcode user state
+*.xcuserstate
+xcuserdata/
+
+# Build artifacts
+.build/
+DerivedData/
+
+# macOS
+.DS_Store

@@ -1,0 +1,11 @@
+// Storyloom — Supabase credentials template
+// Copy this file to SupabaseConfig.swift and fill in real values.
+// SupabaseConfig.swift is git-ignored — never commit real keys.
+//
+// Find these values at: https://supabase.com/dashboard/project/<your-ref>/settings/api
+
+enum SupabaseConfig {
+    /// Hostname only — no protocol. SupabaseManager prepends https://.
+    static let host    = "YOUR_PROJECT_REF.supabase.co"
+    static let anonKey = "YOUR_SUPABASE_ANON_KEY"
+}

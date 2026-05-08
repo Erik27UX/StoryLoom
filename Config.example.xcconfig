@@ -1,0 +1,8 @@
+// Storyloom — Build configuration template
+// Copy this file to Config.xcconfig (already git-ignored).
+//
+// Supabase credentials live in Storyloom/SupabaseConfig.swift (also git-ignored).
+// See SupabaseConfig.example.swift for that template.
+//
+// Add environment-specific build settings here if needed, e.g.:
+// SOME_FEATURE_FLAG = YES

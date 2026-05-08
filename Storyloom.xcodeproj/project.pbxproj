@@ -12,6 +12,7 @@
 
 /* Begin PBXFileReference section */
 		14872E6A2F7B11B7008DAC30 /* Storyloom.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Storyloom.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B8B15FFF9C243A588142892 /* Config.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -37,6 +38,7 @@
 		14872E612F7B11B7008DAC30 = {
 			isa = PBXGroup;
 			children = (
+				4B8B15FFF9C243A588142892 /* Config.xcconfig */,
 				14872E6C2F7B11B7008DAC30 /* Storyloom */,
 				14872E6B2F7B11B7008DAC30 /* Products */,
 			);
@@ -257,6 +259,7 @@
 		};
 		14872E762F7B11BA008DAC30 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4B8B15FFF9C243A588142892 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -294,6 +297,7 @@
 		};
 		14872E772F7B11BA008DAC30 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4B8B15FFF9C243A588142892 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

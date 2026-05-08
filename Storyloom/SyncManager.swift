@@ -55,55 +55,80 @@ final class SyncManager {
         guard let uid = AuthManager.shared.supabaseUserId,
               let context = modelContext else { return }
 
+        let isReader = AuthManager.shared.currentUser?.role == .reader
+
         Task {
             do {
-                // Fetch folders and stories in parallel
-                async let remoteFolders: [SupabaseFolder] = SupabaseManager.shared.client
-                    .from("folders")
-                    .select()
-                    .eq("owner_id", value: uid.uuidString)
-                    .execute()
-                    .value
-
-                async let remoteStories: [SupabaseStory] = SupabaseManager.shared.client
-                    .from("stories")
-                    .select()
-                    .eq("owner_id", value: uid.uuidString)
-                    .execute()
-                    .value
-
-                let (folders, stories) = try await (remoteFolders, remoteStories)
-
-                // Collect story UUIDs so we can fetch related comments/questions
-                let storyIds = stories.map { $0.id.uuidString }
-
-                // Fetch comments and questions for user's stories
-                var remoteComments: [SupabaseComment] = []
-                var remoteQuestions: [SupabaseQuestion] = []
-
-                if !storyIds.isEmpty {
-                    // Fetch comments where story_id in user's stories
-                    // Supabase PostgREST: use .in() filter
-                    remoteComments = (try? await SupabaseManager.shared.client
-                        .from("comments")
+                if isReader {
+                    // Readers: no owner_id filter — RLS returns only stories granted
+                    // via story_access (i.e. stories in their vault).
+                    let remoteStories: [SupabaseStory] = try await SupabaseManager.shared.client
+                        .from("stories")
                         .select()
-                        .in("story_id", values: storyIds)
                         .execute()
-                        .value) ?? []
+                        .value
 
-                    remoteQuestions = (try? await SupabaseManager.shared.client
-                        .from("questions")
+                    let storyIds = remoteStories.map { $0.id.uuidString }
+                    var remoteComments: [SupabaseComment] = []
+                    var remoteQuestions: [SupabaseQuestion] = []
+
+                    if !storyIds.isEmpty {
+                        remoteComments = (try? await SupabaseManager.shared.client
+                            .from("comments").select()
+                            .in("story_id", values: storyIds)
+                            .execute().value) ?? []
+
+                        remoteQuestions = (try? await SupabaseManager.shared.client
+                            .from("questions").select()
+                            .in("story_id", values: storyIds)
+                            .execute().value) ?? []
+                    }
+
+                    await MainActor.run {
+                        self.applyRemoteStories(remoteStories, context: context, forceVault: true)
+                        self.applyRemoteComments(remoteComments, context: context)
+                        self.applyRemoteQuestions(remoteQuestions, context: context)
+                    }
+                } else {
+                    // Storytellers: fetch own folders and stories.
+                    async let remoteFolders: [SupabaseFolder] = SupabaseManager.shared.client
+                        .from("folders")
                         .select()
-                        .in("story_id", values: storyIds)
+                        .eq("owner_id", value: uid.uuidString)
                         .execute()
-                        .value) ?? []
-                }
+                        .value
 
-                await MainActor.run {
-                    self.applyRemoteFolders(folders, context: context)
-                    self.applyRemoteStories(stories, context: context)
-                    self.applyRemoteComments(remoteComments, context: context)
-                    self.applyRemoteQuestions(remoteQuestions, context: context)
+                    async let remoteStories: [SupabaseStory] = SupabaseManager.shared.client
+                        .from("stories")
+                        .select()
+                        .eq("owner_id", value: uid.uuidString)
+                        .execute()
+                        .value
+
+                    let (folders, stories) = try await (remoteFolders, remoteStories)
+
+                    let storyIds = stories.map { $0.id.uuidString }
+                    var remoteComments: [SupabaseComment] = []
+                    var remoteQuestions: [SupabaseQuestion] = []
+
+                    if !storyIds.isEmpty {
+                        remoteComments = (try? await SupabaseManager.shared.client
+                            .from("comments").select()
+                            .in("story_id", values: storyIds)
+                            .execute().value) ?? []
+
+                        remoteQuestions = (try? await SupabaseManager.shared.client
+                            .from("questions").select()
+                            .in("story_id", values: storyIds)
+                            .execute().value) ?? []
+                    }
+
+                    await MainActor.run {
+                        self.applyRemoteFolders(folders, context: context)
+                        self.applyRemoteStories(stories, context: context)
+                        self.applyRemoteComments(remoteComments, context: context)
+                        self.applyRemoteQuestions(remoteQuestions, context: context)
+                    }
                 }
             } catch {
                 logger.error("pullAllUserData failed: \(error.localizedDescription, privacy: .private)")
@@ -116,35 +141,60 @@ final class SyncManager {
     func pullAllUserDataAsync() async {
         guard let uid = AuthManager.shared.supabaseUserId,
               let context = modelContext else { return }
+
+        let isReader = AuthManager.shared.currentUser?.role == .reader
+
         do {
-            async let remoteFolders: [SupabaseFolder] = SupabaseManager.shared.client
-                .from("folders")
-                .select()
-                .eq("owner_id", value: uid.uuidString)
-                .execute()
-                .value
-            async let remoteStories: [SupabaseStory] = SupabaseManager.shared.client
-                .from("stories")
-                .select()
-                .eq("owner_id", value: uid.uuidString)
-                .execute()
-                .value
-            let (folders, stories) = try await (remoteFolders, remoteStories)
-            let storyIds = stories.map { $0.id.uuidString }
-            var remoteComments: [SupabaseComment] = []
-            var remoteQuestions: [SupabaseQuestion] = []
-            if !storyIds.isEmpty {
-                remoteComments = (try? await SupabaseManager.shared.client
-                    .from("comments").select()
-                    .in("story_id", values: storyIds).execute().value) ?? []
-                remoteQuestions = (try? await SupabaseManager.shared.client
-                    .from("questions").select()
-                    .in("story_id", values: storyIds).execute().value) ?? []
+            if isReader {
+                let remoteStories: [SupabaseStory] = try await SupabaseManager.shared.client
+                    .from("stories").select()
+                    .execute().value
+
+                let storyIds = remoteStories.map { $0.id.uuidString }
+                var remoteComments: [SupabaseComment] = []
+                var remoteQuestions: [SupabaseQuestion] = []
+
+                if !storyIds.isEmpty {
+                    remoteComments = (try? await SupabaseManager.shared.client
+                        .from("comments").select()
+                        .in("story_id", values: storyIds).execute().value) ?? []
+                    remoteQuestions = (try? await SupabaseManager.shared.client
+                        .from("questions").select()
+                        .in("story_id", values: storyIds).execute().value) ?? []
+                }
+
+                self.applyRemoteStories(remoteStories, context: context, forceVault: true)
+                self.applyRemoteComments(remoteComments, context: context)
+                self.applyRemoteQuestions(remoteQuestions, context: context)
+            } else {
+                async let remoteFolders: [SupabaseFolder] = SupabaseManager.shared.client
+                    .from("folders").select()
+                    .eq("owner_id", value: uid.uuidString)
+                    .execute().value
+                async let remoteStories: [SupabaseStory] = SupabaseManager.shared.client
+                    .from("stories").select()
+                    .eq("owner_id", value: uid.uuidString)
+                    .execute().value
+
+                let (folders, stories) = try await (remoteFolders, remoteStories)
+                let storyIds = stories.map { $0.id.uuidString }
+                var remoteComments: [SupabaseComment] = []
+                var remoteQuestions: [SupabaseQuestion] = []
+
+                if !storyIds.isEmpty {
+                    remoteComments = (try? await SupabaseManager.shared.client
+                        .from("comments").select()
+                        .in("story_id", values: storyIds).execute().value) ?? []
+                    remoteQuestions = (try? await SupabaseManager.shared.client
+                        .from("questions").select()
+                        .in("story_id", values: storyIds).execute().value) ?? []
+                }
+
+                self.applyRemoteFolders(folders, context: context)
+                self.applyRemoteStories(stories, context: context)
+                self.applyRemoteComments(remoteComments, context: context)
+                self.applyRemoteQuestions(remoteQuestions, context: context)
             }
-            self.applyRemoteFolders(folders, context: context)
-            self.applyRemoteStories(stories, context: context)
-            self.applyRemoteComments(remoteComments, context: context)
-            self.applyRemoteQuestions(remoteQuestions, context: context)
         } catch {
             logger.error("pullAllUserDataAsync failed: \(error.localizedDescription, privacy: .private)")
         }
@@ -591,7 +641,7 @@ final class SyncManager {
     }
 
     @MainActor
-    private func applyRemoteStories(_ remoteStories: [SupabaseStory], context: ModelContext) {
+    private func applyRemoteStories(_ remoteStories: [SupabaseStory], context: ModelContext, forceVault: Bool = false) {
         // Build a lookup for all local folders by id (needed to assign folder relationships)
         let allFolders = (try? context.fetch(FetchDescriptor<Folder>())) ?? []
         let folderById = Dictionary(uniqueKeysWithValues: allFolders.map { ($0.id, $0) })
@@ -603,6 +653,8 @@ final class SyncManager {
         for rs in remoteStories {
             // Resolve folder
             let folder: Folder? = rs.folderId.flatMap { folderById[$0] }
+            // forceVault=true when called for reader stories — they're always vault stories.
+            let inVault = forceVault ? true : rs.isPublished
 
             if let local = storyByUUID[rs.id] {
                 // Update existing local story with Supabase values
@@ -610,7 +662,7 @@ final class SyncManager {
                 local.content                = rs.content
                 local.category               = rs.category
                 local.promptQuestion         = rs.promptQuestion ?? ""
-                local.isInVault              = rs.isPublished
+                local.isInVault              = inVault
                 local.year                   = rs.year
                 local.hasNarration           = rs.hasNarration
                 local.publishNarration       = rs.publishNarration
@@ -640,7 +692,7 @@ final class SyncManager {
                     content: rs.content,
                     category: rs.category,
                     promptQuestion: rs.promptQuestion ?? "",
-                    isInVault: rs.isPublished,
+                    isInVault: inVault,
                     year: rs.year,
                     folder: folder,
                     hasNarration: rs.hasNarration,

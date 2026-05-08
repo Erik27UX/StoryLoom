@@ -6,6 +6,36 @@
 
 
 -- ============================================================
+-- 0. CREATE TABLES — story_invites and story_access
+--    These must exist before the RLS policies in sections 4/5/9
+--    are applied. Safe to run if they already exist.
+-- ============================================================
+
+-- story_invites: a storyteller creates an invite code valid for their vault.
+-- One row per active invite; expires_at enforced by redeem_invite RPC.
+CREATE TABLE IF NOT EXISTS public.story_invites (
+    id          uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+    owner_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    code        text        NOT NULL UNIQUE,
+    expires_at  timestamptz NOT NULL,
+    uses_count  int         NOT NULL DEFAULT 0,
+    created_at  timestamptz DEFAULT now()
+);
+ALTER TABLE public.story_invites ENABLE ROW LEVEL SECURITY;
+
+-- story_access: one row per (story, reader) pair granted via redeem_invite.
+-- ON CONFLICT in redeem_invite requires the unique constraint added in section 11.
+CREATE TABLE IF NOT EXISTS public.story_access (
+    id           uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+    story_id     uuid        NOT NULL REFERENCES public.stories(id) ON DELETE CASCADE,
+    user_id      uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    access_level text        NOT NULL DEFAULT 'view',
+    date_granted timestamptz DEFAULT now()
+);
+ALTER TABLE public.story_access ENABLE ROW LEVEL SECURITY;
+
+
+-- ============================================================
 -- 1. PROFILES — block client-side subscription_tier updates
 -- ============================================================
 -- Users may update their own name, birth_year, role, and profile_photo_url.

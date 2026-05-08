@@ -161,19 +161,7 @@ final class AuthManager: ObservableObject {
     }
 
     private func buildUser(from profile: SupabaseProfile, session: Session) -> User {
-        var subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "free") ?? .free
-
-        #if DEBUG
-        // Dev-account overrides — these emails always receive the specified tier
-        // regardless of what is stored in Supabase. Remove before App Store submission.
-        let devTierOverrides: [String: SubscriptionTier] = [
-            "erikfischer27@gmail.com": .family
-        ]
-        if let email = profile.email ?? session.user.email,
-           let override = devTierOverrides[email] {
-            subscriptionTier = override
-        }
-        #endif
+        let subscriptionTier = SubscriptionTier(rawValue: profile.subscriptionTier ?? "free") ?? .free
 
         // Paid users always open to storyteller on launch (they can switch in-session).
         // Free users open to whatever role is saved in their profile.
@@ -318,18 +306,18 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Updates the subscription tier locally and writes it to Supabase.
+    /// Updates the subscription tier locally and (in DEBUG only) writes it to Supabase.
     ///
-    /// ⚠️  SECURITY NOTE — called ONLY from `#if DEBUG` code in UpgradeView for local testing.
+    /// ⚠️  DEBUG-ONLY — the Supabase DB write is compiled out of Release builds.
     /// In production, subscription_tier must NEVER be written from the client.
-    /// When RevenueCat is wired up, replace this with a backend webhook (RevenueCat → Supabase
-    /// Edge Function via service_role key) so the client cannot self-upgrade.
-    /// The Supabase RLS migration (supabase_security_migration.sql) blocks this write in production.
+    /// When RevenueCat is wired up, replace the DEBUG path with a backend webhook
+    /// (RevenueCat → Supabase Edge Function via service_role key) and remove this function.
     func updateSubscriptionTier(_ tier: SubscriptionTier) {
         guard var user = currentUser else { return }
         user.subscriptionTier = tier
         currentUser = user
 
+        #if DEBUG
         guard let uid = supabaseUserId else { return }
         Task {
             try? await SupabaseManager.shared.client
@@ -338,6 +326,7 @@ final class AuthManager: ObservableObject {
                 .eq("id", value: uid.uuidString)
                 .execute()
         }
+        #endif
     }
 
     // MARK: - Private Helpers
