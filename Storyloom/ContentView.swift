@@ -4,7 +4,9 @@ import SwiftData
 struct ContentView: View {
     @StateObject private var authManager = AuthManager.shared
     @StateObject private var coordinator = AppCoordinator.shared
+    @StateObject private var networkMonitor = NetworkMonitor.shared
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @State private var tabIds: [Int: UUID] = [0: UUID(), 1: UUID(), 2: UUID(), 3: UUID()]
 
     init() {
@@ -155,6 +157,30 @@ struct ContentView: View {
             DispatchQueue.main.async { coordinator.tabToReset = nil }
         }
         .onAppear(perform: seedIfNeeded)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { SyncManager.shared.pullAllUserData() }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if !networkMonitor.isConnected {
+                offlineBanner
+            }
+        }
+    }
+
+    // MARK: - Offline Banner
+
+    private var offlineBanner: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "wifi.slash")
+                .font(.caption)
+            Text("You're offline — showing saved stories")
+                .font(.caption)
+        }
+        .foregroundStyle(Color.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(red: 0.47, green: 0.33, blue: 0.20)) // warm brown
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Sample Data Seeding (dev / first-launch only)

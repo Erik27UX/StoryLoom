@@ -33,6 +33,7 @@ final class SyncManager {
     @MainActor
     func clearLocalData() {
         guard let context = modelContext else { return }
+        RealtimeManager.shared.stopListening()
         do {
             try context.delete(model: StoryReaction.self)
             try context.delete(model: StoryAccess.self)
@@ -88,6 +89,7 @@ final class SyncManager {
                         self.applyRemoteStories(remoteStories, context: context, forceVault: true)
                         self.applyRemoteComments(remoteComments, context: context)
                         self.applyRemoteQuestions(remoteQuestions, context: context)
+                        RealtimeManager.shared.startListening(storyIds: remoteStories.map { $0.id })
                     }
                 } else {
                     // Storytellers: fetch own folders and stories.
@@ -128,6 +130,7 @@ final class SyncManager {
                         self.applyRemoteStories(stories, context: context)
                         self.applyRemoteComments(remoteComments, context: context)
                         self.applyRemoteQuestions(remoteQuestions, context: context)
+                        RealtimeManager.shared.startListening(storyIds: stories.map { $0.id })
                     }
                 }
             } catch {
@@ -166,6 +169,7 @@ final class SyncManager {
                 self.applyRemoteStories(remoteStories, context: context, forceVault: true)
                 self.applyRemoteComments(remoteComments, context: context)
                 self.applyRemoteQuestions(remoteQuestions, context: context)
+                RealtimeManager.shared.startListening(storyIds: remoteStories.map { $0.id })
             } else {
                 async let remoteFolders: [SupabaseFolder] = SupabaseManager.shared.client
                     .from("folders").select()
@@ -194,6 +198,7 @@ final class SyncManager {
                 self.applyRemoteStories(stories, context: context)
                 self.applyRemoteComments(remoteComments, context: context)
                 self.applyRemoteQuestions(remoteQuestions, context: context)
+                RealtimeManager.shared.startListening(storyIds: stories.map { $0.id })
             }
         } catch {
             logger.error("pullAllUserDataAsync failed: \(error.localizedDescription, privacy: .private)")
