@@ -13,13 +13,21 @@ struct CommentsView: View {
 
     private let maxCommentLength = 2000
 
+    init(story: StoryEntry) {
+        self.story = story
+        let storyId = story.uuid
+        _comments = Query(
+            filter: #Predicate<StoryComment> { $0.storyId == storyId },
+            sort: \.dateCreated, order: .forward
+        )
+    }
+
     /// Single-pass over the story's comments — avoids an O(n²) scan when rendering replies.
     /// Returns sorted top-level comments and a [parentId → replies] dictionary.
     private var processedComments: (topLevel: [StoryComment], byParent: [UUID: [StoryComment]]) {
-        let storyComments = comments.filter { $0.storyId == story.uuid }
         var topLevel: [StoryComment] = []
         var byParent: [UUID: [StoryComment]] = [:]
-        for c in storyComments {
+        for c in comments {
             if let parentId = c.parentCommentId {
                 byParent[parentId, default: []].append(c)
             } else {

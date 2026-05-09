@@ -330,24 +330,62 @@ struct StoryLibraryCard: View {
 }
 
 struct LibraryEmptyState: View {
+    private let steps: [(icon: String, text: String)] = [
+        ("questionmark.circle", "Answer a prompt on the Home tab"),
+        ("lock.open",           "Publish it to your vault"),
+        ("person.2",            "Share your invite code with family"),
+    ]
+
     var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "square.stack")
-                .font(.system(size: 32))
-                .foregroundColor(SL.accent.opacity(0.5))
-            Text("No stories yet")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundColor(SL.textPrimary)
-            Text("Head to the Home tab to answer your first prompt.")
-                .font(SL.body(14))
-                .foregroundColor(SL.textSecondary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 24) {
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(SL.accent.opacity(0.1))
+                        .frame(width: 72, height: 72)
+                    Image(systemName: "pencil.and.list.clipboard")
+                        .font(.system(size: 28, weight: .light))
+                        .foregroundColor(SL.accent)
+                }
+
+                Text("Your first story is waiting")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(SL.textPrimary)
+
+                Text("Every family story starts somewhere. Here's how it works:")
+                    .font(SL.body(14))
+                    .foregroundColor(SL.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+            }
+
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(SL.accent.opacity(0.12))
+                                .frame(width: 36, height: 36)
+                            Text("\(index + 1)")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(SL.accent)
+                        }
+                        Text(step.text)
+                            .font(SL.body(14))
+                            .foregroundColor(SL.textPrimary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(SL.accent.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(32)
+        .padding(24)
         .frame(maxWidth: .infinity)
         .background(SL.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(SL.border, lineWidth: 1))
     }
 }
 

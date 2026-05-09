@@ -5,8 +5,29 @@ import OSLog
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfischer.Storyloom", category: "App")
 
+// MARK: - AppDelegate (APNs token callbacks)
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Task { await NotificationManager.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken) }
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        Task { await NotificationManager.shared.didFailToRegisterForRemoteNotifications(error: error) }
+    }
+}
+
+// MARK: - App
+
 @main
 struct StoryloomApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     let modelContainer: ModelContainer
 
     init() {
@@ -20,6 +41,8 @@ struct StoryloomApp: App {
             logger.debug("configuring SyncManager...")
             // Give SyncManager access to the SwiftData main context
             SyncManager.shared.configure(with: modelContainer.mainContext)
+            // Set up push notification categories and delegate
+            Task { await NotificationManager.shared.setup() }
             logger.debug("init complete")
         } catch {
             logger.critical("FATAL: ModelContainer init failed: \(error.localizedDescription, privacy: .private)")

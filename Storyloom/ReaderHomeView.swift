@@ -58,7 +58,7 @@ struct ReaderHomeView: View {
                     }
 
                     if vaultStories.isEmpty {
-                        ReaderEmptyState()
+                        ReaderEmptyState(showAddVault: $showAddVault)
                     } else {
                         // Stat cards
                         HStack(spacing: 12) {
@@ -229,24 +229,56 @@ struct ReaderStoryCard: View {
 // MARK: - Empty State
 
 struct ReaderEmptyState: View {
+    @Binding var showAddVault: Bool
+    /// Whether the reader has ever joined any vault (determines which copy to show).
+    @AppStorage("reader.hasJoinedVault") private var hasJoinedVault = false
+
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "books.vertical")
-                .font(.system(size: 36))
-                .foregroundColor(SL.accent.opacity(0.5))
-            Text("No stories yet")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundColor(SL.textPrimary)
-            Text("When a storyteller adds stories to their vault and shares access with you, they'll appear here.")
-                .font(SL.body(14))
-                .foregroundColor(SL.textSecondary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(SL.accent.opacity(0.1))
+                    .frame(width: 72, height: 72)
+                Image(systemName: hasJoinedVault ? "hourglass" : "books.vertical")
+                    .font(.system(size: 28, weight: .light))
+                    .foregroundColor(SL.accent.opacity(0.7))
+            }
+
+            VStack(spacing: 8) {
+                Text(hasJoinedVault ? "Stories are on their way" : "No vault yet")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(SL.textPrimary)
+
+                Text(hasJoinedVault
+                     ? "Your storyteller hasn't published their first story yet — pull down to refresh, or check back soon."
+                     : "Add a story vault using the invite code from your storyteller to start reading.")
+                    .font(SL.body(14))
+                    .foregroundColor(SL.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+
+            if !hasJoinedVault {
+                Button(action: { showAddVault = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("Add Story Vault")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(Color(hex: "FDF9F0"))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(SL.primary)
+                    .clipShape(Capsule())
+                }
+            }
         }
-        .padding(32)
+        .padding(28)
         .frame(maxWidth: .infinity)
         .background(SL.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(SL.border, lineWidth: 1))
     }
 }
 

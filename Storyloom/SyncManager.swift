@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import SwiftData
 import Supabase
 import OSLog
@@ -11,13 +12,27 @@ private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "erikfisc
 // All methods are fire-and-forget (except pullAllUserData, which is also fire-and-forget
 // but internally awaits the network calls before updating SwiftData on MainActor).
 
-final class SyncManager {
+final class SyncManager: ObservableObject {
 
     static let shared = SyncManager()
 
     private var modelContext: ModelContext?
 
+    /// Set when a sync attempt fails. Cleared automatically after 4 seconds.
+    /// Observed by ContentView to show a non-blocking error banner.
+    @MainActor @Published var syncErrorMessage: String? = nil
+
     private init() {}
+
+    /// Called internally on sync failure. Posts the error message for 4 seconds, then clears.
+    @MainActor
+    private func reportError(_ message: String) {
+        syncErrorMessage = message
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            syncErrorMessage = nil
+        }
+    }
 
     // MARK: - Configure
 
@@ -131,10 +146,18 @@ final class SyncManager {
                         self.applyRemoteComments(remoteComments, context: context)
                         self.applyRemoteQuestions(remoteQuestions, context: context)
                         RealtimeManager.shared.startListening(storyIds: stories.map { $0.id })
+                        // Re-push any local stories not on Supabase (created while offline).
+                        let remoteUUIDs = Set(stories.map { $0.id })
+                        if let allLocal = try? context.fetch(FetchDescriptor<StoryEntry>()) {
+                            for entry in allLocal where !remoteUUIDs.contains(entry.uuid) {
+                                self.pushStory(entry)
+                            }
+                        }
                     }
                 }
             } catch {
                 logger.error("pullAllUserData failed: \(error.localizedDescription, privacy: .private)")
+                await MainActor.run { self.reportError("Couldn't sync — check your connection") }
             }
         }
     }
@@ -199,9 +222,17 @@ final class SyncManager {
                 self.applyRemoteComments(remoteComments, context: context)
                 self.applyRemoteQuestions(remoteQuestions, context: context)
                 RealtimeManager.shared.startListening(storyIds: stories.map { $0.id })
+                // Re-push any local stories not on Supabase (created while offline).
+                let remoteUUIDs = Set(stories.map { $0.id })
+                if let allLocal = try? context.fetch(FetchDescriptor<StoryEntry>()) {
+                    for entry in allLocal where !remoteUUIDs.contains(entry.uuid) {
+                        self.pushStory(entry)
+                    }
+                }
             }
         } catch {
             logger.error("pullAllUserDataAsync failed: \(error.localizedDescription, privacy: .private)")
+            reportError("Couldn't sync — check your connection")
         }
     }
 
@@ -678,11 +709,23 @@ final class SyncManager {
                 if rs.ownerId == AuthManager.shared.supabaseUserId {
                     // Always use current user's live subscription tier for their own stories.
                     local.authorSubscriptionTier = AuthManager.shared.currentUser?.subscriptionTier ?? .premium
-                } else if let tierStr = rs.authorSubscriptionTier {
-                    local.authorSubscriptionTier = SubscriptionTier(rawValue: tierStr) ?? .premium
-                }
-                // Download media for reader devices (storyteller already has files locally)
-                if rs.ownerId != AuthManager.shared.supabaseUserId {
+                    // Clear stale filename refs when media was removed on another device.
+                    if rs.imageFileName == nil { local.imageFileName = nil }
+                    if rs.narrationFileName == nil { local.narrationFileName = nil }
+                } else {
+                    if let tierStr = rs.authorSubscriptionTier {
+                        local.authorSubscriptionTier = SubscriptionTier(rawValue: tierStr) ?? .premium
+                    }
+                    // Delete local media files the storyteller removed or stopped publishing.
+                    if rs.imageFileName == nil, let localImg = local.imageFileName {
+                        ImageManager.deleteImage(fileName: localImg)
+                        local.imageFileName = nil
+                    }
+                    if !rs.publishNarration, let localAudio = local.narrationFileName {
+                        AudioManager.shared.deleteRecording(fileName: localAudio)
+                        local.narrationFileName = nil
+                    }
+                    // Download any new media for this reader device.
                     downloadMediaIfNeeded(
                         storyUUID: rs.id,
                         hasNarration: rs.hasNarration,

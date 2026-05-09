@@ -170,7 +170,7 @@ struct HomeView: View {
                         .foregroundColor(SL.textSecondary)
 
                     if recentStories.isEmpty {
-                        Text("Your stories will appear here once you've recorded one.")
+                        Text("Answer a question above to write your first story.")
                             .font(SL.body(14))
                             .foregroundColor(SL.textSecondary)
                             .padding(.vertical, 8)

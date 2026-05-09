@@ -5,6 +5,7 @@ struct ContentView: View {
     @StateObject private var authManager = AuthManager.shared
     @StateObject private var coordinator = AppCoordinator.shared
     @StateObject private var networkMonitor = NetworkMonitor.shared
+    @StateObject private var syncManager = SyncManager.shared
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     @State private var tabIds: [Int: UUID] = [0: UUID(), 1: UUID(), 2: UUID(), 3: UUID()]
@@ -161,13 +162,18 @@ struct ContentView: View {
             if phase == .active { SyncManager.shared.pullAllUserData() }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if !networkMonitor.isConnected {
-                offlineBanner
+            VStack(spacing: 0) {
+                if !networkMonitor.isConnected {
+                    offlineBanner
+                }
+                if networkMonitor.isConnected, let errorMsg = syncManager.syncErrorMessage {
+                    syncErrorBanner(errorMsg)
+                }
             }
         }
     }
 
-    // MARK: - Offline Banner
+    // MARK: - Banners
 
     private var offlineBanner: some View {
         HStack(spacing: 6) {
@@ -181,6 +187,27 @@ struct ContentView: View {
         .padding(.vertical, 8)
         .background(Color(red: 0.47, green: 0.33, blue: 0.20)) // warm brown
         .frame(maxWidth: .infinity)
+    }
+
+    private func syncErrorBanner(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 12))
+            Text(message)
+                .font(.caption)
+            Spacer()
+            Button(action: { syncManager.syncErrorMessage = nil }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+        }
+        .foregroundStyle(Color.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(red: 0.75, green: 0.35, blue: 0.20)) // terracotta
+        .frame(maxWidth: .infinity)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.25), value: syncManager.syncErrorMessage)
     }
 
     // MARK: - Sample Data Seeding (dev / first-launch only)
