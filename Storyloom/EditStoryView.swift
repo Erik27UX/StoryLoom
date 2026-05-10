@@ -25,6 +25,7 @@ struct EditStoryView: View {
     @State private var showDeleteConfirm: Bool = false
     @State private var pickerItem: PhotosPickerItem? = nil
     @State private var selectedUIImage: UIImage? = nil  // New image picked but not yet saved
+    @State private var existingImage: UIImage? = nil    // Loaded async from disk
 
     init(
         story: StoryEntry?,
@@ -282,6 +283,15 @@ struct EditStoryView: View {
                 }
             }
         }
+        .task(id: story?.imageFileName) {
+            guard let name = story?.imageFileName, ImageManager.imageExists(fileName: name) else {
+                existingImage = nil
+                return
+            }
+            existingImage = await Task.detached(priority: .userInitiated) {
+                ImageManager.loadImage(fileName: name)
+            }.value
+        }
         .alert("Delete this story?", isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { deleteStory() }
             Button("Cancel", role: .cancel) {}
@@ -301,10 +311,6 @@ struct EditStoryView: View {
                 .textCase(.uppercase)
                 .foregroundColor(SL.textSecondary)
 
-            let existingImage: UIImage? = story.flatMap { s in
-                guard let name = s.imageFileName, ImageManager.imageExists(fileName: name) else { return nil }
-                return ImageManager.loadImage(fileName: name)
-            }
             let displayImage = selectedUIImage ?? existingImage
 
             if let uiImage = displayImage {

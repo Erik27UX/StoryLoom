@@ -7,11 +7,24 @@ struct StoryDetailView: View {
     @ObservedObject var authManager = AuthManager.shared
     let story: StoryEntry
 
-    @Query private var allComments: [StoryComment]
-    @Query private var allQuestions: [StoryQuestion]
+    @Query private var storyComments: [StoryComment]
+    @Query private var storyQuestions: [StoryQuestion]
 
-    private var commentCount: Int { allComments.filter { $0.storyId == story.uuid }.count }
-    private var questionCount: Int { allQuestions.filter { $0.storyId == story.uuid }.count }
+    private var commentCount: Int { storyComments.count }
+    private var questionCount: Int { storyQuestions.count }
+
+    init(story: StoryEntry) {
+        self.story = story
+        let storyId = story.uuid
+        _storyComments = Query(
+            filter: #Predicate<StoryComment> { $0.storyId == storyId },
+            sort: \.dateCreated, order: .forward
+        )
+        _storyQuestions = Query(
+            filter: #Predicate<StoryQuestion> { $0.storyId == storyId },
+            sort: \.dateCreated, order: .forward
+        )
+    }
 
     @AppStorage("setting.commentsEnabled") private var commentsEnabled = true
     @AppStorage("setting.reactionsEnabled") private var reactionsEnabled = true

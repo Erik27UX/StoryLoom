@@ -98,7 +98,7 @@ class Folder {
     var id: UUID
     var name: String
     var dateCreated: Date
-    @Relationship(deleteRule: .cascade, inverse: \StoryEntry.folder) var stories: [StoryEntry] = []
+    @Relationship(deleteRule: .nullify, inverse: \StoryEntry.folder) var stories: [StoryEntry] = []
 
     init(name: String) {
         self.id = UUID()

@@ -27,6 +27,7 @@ struct StoryReadyView: View {
     @State private var confirmedEntry: StoryEntry? = nil
     @State private var confirmedIsPublished: Bool = false
     @State private var showLimitSheet = false
+    @State private var isSaving = false
     @FocusState private var yearFocused: Bool
 
     @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
@@ -455,7 +456,7 @@ struct StoryReadyView: View {
                         .background(SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .disabled(showConfirmation || hasNoContent)
+                    .disabled(showConfirmation || hasNoContent || isSaving)
 
                     Button(action: {
                         if StoryLimitChecker.isAtLimit(stories: allStories, tier: currentTier) {
@@ -477,7 +478,7 @@ struct StoryReadyView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1.5))
                     }
-                    .disabled(showConfirmation || hasNoContent)
+                    .disabled(showConfirmation || hasNoContent || isSaving)
                 }
             }
             .padding(.horizontal, 20)
@@ -543,6 +544,9 @@ struct StoryReadyView: View {
     }
 
     private func saveStory(publish: Bool) {
+        guard !isSaving else { return }
+        isSaving = true
+
         // Haptic feedback — heavy for publish, light for private draft
         if publish {
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -556,30 +560,36 @@ struct StoryReadyView: View {
             return selectedCategory.rawValue
         }()
         let currentUser = AuthManager.shared.currentUser
+        let imageToSave = selectedUIImage
 
-        // Save image to documents if one was selected
-        let savedImageFileName = selectedUIImage.flatMap { ImageManager.saveImage($0) }
+        Task {
+            // JPEG encode + disk write off the main thread
+            let savedImageFileName: String? = await Task.detached(priority: .userInitiated) {
+                imageToSave.flatMap { ImageManager.saveImage($0) }
+            }.value
 
-        let entry = StoryEntry(
-            title: title,
-            content: editableText,
-            category: category,
-            promptQuestion: prompt?.question ?? "",
-            isInVault: publish,
-            year: selectedYear,
-            folder: selectedFolder,
-            hasNarration: pendingNarrationFileName != nil,
-            publishNarration: pendingNarrationFileName != nil && publishNarration,
-            narrationFileName: pendingNarrationFileName,
-            imageFileName: savedImageFileName,
-            authorSubscriptionTier: currentUser?.subscriptionTier ?? .free,
-            authorName: currentUser?.name
-        )
-        modelContext.insert(entry)
-        SyncManager.shared.pushStory(entry)
-        confirmedEntry = entry
-        confirmedIsPublished = publish
-        showConfirmation = true
+            let entry = StoryEntry(
+                title: title,
+                content: editableText,
+                category: category,
+                promptQuestion: prompt?.question ?? "",
+                isInVault: publish,
+                year: selectedYear,
+                folder: selectedFolder,
+                hasNarration: pendingNarrationFileName != nil,
+                publishNarration: pendingNarrationFileName != nil && publishNarration,
+                narrationFileName: pendingNarrationFileName,
+                imageFileName: savedImageFileName,
+                authorSubscriptionTier: currentUser?.subscriptionTier ?? .free,
+                authorName: currentUser?.name
+            )
+            modelContext.insert(entry)
+            SyncManager.shared.pushStory(entry)
+            confirmedEntry = entry
+            confirmedIsPublished = publish
+            isSaving = false
+            showConfirmation = true
+        }
     }
 
     private func deriveTitle(from text: String) -> String {

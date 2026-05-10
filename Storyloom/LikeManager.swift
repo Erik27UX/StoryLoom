@@ -12,35 +12,51 @@ final class LikeManager {
         return "storyloom_liked_\(uid)"
     }
 
+    // In-memory cache — avoids deserializing the UserDefaults plist on every isLiked() call.
+    // Keyed by defaultsKey so it auto-invalidates if the logged-in user changes.
+    private var _cacheKey: String? = nil
+    private var _cache: Set<UUID>? = nil
+
     private init() {}
+
+    // MARK: - Private cache
+
+    private var cachedSet: Set<UUID> {
+        let key = defaultsKey
+        if key != _cacheKey || _cache == nil {
+            let strings = UserDefaults.standard.stringArray(forKey: key) ?? []
+            _cache = Set(strings.compactMap { UUID(uuidString: $0) })
+            _cacheKey = key
+        }
+        return _cache!
+    }
 
     // MARK: - Read
 
     var likedUUIDs: Set<UUID> {
-        get {
-            let strings = UserDefaults.standard.stringArray(forKey: defaultsKey) ?? []
-            return Set(strings.compactMap { UUID(uuidString: $0) })
-        }
+        get { cachedSet }
         set {
+            _cache = newValue
+            _cacheKey = defaultsKey
             UserDefaults.standard.set(newValue.map { $0.uuidString }, forKey: defaultsKey)
         }
     }
 
     func isLiked(_ uuid: UUID) -> Bool {
-        likedUUIDs.contains(uuid)
+        cachedSet.contains(uuid)
     }
 
     // MARK: - Write
 
     func like(_ uuid: UUID) {
-        var uuids = likedUUIDs
-        guard !uuids.contains(uuid) else { return } // already liked — no-op
+        guard !cachedSet.contains(uuid) else { return } // already liked — no-op
+        var uuids = cachedSet
         uuids.insert(uuid)
         likedUUIDs = uuids
     }
 
     func unlike(_ uuid: UUID) {
-        var uuids = likedUUIDs
+        var uuids = cachedSet
         uuids.remove(uuid)
         likedUUIDs = uuids
     }
@@ -48,6 +64,8 @@ final class LikeManager {
     // MARK: - Clear (called on logout)
 
     func clearAll() {
+        _cache = nil
+        _cacheKey = nil
         UserDefaults.standard.removeObject(forKey: defaultsKey)
     }
 }
