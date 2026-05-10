@@ -40,6 +40,11 @@ struct StoryReadingView: View {
     @State private var newQuestionText = ""
     @State private var isLiked = false
     @State private var showShareSheet = false
+    @State private var isSubmittingComment = false
+    @State private var isSubmittingQuestion = false
+
+    private let maxCommentLength = 500
+    private let maxQuestionLength = 500
 
     private var questionsUnlocked: Bool {
         story.authorSubscriptionTier == .family && questionsEnabled
@@ -350,16 +355,31 @@ struct StoryReadingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
                     .lineLimit(1...4)
+                    .onChange(of: newCommentText) { _, value in
+                        if value.count > maxCommentLength {
+                            newCommentText = String(value.prefix(maxCommentLength))
+                        }
+                    }
 
-                if !newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Button(action: { submitComment() }) {
-                        Text("Post Comment")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(hex: "FDF9F0"))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .background(SL.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                let trimmedComment = newCommentText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedComment.isEmpty {
+                    HStack {
+                        if newCommentText.count > maxCommentLength * 4 / 5 {
+                            Text("\(newCommentText.count)/\(maxCommentLength)")
+                                .font(.system(size: 11))
+                                .foregroundColor(newCommentText.count >= maxCommentLength ? .red : SL.textSecondary)
+                        }
+                        Spacer()
+                        Button(action: { submitComment() }) {
+                            Text(isSubmittingComment ? "Posting…" : "Post Comment")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color(hex: "FDF9F0"))
+                                .frame(height: 40)
+                                .padding(.horizontal, 20)
+                                .background(isSubmittingComment ? SL.primary.opacity(0.5) : SL.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .disabled(isSubmittingComment)
                     }
                 }
             }
@@ -433,16 +453,31 @@ struct StoryReadingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
                     .lineLimit(1...4)
+                    .onChange(of: newQuestionText) { _, value in
+                        if value.count > maxQuestionLength {
+                            newQuestionText = String(value.prefix(maxQuestionLength))
+                        }
+                    }
 
-                if !newQuestionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Button(action: { submitQuestion() }) {
-                        Text("Submit Question")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(hex: "FDF9F0"))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .background(SL.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                let trimmedQuestion = newQuestionText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedQuestion.isEmpty {
+                    HStack {
+                        if newQuestionText.count > maxQuestionLength * 4 / 5 {
+                            Text("\(newQuestionText.count)/\(maxQuestionLength)")
+                                .font(.system(size: 11))
+                                .foregroundColor(newQuestionText.count >= maxQuestionLength ? .red : SL.textSecondary)
+                        }
+                        Spacer()
+                        Button(action: { submitQuestion() }) {
+                            Text(isSubmittingQuestion ? "Submitting…" : "Submit Question")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color(hex: "FDF9F0"))
+                                .frame(height: 40)
+                                .padding(.horizontal, 20)
+                                .background(isSubmittingQuestion ? SL.primary.opacity(0.5) : SL.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .disabled(isSubmittingQuestion)
                     }
                 }
             }
@@ -453,22 +488,26 @@ struct StoryReadingView: View {
 
     private func submitComment() {
         let trimmed = newCommentText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty, !isSubmittingComment else { return }
+        isSubmittingComment = true
         let comment = StoryComment(storyId: story.uuid, userName: currentUserName, text: trimmed)
         if let uid = authManager.supabaseUserId { comment.userId = uid }
         modelContext.insert(comment)
         SyncManager.shared.pushComment(comment)
         newCommentText = ""
+        isSubmittingComment = false
     }
 
     private func submitQuestion() {
         let trimmed = newQuestionText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty, !isSubmittingQuestion else { return }
+        isSubmittingQuestion = true
         let question = StoryQuestion(storyId: story.uuid, userName: currentUserName, text: trimmed)
         if let uid = authManager.supabaseUserId { question.userId = uid }
         modelContext.insert(question)
         SyncManager.shared.pushQuestion(question)
         newQuestionText = ""
+        isSubmittingQuestion = false
     }
 
     // MARK: - Helpers

@@ -66,7 +66,13 @@ struct OnboardingView: View {
                         if currentStep < steps.count - 1 {
                             currentStep += 1
                         } else {
-                            authManager.completeOnboarding()
+                            // Request notification permission before completing onboarding.
+                            // The system alert appears modally; after the user responds,
+                            // completeOnboarding() runs and the main app is revealed.
+                            Task { @MainActor in
+                                await NotificationManager.shared.requestPermission()
+                                authManager.completeOnboarding()
+                            }
                         }
                     }) {
                         Text(currentStep == steps.count - 1 ? "Get started" : "Next")

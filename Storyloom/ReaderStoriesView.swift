@@ -4,6 +4,8 @@ import SwiftData
 struct ReaderStoriesView: View {
     @Query private var stories: [StoryEntry]
     @Query(sort: \Folder.dateCreated, order: .reverse) private var folders: [Folder]
+    @StateObject private var coordinator = AppCoordinator.shared
+    @State private var navigationPath = NavigationPath()
     @State private var selectedAuthors = Set<String>()
     @State private var hasInitialized = false
     @State private var sortBy: SortOption = .created
@@ -77,7 +79,7 @@ struct ReaderStoriesView: View {
 
     var body: some View {
         let groups = groupedFilteredStories
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Header
@@ -238,7 +240,7 @@ struct ReaderStoriesView: View {
                                     // Stories in this folder
                                     VStack(spacing: 12) {
                                         ForEach(group.stories) { story in
-                                            NavigationLink(destination: StoryReadingView(story: story)) {
+                                            NavigationLink(value: story.uuid) {
                                                 StoryCardForReader(story: story)
                                             }
                                         }
@@ -266,6 +268,17 @@ struct ReaderStoriesView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(SL.background, for: .navigationBar)
+            .navigationDestination(for: UUID.self) { storyId in
+                if let story = stories.first(where: { $0.uuid == storyId }) {
+                    StoryReadingView(story: story)
+                }
+            }
+        }
+        .onChange(of: coordinator.storyToOpen) { _, storyId in
+            guard let id = storyId else { return }
+            navigationPath.removeLast(navigationPath.count)
+            navigationPath.append(id)
+            DispatchQueue.main.async { coordinator.storyToOpen = nil }
         }
         .sheet(isPresented: $showAddVault) {
             AddStoryVaultView()
