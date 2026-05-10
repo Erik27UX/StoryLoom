@@ -36,7 +36,21 @@ enum ImageManager {
         return FileManager.default.fileExists(atPath: imageURL(fileName: name).path)
     }
 
+    /// Scales an image down so its longest edge is at most `maxDimension` points.
+    /// Images already within the limit are returned unchanged. Aspect ratio is preserved.
+    private static func resizedIfNeeded(_ image: UIImage, maxDimension: CGFloat = 2048) -> UIImage {
+        let size = image.size
+        let longest = max(size.width, size.height)
+        guard longest > maxDimension else { return image }
+        let scale = maxDimension / longest
+        let newSize = CGSize(width: (size.width * scale).rounded(), height: (size.height * scale).rounded())
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+    }
+
     /// Save a UIImage as JPEG to Application Support. Returns the new filename.
+    /// Images larger than 2048px on the longest edge are scaled down before encoding —
+    /// every image can be saved regardless of source resolution.
     @discardableResult
     static func saveImage(_ image: UIImage, existingFileName: String? = nil) -> String? {
         // Delete old image if replacing
@@ -44,7 +58,8 @@ enum ImageManager {
             deleteImage(fileName: existing)
         }
 
-        guard let data = image.jpegData(compressionQuality: 0.82) else { return nil }
+        let prepared = resizedIfNeeded(image)
+        guard let data = prepared.jpegData(compressionQuality: 0.82) else { return nil }
         let fileName = UUID().uuidString + ".jpg"
         let url = imageURL(fileName: fileName)
         do {

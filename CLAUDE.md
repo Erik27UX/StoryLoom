@@ -16,6 +16,119 @@ These must be triggered manually at the right moments. Remind the user proactive
 
 ---
 
+## 🚀 Pre-Launch Checklist — Step-by-Step
+
+### PHASE 1 — Apple Developer Program ($99/yr)
+**When:** As soon as enrolled at developer.apple.com
+
+**Xcode — one-time setup:**
+- [ ] Add **Associated Domains** capability → `applinks:storyloom.live`
+  - (AASA file already deployed at `storyloom.live/.well-known/apple-app-site-association` — no web change needed)
+- [ ] Add **Push Notifications** capability (one checkbox in Signing & Capabilities)
+
+**Apple Developer portal:**
+- [ ] Download an **APNs Auth Key** (.p8) → Keys section of developer.apple.com
+  - Save it somewhere safe — it cannot be re-downloaded
+
+**Supabase — run this SQL migration:**
+```sql
+ALTER TABLE profiles ADD COLUMN push_token text;
+```
+  - (Full SQL in `NotificationManager.swift` comments)
+
+**Supabase — write a new Edge Function:**
+- Trigger: on INSERT into `story_entries`, `story_questions` (answer updates), or `comments`
+- Action: call APNs using the .p8 key to send a push to the relevant user's `push_token`
+- The client-side code (`NotificationManager.uploadTokenToSupabase()`) is already complete — no app changes needed
+
+---
+
+### PHASE 2 — RevenueCat Integration
+**When:** Adding paid subscription tiers
+
+**Security review first** — run `/security-review` with focus on:
+- Subscription tier write paths
+- Webhook authentication
+- Receipt validation
+
+**Files to update:**
+- `AuthManager.swift` — find `updateSubscriptionTier()`:
+  - Currently called from client-side (OK for dev/testing)
+  - **Must be replaced by a RevenueCat webhook** before shipping — client must NEVER be able to write its own subscription tier in production
+- `AuthManager.swift` — find `devTierOverrides` dict:
+  - Already gated with `#if DEBUG` — ensure it stays that way until explicitly removed pre-launch
+
+**RevenueCat setup steps:**
+- [ ] Create RevenueCat project, link to App Store Connect
+- [ ] Add RevenueCat SDK to Xcode project
+- [ ] Configure entitlements/products in RevenueCat dashboard matching existing tier names (`free`, `family`)
+- [ ] Write a Supabase Edge Function as the RevenueCat webhook endpoint (updates `profiles.subscription_tier` on purchase/renewal/cancellation)
+- [ ] Verify webhook signature validation in the Edge Function
+- [ ] Run Supabase RLS audit — confirm `subscription_tier` column is NOT writable by the user themselves (currently protected but verify after any schema changes)
+
+---
+
+### PHASE 3 — App Store Submission
+**When:** Ready to submit
+
+**Security review** — run `/security-review` (full pass, not just subscription paths)
+
+**Files to update before submitting:**
+
+1. `AuthManager.swift`
+   - Remove the `devTierOverrides` dictionary entirely (or the whole `#if DEBUG` block that sets tier overrides)
+   - Search for: `devTierOverrides`
+
+2. `Storyloom web/join.html`
+   - The "Coming soon to the App Store" badge needs to become a real App Store link
+   - Replace the `.coming-soon` div with an `<a href="https://apps.apple.com/app/storyloom/id<REAL_ID>">` link
+   - Also update the meta/OG tags if added later
+
+3. `Storyloom web/index.html`
+   - Same App Store link replacement as `join.html`
+
+4. `Storyloom web/privacy.html`
+   - Verify "Last updated" date is current
+   - Add any new data processors introduced by RevenueCat
+
+**App Store Connect setup:**
+- [ ] Set Privacy Policy URL → `https://storyloom.live/privacy`
+- [ ] Set Support URL → `https://storyloom.live` (or a contact page)
+- [ ] Upload screenshots (all required device sizes)
+- [ ] Write app description, keywords, subtitle
+- [ ] Set age rating (likely 4+)
+- [ ] Link to the correct RevenueCat in-app purchases
+
+**TestFlight first:**
+- [ ] Submit a TestFlight build with all `#if DEBUG` overrides removed
+- [ ] Test invite flow end-to-end with a real share link (`storyloom.live/join/CODE`)
+- [ ] Verify Universal Links open the app (not Safari) on a real device
+- [ ] Verify push notifications fire correctly
+
+---
+
+### ALWAYS — After Any Supabase Schema Change
+- Re-run RLS policy audit on any new tables or columns
+- Check that new columns are not accidentally writable by the wrong role
+- Confirm `supabase_security_migration.sql` is kept up to date
+
+---
+
+### Known Pending Verification
+- **`FamilyView` column names** — `fetchReaders()` queries `story_access` using columns `user_id` and `date_granted`. Confirm these match the actual Supabase schema on first real-device test. If column names differ, update the query in `FamilyView.swift`.
+
+---
+
+### Current Website State (storyloom.live)
+- `index.html` — "Coming soon to the App Store" badge + Privacy Policy footer link ✅
+- `join.html` — "Coming soon" badge + invite code display + "Add Story Vault" hint ✅
+- `privacy.html` — full privacy policy, live at `/privacy` ✅
+- `.well-known/apple-app-site-association` — configured for `3BJ76TZ89X.erikfischer.Storyloom`, paths: `/join/*` ✅
+- `vercel.json` — rewrites for `/join/:code` and `/privacy` ✅
+- Deployment: `npx vercel --prod --token <cli-deploy token> --scope erik27uxs-projects`
+
+---
+
 ## Project
 Storyloom is an iOS app (SwiftUI + SwiftData + Supabase) for preserving and sharing family stories. Storytellers write, record narration, and attach images to stories; readers access them via invite codes.
 

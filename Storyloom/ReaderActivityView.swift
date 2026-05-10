@@ -11,8 +11,6 @@ struct ReaderActivityView: View {
     @Query(sort: \StoryQuestion.dateCreated, order: .reverse)
     private var allQuestions: [StoryQuestion]
 
-    @ObservedObject private var authManager = AuthManager.shared
-
     /// Unix timestamp of the last time this screen was viewed.
     /// Any content created after this date is considered "new."
     @AppStorage("reader.lastActivityViewDate") private var lastViewTimestamp: Double = 0
@@ -21,19 +19,19 @@ struct ReaderActivityView: View {
         lastViewTimestamp == 0 ? .distantPast : Date(timeIntervalSince1970: lastViewTimestamp)
     }
 
-    private var currentUserName: String { authManager.currentUser?.name ?? "" }
-
     private var newStories: [StoryEntry] {
         vaultStories.filter { $0.dateCreated > lastViewDate }
     }
 
     /// Questions asked by this reader that were answered since last visit.
+    /// Matches by userId (UUID) — not by display name — to avoid false positives
+    /// when two readers share a name.
     private var answeredQuestions: [StoryQuestion] {
-        guard !currentUserName.isEmpty else { return [] }
+        guard let currentUserId = AuthManager.shared.supabaseUserId else { return [] }
         return allQuestions
             .filter {
                 $0.isAnswered &&
-                $0.userName == currentUserName &&
+                $0.userId == currentUserId &&
                 ($0.answeredDate ?? .distantPast) > lastViewDate
             }
             .sorted { ($0.answeredDate ?? .distantPast) > ($1.answeredDate ?? .distantPast) }

@@ -163,6 +163,17 @@ struct SettingsView: View {
                             .font(.system(size: 14))
                             .foregroundColor(Color.red.opacity(0.7))
                     }
+
+                    // Legal
+                    Button(action: {
+                        if let url = URL(string: "https://storyloom.live/privacy") {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        Text("Privacy Policy")
+                            .font(.system(size: 13))
+                            .foregroundColor(SL.textMuted)
+                    }
                     .padding(.bottom, 16)
                 }
                 .padding(.horizontal, 20)

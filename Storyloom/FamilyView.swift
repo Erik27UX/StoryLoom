@@ -96,7 +96,15 @@ struct ReadersView: View {
                         .padding(.vertical, 4)
                     }
 
-                    if readers.isEmpty && !isLoadingReaders {
+                    if isLoadingReaders {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .tint(SL.accent)
+                            Spacer()
+                        }
+                        .padding(24)
+                    } else if readers.isEmpty {
                         VStack(spacing: 12) {
                             Image(systemName: "person.2")
                                 .font(.system(size: 32))
