@@ -16,4 +16,8 @@ extension Notification.Name {
     /// Posted by NotificationManager when a push notification tap should navigate to a story.
     /// userInfo["storyId"] contains the target story's UUID.
     static let storyloomOpenStory = Notification.Name("storyloom.openStory")
+
+    /// Posted by RealtimeManager when a question the current reader submitted gets answered.
+    /// userInfo["record"] contains the updated question record.
+    static let storyloomQuestionAnswered = Notification.Name("storyloom.questionAnswered")
 }

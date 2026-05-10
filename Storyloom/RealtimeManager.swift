@@ -55,6 +55,18 @@ final class RealtimeManager: ObservableObject {
             }
         }
 
+        // Listen for questions being answered (UPDATE where is_answered flips to true).
+        // Readers are notified when their submitted question gets a response.
+        newChannel.onPostgresChange(
+            UpdateAction.self,
+            schema: "public",
+            table: "questions"
+        ) { [weak self] change in
+            Task { @MainActor in
+                self?.handleQuestionUpdate(record: change.record)
+            }
+        }
+
         Task {
             await newChannel.subscribe()
         }
@@ -89,11 +101,29 @@ final class RealtimeManager: ObservableObject {
         }
 
         logger.debug("new activity received on \(table)")
-        // Upsert just this one record into SwiftData — no network round-trip.
         SyncManager.shared.ingestRealtimeRecord(table: table, record: record)
-        // Notify views so activity indicators / unread badges can update.
         NotificationCenter.default.post(
             name: .storyloomNewActivity,
+            object: nil,
+            userInfo: ["table": table, "record": record]
+        )
+    }
+
+    private func handleQuestionUpdate(record: [String: AnyJSON]) {
+        // Only care about updates where is_answered just became true.
+        guard case .bool(true)? = record["is_answered"] else { return }
+
+        // Security: drop events for stories we are not subscribed to.
+        if let storyIdValue = record["story_id"],
+           case .string(let s) = storyIdValue,
+           let storyId = UUID(uuidString: s) {
+            guard allowedStoryIds.contains(storyId) else { return }
+        }
+
+        logger.debug("question answered update received")
+        SyncManager.shared.ingestRealtimeRecord(table: "questions", record: record)
+        NotificationCenter.default.post(
+            name: .storyloomQuestionAnswered,
             object: nil,
             userInfo: ["record": record]
         )

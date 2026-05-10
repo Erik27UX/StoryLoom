@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct SettingsView: View {
     @ObservedObject var authManager = AuthManager.shared
@@ -214,6 +215,7 @@ struct EditProfileImageSheet: View {
     var authManager: AuthManager
 
     @State private var previewImage: UIImage? = nil
+    @State private var currentAvatarImage: UIImage? = nil
     @State private var showCamera = false
     @State private var isSaving = false
 
@@ -238,15 +240,8 @@ struct EditProfileImageSheet: View {
                     .frame(width: 100, height: 100)
                     .overlay(Circle().stroke(SL.border, lineWidth: 1))
 
-                if let img = previewImage {
+                if let img = previewImage ?? currentAvatarImage {
                     Image(uiImage: img)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                } else if let fileName = authManager.currentUser?.profilePhotoURL,
-                          let saved = ImageManager.loadImage(fileName: fileName) {
-                    Image(uiImage: saved)
                         .resizable()
                         .scaledToFill()
                         .frame(width: 100, height: 100)
@@ -312,6 +307,15 @@ struct EditProfileImageSheet: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 24)
         .background(SL.background.ignoresSafeArea())
+        .task(id: authManager.currentUser?.profilePhotoURL) {
+            guard let fileName = authManager.currentUser?.profilePhotoURL else {
+                currentAvatarImage = nil
+                return
+            }
+            currentAvatarImage = await Task.detached(priority: .userInitiated) {
+                ImageManager.loadImage(fileName: fileName)
+            }.value
+        }
         .sheet(isPresented: $showCamera) {
             CameraPickerView(selectedImage: $previewImage)
         }
@@ -376,6 +380,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
 
 struct StorytellerSettingsContent: View {
     @ObservedObject var authManager = AuthManager.shared
+    @ObservedObject private var notifManager = NotificationManager.shared
     @AppStorage("setting.commentsEnabled") private var commentsEnabled = true
     @AppStorage("setting.reactionsEnabled") private var reactionsEnabled = true
     @AppStorage("setting.questionsEnabled") private var questionsEnabled = true
@@ -473,6 +478,8 @@ struct StorytellerSettingsContent: View {
         // Notifications
         SectionCard(title: "Notifications") {
             VStack(spacing: 12) {
+                NotificationPermissionRow(notifManager: notifManager)
+
                 HStack {
                     Text("New reader joined")
                         .font(SL.body(15))
@@ -482,8 +489,11 @@ struct StorytellerSettingsContent: View {
                         .labelsHidden()
                         .tint(SL.accent)
                 }
+                .disabled(notifManager.authorizationStatus != .authorized)
+                .opacity(notifManager.authorizationStatus == .authorized ? 1 : 0.4)
+
                 HStack {
-                    Text("Comments & reactions")
+                    Text("Comments & questions")
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
@@ -491,14 +501,18 @@ struct StorytellerSettingsContent: View {
                         .labelsHidden()
                         .tint(SL.accent)
                 }
+                .disabled(notifManager.authorizationStatus != .authorized)
+                .opacity(notifManager.authorizationStatus == .authorized ? 1 : 0.4)
             }
         }
+        .task { await notifManager.refreshStatus() }
     }
 }
 
 // MARK: - Reader Settings Content
 
 struct ReaderSettingsContent: View {
+    @ObservedObject private var notifManager = NotificationManager.shared
     @AppStorage("setting_readerNotifyNewStory") private var notifyNewStory = true
     @AppStorage("setting_readerNotifyComments") private var notifyComments = true
 
@@ -533,6 +547,8 @@ struct ReaderSettingsContent: View {
         // Notifications
         SectionCard(title: "Notifications") {
             VStack(spacing: 12) {
+                NotificationPermissionRow(notifManager: notifManager)
+
                 HStack {
                     Text("New story available")
                         .font(SL.body(15))
@@ -542,8 +558,11 @@ struct ReaderSettingsContent: View {
                         .labelsHidden()
                         .tint(SL.accent)
                 }
+                .disabled(notifManager.authorizationStatus != .authorized)
+                .opacity(notifManager.authorizationStatus == .authorized ? 1 : 0.4)
+
                 HStack {
-                    Text("Comments & reactions")
+                    Text("Question answered")
                         .font(SL.body(15))
                         .foregroundColor(SL.textPrimary)
                     Spacer()
@@ -551,7 +570,72 @@ struct ReaderSettingsContent: View {
                         .labelsHidden()
                         .tint(SL.accent)
                 }
+                .disabled(notifManager.authorizationStatus != .authorized)
+                .opacity(notifManager.authorizationStatus == .authorized ? 1 : 0.4)
             }
+        }
+        .task { await notifManager.refreshStatus() }
+    }
+}
+
+// MARK: - Notification Permission Row
+
+struct NotificationPermissionRow: View {
+    @ObservedObject var notifManager: NotificationManager
+
+    var body: some View {
+        switch notifManager.authorizationStatus {
+        case .notDetermined:
+            Button(action: {
+                Task { await notifManager.requestPermission() }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "bell.badge")
+                        .font(.system(size: 14))
+                        .foregroundColor(SL.accent)
+                    Text("Enable notifications")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(SL.accent)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12))
+                        .foregroundColor(SL.textSecondary)
+                }
+            }
+            .padding(.bottom, 4)
+
+        case .denied:
+            HStack(spacing: 8) {
+                Image(systemName: "bell.slash")
+                    .font(.system(size: 14))
+                    .foregroundColor(SL.textSecondary)
+                Text("Notifications are off")
+                    .font(.system(size: 14))
+                    .foregroundColor(SL.textSecondary)
+                Spacer()
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(SL.accent)
+            }
+            .padding(.bottom, 4)
+
+        case .authorized, .provisional, .ephemeral:
+            HStack(spacing: 6) {
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(SL.accent)
+                Text("Notifications on")
+                    .font(.system(size: 13))
+                    .foregroundColor(SL.textSecondary)
+            }
+            .padding(.bottom, 4)
+
+        @unknown default:
+            EmptyView()
         }
     }
 }

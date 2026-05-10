@@ -56,6 +56,7 @@ final class NotificationManager: NSObject, ObservableObject {
     func setup() {
         Task { await refreshAuthorizationStatus() }
         registerNotificationCategories()
+        observeActivityEvents()
     }
 
     // MARK: - Permission
@@ -148,9 +149,136 @@ final class NotificationManager: NSObject, ObservableObject {
 
     // MARK: - Status Refresh
 
-    private func refreshAuthorizationStatus() async {
+    func refreshAuthorizationStatus() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         authorizationStatus = settings.authorizationStatus
+    }
+
+    /// Convenience alias used by SettingsView.
+    func refreshStatus() async { await refreshAuthorizationStatus() }
+
+    // MARK: - Local Notification Observers
+
+    /// Subscribes to RealtimeManager events and fires local banners based on user role and Settings toggles.
+    /// Called once from setup(). Observers stay alive for the app lifetime.
+    private func observeActivityEvents() {
+        // New comment or question inserted (storyteller receives these)
+        NotificationCenter.default.addObserver(
+            forName: .storyloomNewActivity,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            self?.handleNewActivityNotification(note)
+        }
+
+        // Reader's question was answered
+        NotificationCenter.default.addObserver(
+            forName: .storyloomQuestionAnswered,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            self?.handleQuestionAnsweredNotification(note)
+        }
+    }
+
+    private func handleNewActivityNotification(_ note: Foundation.Notification) {
+        guard authorizationStatus == .authorized else { return }
+        guard let table = note.userInfo?["table"] as? String,
+              let record = note.userInfo?["record"] as? [String: AnyJSON] else { return }
+
+        let isStoryteller = AuthManager.shared.currentUser?.role == .storyteller
+        let notifyComments = UserDefaults.standard.object(forKey: "setting_notifyComments") as? Bool ?? true
+
+        guard isStoryteller, notifyComments else { return }
+
+        // Extract sender name and text preview from the Realtime record
+        let senderName: String
+        if case .string(let name)? = record["user_name"] { senderName = name } else { senderName = "Someone" }
+
+        let textPreview: String
+        if case .string(let txt)? = record["text"] {
+            textPreview = String(txt.prefix(80))
+        } else { textPreview = "" }
+
+        let storyId: UUID?
+        if case .string(let s)? = record["story_id"] { storyId = UUID(uuidString: s) } else { storyId = nil }
+
+        switch table {
+        case "comments":
+            scheduleLocalNotification(
+                title: "New comment",
+                body: textPreview.isEmpty ? "\(senderName) left a comment" : "\(senderName): \(textPreview)",
+                category: .newComment,
+                storyId: storyId
+            )
+        case "questions":
+            scheduleLocalNotification(
+                title: "New question",
+                body: textPreview.isEmpty ? "\(senderName) asked a question" : "\(senderName): \(textPreview)",
+                category: .newComment,
+                storyId: storyId
+            )
+        default:
+            break
+        }
+    }
+
+    private func handleQuestionAnsweredNotification(_ note: Foundation.Notification) {
+        guard authorizationStatus == .authorized else { return }
+        guard let record = note.userInfo?["record"] as? [String: AnyJSON] else { return }
+
+        let isReader = AuthManager.shared.currentUser?.role == .reader
+        let notifyActivity = UserDefaults.standard.object(forKey: "setting_readerNotifyComments") as? Bool ?? true
+
+        guard isReader, notifyActivity else { return }
+
+        // Only notify if this is the reader's own question
+        let currentUserName = AuthManager.shared.currentUser?.name ?? ""
+        if case .string(let questionAuthor)? = record["user_name"],
+           !currentUserName.isEmpty,
+           questionAuthor != currentUserName { return }
+
+        let answerPreview: String
+        if case .string(let ans)? = record["answer_text"] { answerPreview = String(ans.prefix(80)) } else { answerPreview = "" }
+
+        let storyId: UUID?
+        if case .string(let s)? = record["story_id"] { storyId = UUID(uuidString: s) } else { storyId = nil }
+
+        scheduleLocalNotification(
+            title: "Your question was answered",
+            body: answerPreview.isEmpty ? "Open Storyloom to read the answer" : answerPreview,
+            category: .questionAnswered,
+            storyId: storyId
+        )
+    }
+
+    /// Schedules a local UNNotificationRequest to fire immediately.
+    /// Has identical appearance to a remote push — same banner, sound, badge.
+    private func scheduleLocalNotification(
+        title: String,
+        body: String,
+        category: NotificationCategory,
+        storyId: UUID?
+    ) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.categoryIdentifier = category.rawValue
+
+        var userInfo: [String: String] = [NotificationKey.category: category.rawValue]
+        if let id = storyId { userInfo[NotificationKey.storyId] = id.uuidString }
+        content.userInfo = userInfo
+
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil  // nil = deliver immediately
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error { logger.error("local notification failed: \(error.localizedDescription, privacy: .private)") }
+        }
     }
 
     // MARK: - Tap Routing

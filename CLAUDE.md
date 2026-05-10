@@ -7,6 +7,12 @@ These must be triggered manually at the right moments. Remind the user proactive
 2. **Before adding RevenueCat / any payment system** → full security review with focus on: subscription tier write paths, webhook authentication, receipt validation, and ensuring `updateSubscriptionTier()` in AuthManager is replaced by a backend webhook (never called from client in production).
 3. **Before App Store submission** → remove `#if DEBUG` dev tier overrides in `AuthManager.swift` (`devTierOverrides` dict), replace App Store placeholder ID `id000000000` in `join.html` and `index.html`, and run security review.
 4. **After any Supabase schema change** → re-verify RLS policies cover the new tables/columns.
+5. **When Apple Developer Program enrollment is complete ($99/year)** → upgrade push notifications from local to APNs:
+   - Enable Push Notifications capability in Xcode → Signing & Capabilities (one checkbox)
+   - Download an APNs Auth Key (.p8) from Apple Developer portal → Keys section
+   - Run the Supabase DB migration to add `push_token text` column to `profiles` table (SQL in `NotificationManager.swift` comments)
+   - Write a Supabase Edge Function that triggers on DB inserts (comments, questions, story publishes) and sends APNs pushes using the .p8 key
+   - The `NotificationManager.uploadTokenToSupabase()` and all client-side code is already complete — no app changes needed beyond enabling the capability
 
 ---
 
