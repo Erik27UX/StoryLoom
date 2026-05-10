@@ -232,11 +232,12 @@ final class NotificationManager: NSObject, ObservableObject {
 
         guard isReader, notifyActivity else { return }
 
-        // Only notify if this is the reader's own question
-        let currentUserName = AuthManager.shared.currentUser?.name ?? ""
-        if case .string(let questionAuthor)? = record["user_name"],
-           !currentUserName.isEmpty,
-           questionAuthor != currentUserName { return }
+        // Only notify if this is the reader's own question — match by userId (UUID),
+        // not by display name, to avoid false positives when two readers share a name.
+        let currentUserId = AuthManager.shared.supabaseUserId?.uuidString ?? ""
+        if case .string(let questionUserId)? = record["user_id"],
+           !currentUserId.isEmpty,
+           questionUserId != currentUserId { return }
 
         let answerPreview: String
         if case .string(let ans)? = record["answer_text"] { answerPreview = String(ans.prefix(80)) } else { answerPreview = "" }
