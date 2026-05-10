@@ -9,9 +9,16 @@ struct QuestionsView: View {
 
     let story: StoryEntry
 
-    var filteredQuestions: [StoryQuestion] {
-        questions.filter { $0.storyId == story.uuid }.sorted { $0.dateCreated > $1.dateCreated }
+    init(story: StoryEntry) {
+        self.story = story
+        let storyId = story.uuid
+        _questions = Query(
+            filter: #Predicate<StoryQuestion> { $0.storyId == storyId },
+            sort: \.dateCreated, order: .reverse
+        )
     }
+
+    var filteredQuestions: [StoryQuestion] { questions }
 
     var isQuestionsLocked: Bool {
         story.authorSubscriptionTier != .family
@@ -403,6 +410,8 @@ struct AnswerQuestionSheet: View {
     @State private var answerText = ""
     @State private var pendingAudioFileName: String? = nil
 
+    private let maxAnswerLength = 2000
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -433,6 +442,19 @@ struct AnswerQuestionSheet: View {
                         .background(SL.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                        .onChange(of: answerText) { _, value in
+                            if value.count > maxAnswerLength {
+                                answerText = String(value.prefix(maxAnswerLength))
+                            }
+                        }
+                    if answerText.count > maxAnswerLength * 4 / 5 {
+                        HStack {
+                            Spacer()
+                            Text("\(answerText.count)/\(maxAnswerLength)")
+                                .font(.system(size: 11))
+                                .foregroundColor(answerText.count >= maxAnswerLength ? .red : SL.textSecondary)
+                        }
+                    }
                 }
 
                 if audio.isRecording {

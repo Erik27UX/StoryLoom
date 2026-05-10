@@ -157,6 +157,13 @@ struct ContentView: View {
             tabIds[idx] = UUID()
             DispatchQueue.main.async { coordinator.tabToReset = nil }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .storyloomOpenStory)) { note in
+            // Fired when user taps a push/local notification banner.
+            // Navigate to the relevant story regardless of which tab is active.
+            if let storyId = note.userInfo?["storyId"] as? UUID {
+                coordinator.navigateToStory(storyId)
+            }
+        }
         .onAppear(perform: seedIfNeeded)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { SyncManager.shared.pullAllUserData() }
