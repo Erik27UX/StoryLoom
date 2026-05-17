@@ -112,10 +112,10 @@ struct AnswerView: View {
                                 Spacer()
                                 Button(action: stopRecording) {
                                     HStack(spacing: 6) {
-                                        Image(systemName: "stop.fill")
-                                            .font(.system(size: 12))
-                                        Text("Stop")
-                                            .font(.system(size: 14, weight: .medium))
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 12, weight: .semibold))
+                                        Text("Done")
+                                            .font(.system(size: 14, weight: .semibold))
                                     }
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 16)
@@ -207,6 +207,11 @@ struct AnswerView: View {
                             Text("Tap to record")
                                 .font(SL.body(13))
                                 .foregroundColor(SL.accent)
+                            Text("You can transcribe your recording to text afterwards")
+                                .font(SL.body(12))
+                                .foregroundColor(SL.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -320,15 +325,16 @@ struct AnswerView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "text.bubble")
                         .font(.system(size: 14))
+                        .foregroundColor(SL.textAccent)
                     Text("Transcribe to text (optional)")
                         .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(SL.textPrimary)
                 }
-                .foregroundColor(SL.accent)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
-                .background(SL.accent.opacity(0.08))
+                .background(SL.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.accent.opacity(0.3), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.accent.opacity(0.5), lineWidth: 1))
             }
 
         case .transcribing:
@@ -350,12 +356,12 @@ struct AnswerView: View {
                 HStack {
                     Image(systemName: "text.bubble.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(SL.accent)
+                        .foregroundColor(SL.textAccent)
                     Text("Transcription ready")
                         .font(.system(size: 12, weight: .semibold))
                         .tracking(0.4)
                         .textCase(.uppercase)
-                        .foregroundColor(SL.accent)
+                        .foregroundColor(SL.textAccent)
                 }
 
                 Text(transcribedText)
