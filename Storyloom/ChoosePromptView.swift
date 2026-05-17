@@ -78,51 +78,17 @@ struct ChoosePromptView: View {
                         }
                     }
 
-                    // Write your own — prominent card
-                    NavigationLink(destination: WriteYourOwnView()) {
-                        HStack(spacing: 16) {
-                            ZStack {
-                                Circle()
-                                    .fill(SL.accent.opacity(0.12))
-                                    .frame(width: 44, height: 44)
-                                Image(systemName: "pencil.line")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(SL.accent)
-                            }
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Write your own story")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(SL.textPrimary)
-                                Text("No prompt needed — start from scratch")
-                                    .font(SL.body(13))
-                                    .foregroundColor(SL.textSecondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(SL.textSecondary)
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(SL.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(SL.accent.opacity(0.4), lineWidth: 1.5)
-                        )
-                    }
-                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
-                .padding(.bottom, 100)
+                .padding(.bottom, 32)
             }
 
-            // Bottom button
-            VStack {
+            // Bottom bar — primary + secondary action
+            VStack(spacing: 10) {
                 NavigationLink(destination: AnswerView(prompt: selectedPrompt)) {
                     Text("Continue with this prompt")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color(hex: "FDF9F0"))
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
@@ -131,6 +97,21 @@ struct ChoosePromptView: View {
                 }
                 .disabled(selectedPrompt == nil)
                 .opacity(selectedPrompt == nil ? 0.5 : 1)
+
+                NavigationLink(destination: WriteYourOwnView()) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pencil.line")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Write your own story")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(SL.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+                    .background(SL.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)

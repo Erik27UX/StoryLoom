@@ -69,8 +69,8 @@ struct StorytellerSubscriptionView: View {
                             }
                             VStack(alignment: .leading, spacing: 6) {
                                 FeatureItem("Write up to 3 stories total", included: true)
-                                FeatureItem("Private — not shareable with family", included: false)
-                                FeatureItem("Voice narration", included: false)
+                                FeatureItem("Shareable or private", included: false)
+                                FeatureItem("Voice narration", included: true)
                                 FeatureItem("Questions from readers", included: false)
                             }
                         }

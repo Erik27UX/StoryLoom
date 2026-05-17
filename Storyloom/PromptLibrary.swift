@@ -7,25 +7,38 @@ import Foundation
 
 struct DailyPromptManager {
 
-    /// Returns today's prompts for the given category, shuffled with a day-based seed.
-    /// Already-answered prompts are moved to the back so new ones appear first.
+    /// Returns today's 3 prompts for the given category (or 3 per category for .all = 24 total).
+    /// Each category is shuffled independently so the "All" view shows variety across categories.
+    /// Already-answered prompts are excluded first; if fewer than 3 remain, answered ones fill in.
     static func prompts(for category: PromptCategory, answeredQuestions: Set<String>) -> [StoryPrompt] {
-        let source: [StoryPrompt]
-        if category == .all {
-            source = PromptLibrary.all
-        } else {
-            source = PromptLibrary.all.filter { $0.category == category.rawValue }
-        }
-
-        // Day-based seed: same day → same order
         let daysSinceEpoch = Int(Date().timeIntervalSince1970 / 86400)
-        var rng = SeededRNG(seed: UInt64(daysSinceEpoch))
-        let shuffled = source.shuffled(using: &rng)
 
-        // Unanswered first, answered last
+        if category == .all {
+            // Show 3 from each of the 8 categories, each with its own shuffle seed
+            return PromptCategory.allCases
+                .filter { $0 != .all }
+                .flatMap { cat in
+                    dailySlice(for: cat, daysSinceEpoch: daysSinceEpoch, answeredQuestions: answeredQuestions)
+                }
+        } else {
+            return dailySlice(for: category, daysSinceEpoch: daysSinceEpoch, answeredQuestions: answeredQuestions)
+        }
+    }
+
+    /// Returns up to 3 prompts for one category, deterministically chosen for today.
+    private static func dailySlice(
+        for category: PromptCategory,
+        daysSinceEpoch: Int,
+        answeredQuestions: Set<String>
+    ) -> [StoryPrompt] {
+        let source = PromptLibrary.all.filter { $0.category == category.rawValue }
+        // Mix day with category position so each category gets a different shuffle
+        let catIndex = PromptCategory.allCases.firstIndex(of: category) ?? 0
+        var rng = SeededRNG(seed: UInt64(daysSinceEpoch &* 31 &+ catIndex))
+        let shuffled = source.shuffled(using: &rng)
         let unanswered = shuffled.filter { !answeredQuestions.contains($0.question) }
         let answered   = shuffled.filter {  answeredQuestions.contains($0.question) }
-        return unanswered + answered
+        return Array((unanswered + answered).prefix(3))
     }
 }
 
