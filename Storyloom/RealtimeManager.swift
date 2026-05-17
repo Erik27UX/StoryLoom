@@ -90,14 +90,15 @@ final class RealtimeManager: ObservableObject {
     // MARK: - Handle Incoming Change
 
     private func handleInsert(table: String, record: [String: AnyJSON]) {
-        // Security: drop events for stories we are not subscribed to.
-        if let storyIdValue = record["story_id"],
-           case .string(let s) = storyIdValue,
-           let storyId = UUID(uuidString: s) {
-            guard allowedStoryIds.contains(storyId) else {
-                logger.debug("dropped event for unsubscribed story")
-                return
-            }
+        // Security: drop any event that is missing story_id, has a malformed
+        // story_id, or belongs to a story we are not subscribed to.
+        // Using guard (not if-let) ensures there is no fallthrough path.
+        guard let storyIdValue = record["story_id"],
+              case .string(let s) = storyIdValue,
+              let storyId = UUID(uuidString: s),
+              allowedStoryIds.contains(storyId) else {
+            logger.debug("dropped event — missing, malformed, or unsubscribed story_id on \(table)")
+            return
         }
 
         logger.debug("new activity received on \(table)")
@@ -113,11 +114,14 @@ final class RealtimeManager: ObservableObject {
         // Only care about updates where is_answered just became true.
         guard case .bool(true)? = record["is_answered"] else { return }
 
-        // Security: drop events for stories we are not subscribed to.
-        if let storyIdValue = record["story_id"],
-           case .string(let s) = storyIdValue,
-           let storyId = UUID(uuidString: s) {
-            guard allowedStoryIds.contains(storyId) else { return }
+        // Security: drop any event that is missing story_id, has a malformed
+        // story_id, or belongs to a story we are not subscribed to.
+        guard let storyIdValue = record["story_id"],
+              case .string(let s) = storyIdValue,
+              let storyId = UUID(uuidString: s),
+              allowedStoryIds.contains(storyId) else {
+            logger.debug("dropped question update — missing, malformed, or unsubscribed story_id")
+            return
         }
 
         logger.debug("question answered update received")

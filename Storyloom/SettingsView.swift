@@ -523,36 +523,100 @@ struct StorytellerSettingsContent: View {
 // MARK: - Reader Settings Content
 
 struct ReaderSettingsContent: View {
+    @ObservedObject var authManager = AuthManager.shared
     @ObservedObject private var notifManager = NotificationManager.shared
     @AppStorage("setting_readerNotifyNewStory") private var notifyNewStory = true
     @AppStorage("setting_readerNotifyComments") private var notifyComments = true
 
     var body: some View {
-        // Upgrade CTA
-        SectionCard(title: "Upgrade") {
-            HStack(spacing: 12) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(SL.accent)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Become a Storyteller")
+        let tier = authManager.currentUser?.subscriptionTier ?? .free
+
+        if tier == .free {
+            // Free readers — upgrade CTA
+            SectionCard(title: "Upgrade") {
+                HStack(spacing: 12) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(SL.accent)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Become a Storyteller")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(SL.textPrimary)
+                        Text("Free trial for 7 days")
+                            .font(SL.body(13))
+                            .foregroundColor(SL.textSecondary)
+                    }
+                }
+                NavigationLink(destination: UpgradeView()) {
+                    Text("Try Storyteller")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Color(hex: "FDF9F0"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(SL.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.top, 4)
+            }
+        } else {
+            // Pro / Story Legend readers — show current plan + manage button
+            SectionCard(title: "Subscription") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(tier.displayName)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(SL.textPrimary)
+                            Text("Active")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(SL.textAccent)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(SL.accent.opacity(0.12))
+                                .clipShape(Capsule())
+                        }
+                        Text("Manage your plan")
+                            .font(SL.body(13))
+                            .foregroundColor(SL.textSecondary)
+                    }
+                    Spacer()
+                }
+
+                NavigationLink(destination: StorytellerSubscriptionView()) {
+                    Text("Manage plan")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(SL.textPrimary)
-                    Text("Free trial for 7 days")
-                        .font(SL.body(13))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(SL.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(SL.border, lineWidth: 1)
+                        )
+                }
+                .padding(.top, 4)
+            }
+        }
+
+        // Story Vaults
+        SectionCard(title: "Story Vaults") {
+            NavigationLink(destination: ManageStoryVaultsView()) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Manage Story Vaults")
+                            .font(SL.body(15))
+                            .foregroundColor(SL.textPrimary)
+                        Text("Remove storytellers you follow")
+                            .font(SL.body(12))
+                            .foregroundColor(SL.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
                         .foregroundColor(SL.textSecondary)
                 }
             }
-            NavigationLink(destination: UpgradeView()) {
-                Text("Try Storyteller")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(Color(hex: "FDF9F0"))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 46)
-                    .background(SL.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .padding(.top, 4)
         }
 
         // Notifications

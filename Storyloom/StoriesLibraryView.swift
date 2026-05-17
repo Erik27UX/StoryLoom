@@ -32,6 +32,13 @@ struct StoriesLibraryView: View {
             story.content.localizedCaseInsensitiveContains(debouncedSearch)
         }
 
+        // Year sort: flatten all folders into one chronological list so sorting
+        // works across the entire library, not just within each folder bucket.
+        if sortBy == .year {
+            let sorted = filtered.sorted { ($0.year ?? 0) < ($1.year ?? 0) }
+            return [(folder: nil, stories: sorted)]
+        }
+
         // Create a dictionary grouped by folder
         var grouped: [UUID?: [StoryEntry]] = [:]
 
@@ -49,10 +56,10 @@ struct StoriesLibraryView: View {
                 switch sortBy {
                 case .created:
                     return lhs.dateCreated > rhs.dateCreated
-                case .year:
-                    return (lhs.year ?? 0) < (rhs.year ?? 0)
                 case .draft, .published:
                     return lhs.dateCreated > rhs.dateCreated
+                case .year:
+                    return (lhs.year ?? 0) < (rhs.year ?? 0) // unreachable — handled above
                 }
             }
         }
@@ -151,12 +158,14 @@ struct StoriesLibraryView: View {
                         // Display grouped stories
                         ForEach(groupedStories, id: \.folder?.id) { folder, stories in
                             VStack(alignment: .leading, spacing: 12) {
-                                // Folder header
-                                Text(folder?.name ?? "Unfiled")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .tracking(1)
-                                    .textCase(.uppercase)
-                                    .foregroundColor(SL.textSecondary)
+                                // Folder header — suppressed when year sort flattens everything
+                                if sortBy != .year {
+                                    Text(folder?.name ?? "Unfiled")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .tracking(1)
+                                        .textCase(.uppercase)
+                                        .foregroundColor(SL.textSecondary)
+                                }
 
                                 // Stories in folder
                                 ForEach(stories) { story in

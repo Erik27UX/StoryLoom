@@ -34,6 +34,13 @@ struct ReaderStoriesView: View {
             story.content.localizedCaseInsensitiveContains(debouncedSearch)
         }
 
+        // Year sort: flatten all folders into one chronological list so sorting
+        // works across the entire library, not just within each folder bucket.
+        if sortBy == .year {
+            let sorted = filtered.sorted { ($0.year ?? 0) < ($1.year ?? 0) }
+            return [(folder: nil, stories: sorted)]
+        }
+
         // Group by folder
         var grouped: [UUID?: [StoryEntry]] = [:]
         for story in filtered {
@@ -48,10 +55,10 @@ struct ReaderStoriesView: View {
                 switch sortBy {
                 case .created:
                     return lhs.dateCreated > rhs.dateCreated
-                case .year:
-                    return (lhs.year ?? Int.min) > (rhs.year ?? Int.min)
                 case .draft, .published:
                     return lhs.dateCreated > rhs.dateCreated
+                case .year:
+                    return (lhs.year ?? 0) < (rhs.year ?? 0) // unreachable — handled above
                 }
             }
         }
@@ -221,21 +228,23 @@ struct ReaderStoriesView: View {
                         LazyVStack(alignment: .leading, spacing: 24) {
                             ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
                                 VStack(alignment: .leading, spacing: 12) {
-                                    // Folder section header
-                                    HStack(spacing: 6) {
-                                        Image(systemName: group.folder != nil ? "folder.fill" : "tray.fill")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(SL.accent)
-                                        Text(group.folder?.name ?? "Unfiled")
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .tracking(0.5)
-                                            .textCase(.uppercase)
-                                            .foregroundColor(SL.textSecondary)
-                                        Text("· \(group.stories.count)")
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(SL.textSecondary.opacity(0.6))
+                                    // Folder section header — suppressed when year sort flattens everything
+                                    if sortBy != .year {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: group.folder != nil ? "folder.fill" : "tray.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(SL.accent)
+                                            Text(group.folder?.name ?? "Unfiled")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .tracking(0.5)
+                                                .textCase(.uppercase)
+                                                .foregroundColor(SL.textSecondary)
+                                            Text("· \(group.stories.count)")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(SL.textSecondary.opacity(0.6))
+                                        }
+                                        .padding(.horizontal, 20)
                                     }
-                                    .padding(.horizontal, 20)
 
                                     // Stories in this folder
                                     VStack(spacing: 12) {

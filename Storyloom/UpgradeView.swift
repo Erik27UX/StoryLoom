@@ -12,23 +12,23 @@ struct UpgradeView: View {
             id: "trial",
             price: "Free",
             duration: "7 days",
-            features: ["Create & record stories", "Record voice narrations", "Save as drafts"],
+            features: ["Write up to 3 stories total", "Voice narration", "Private — not shareable"],
             recommended: false
         ),
         (
             name: "Pro",
             id: "pro",
-            price: "$4.99",
+            price: "$14.99",
             duration: "per month",
-            features: ["Everything in Free", "Share with up to 50 people", "Comments & reactions", "Audio speed controls", "Priority support"],
+            features: ["3 stories per day", "Share with family (unlimited readers)", "Voice narration", "Comments & reactions"],
             recommended: true
         ),
         (
             name: "Story Legend",
             id: "family",
-            price: "$9.99",
+            price: "$19.99",
             duration: "per month",
-            features: ["Everything in Pro", "Share with unlimited people", "Create team libraries", "Advanced privacy controls", "Story Legend support"],
+            features: ["5 stories per day", "Share with family (unlimited readers)", "Voice narration", "Questions from readers"],
             recommended: false
         ),
     ]

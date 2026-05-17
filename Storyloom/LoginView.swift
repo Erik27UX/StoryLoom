@@ -238,8 +238,13 @@ struct LoginView: View {
             return
         }
         if isSignup {
-            guard !name.isEmpty else {
+            let trimmedName = name.trimmingCharacters(in: .whitespaces)
+            guard !trimmedName.isEmpty else {
                 errorMessage = "Please enter your name"
+                return
+            }
+            guard trimmedName.count <= 100 else {
+                errorMessage = "Name must be 100 characters or fewer"
                 return
             }
         }

@@ -7,7 +7,7 @@ struct ContentView: View {
     @StateObject private var networkMonitor = NetworkMonitor.shared
     @StateObject private var syncManager = SyncManager.shared
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.scenePhase) var scenePhase
     @State private var tabIds: [Int: UUID] = [0: UUID(), 1: UUID(), 2: UUID(), 3: UUID()]
 
     init() {

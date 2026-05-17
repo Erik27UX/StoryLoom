@@ -417,8 +417,15 @@ struct StoryReadingView: View {
                 }
             }
 
-            // Unanswered questions from this user
-            let myUnanswered = storyQuestions.filter { !$0.isAnswered && $0.userName == currentUserName }
+            // Unanswered questions from this user — match by UUID so two readers
+            // with the same display name don't see each other's pending questions.
+            let myUnanswered = storyQuestions.filter { q in
+                guard !q.isAnswered else { return false }
+                if let uid = authManager.supabaseUserId {
+                    return uid == q.userId
+                }
+                return q.userName == currentUserName // fallback for older data
+            }
             if !myUnanswered.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Your pending questions")

@@ -416,9 +416,9 @@ BEGIN
     SET uses_count = uses_count + 1
     WHERE code = p_code;
 
+    -- Return only the owner's display name — never expose their UUID to clients.
     RETURN json_build_object(
-        'owner_name', v_owner_name,
-        'owner_id',   v_owner_id
+        'owner_name', v_owner_name
     );
 END; $$;
 

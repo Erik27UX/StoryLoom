@@ -5,9 +5,19 @@ struct HomeView: View {
     @ObservedObject private var authManager = AuthManager.shared
     @AppStorage("userName") private var userName = ""
     @AppStorage("subscriptionTier") private var subscriptionTier = SubscriptionTier.free.rawValue
+    @AppStorage("answeredPromptQuestions") private var answeredJSON: String = "[]"
     @Query(sort: \StoryEntry.dateCreated, order: .reverse) private var stories: [StoryEntry]
 
     @State private var showLimitSheet = false
+
+    private var answeredQuestions: Set<String> {
+        (try? JSONDecoder().decode([String].self, from: Data(answeredJSON.utf8)))
+            .map(Set.init) ?? []
+    }
+
+    private var todaysPrompt: StoryPrompt? {
+        DailyPromptManager.prompts(for: .all, answeredQuestions: answeredQuestions).first
+    }
 
     private var recentStories: [StoryEntry] { Array(stories.prefix(2)) }
     private var isFree: Bool { subscriptionTier == SubscriptionTier.free.rawValue }
@@ -124,7 +134,7 @@ struct HomeView: View {
                                 .foregroundColor(SL.accent)
                         }
 
-                        Text("What was your first job, and what did it teach you?")
+                        Text(todaysPrompt?.question ?? "What's a memory you return to often?")
                             .font(SL.serifMedium(20))
                             .foregroundColor(Color(hex: "FDF9F0"))
                             .fixedSize(horizontal: false, vertical: true)
@@ -143,7 +153,7 @@ struct HomeView: View {
                         tier: currentTier,
                         showLimitSheet: $showLimitSheet
                     ) {
-                        AnswerView(prompt: SampleData.prompts.first)
+                        AnswerView(prompt: todaysPrompt)
                     }
 
                     // Secondary button
