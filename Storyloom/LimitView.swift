@@ -72,12 +72,12 @@ struct FreeLimitView: View {
                     }
 
                     VStack(spacing: 10) {
-                        Text("You've reached your story limit")
+                        Text("Upgrade to share your stories")
                             .font(SL.heading(24))
                             .foregroundColor(SL.textPrimary)
                             .multilineTextAlignment(.center)
 
-                        Text("The free plan includes 3 stories. Upgrade to Pro to write 3 stories a day, or go Story Legend for 5 a day.")
+                        Text("The free plan includes 3 private stories. Upgrade to Pro ($18.99/mo) to publish and share with your family, or go Story Legend ($24.99/mo) for 5 stories a day and reader questions.")
                             .font(SL.body(15))
                             .foregroundColor(SL.textSecondary)
                             .multilineTextAlignment(.center)

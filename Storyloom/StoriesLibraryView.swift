@@ -50,7 +50,7 @@ struct StoriesLibraryView: View {
                 case .created:
                     return lhs.dateCreated > rhs.dateCreated
                 case .year:
-                    return (lhs.year ?? 0) > (rhs.year ?? 0)
+                    return (lhs.year ?? 0) < (rhs.year ?? 0)
                 case .draft, .published:
                     return lhs.dateCreated > rhs.dateCreated
                 }
@@ -263,7 +263,7 @@ struct StoryLibraryCard: View {
                         HStack(spacing: 3) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 10))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                             Text("Published")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(SL.textPrimary)

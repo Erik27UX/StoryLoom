@@ -3,14 +3,18 @@ import SwiftUI
 struct ChoosePromptView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: PromptCategory = .all
-    @State private var selectedPrompt: StoryPrompt? = SampleData.prompts.first
-    @State private var navigateToAnswer = false
+    @State private var selectedPrompt: StoryPrompt? = nil
 
-    var filteredPrompts: [StoryPrompt] {
-        if selectedCategory == .all {
-            return SampleData.prompts
-        }
-        return SampleData.prompts.filter { $0.category == selectedCategory.rawValue }
+    // Answered prompts stored as a JSON array of question strings in AppStorage.
+    @AppStorage("answeredPromptQuestions") private var answeredJSON: String = "[]"
+
+    private var answeredQuestions: Set<String> {
+        (try? JSONDecoder().decode([String].self, from: Data(answeredJSON.utf8)))
+            .map(Set.init) ?? []
+    }
+
+    private var displayedPrompts: [StoryPrompt] {
+        DailyPromptManager.prompts(for: selectedCategory, answeredQuestions: answeredQuestions)
     }
 
     var body: some View {
@@ -23,13 +27,12 @@ struct ChoosePromptView: View {
                             .font(SL.heading(28))
                             .foregroundColor(SL.textPrimary)
 
-                        Text("Pick one or tell your own story")
+                        Text("Fresh prompts every day — pick one or write your own")
                             .font(SL.body(16))
                             .foregroundColor(SL.textSecondary)
                     }
 
-                    // Category pills — negative horizontal padding breaks out of parent
-                    // so pills can scroll edge-to-edge with their own inset
+                    // Category pills — negative horizontal padding lets them scroll edge-to-edge
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(PromptCategory.allCases) { category in
@@ -39,6 +42,7 @@ struct ChoosePromptView: View {
                                 ) {
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         selectedCategory = category
+                                        selectedPrompt = nil
                                     }
                                 }
                             }
@@ -48,13 +52,28 @@ struct ChoosePromptView: View {
                     .padding(.horizontal, -20)
 
                     // Prompt cards
-                    ForEach(filteredPrompts) { prompt in
-                        PromptCard(
-                            prompt: prompt,
-                            isSelected: selectedPrompt == prompt
-                        ) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedPrompt = prompt
+                    if displayedPrompts.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(SL.textAccent)
+                            Text("You've answered every prompt in this category!")
+                                .font(SL.body(16))
+                                .foregroundColor(SL.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(32)
+                    } else {
+                        ForEach(displayedPrompts) { prompt in
+                            PromptCard(
+                                prompt: prompt,
+                                isSelected: selectedPrompt?.id == prompt.id,
+                                isAnswered: answeredQuestions.contains(prompt.question)
+                            ) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    selectedPrompt = prompt
+                                }
                             }
                         }
                     }
@@ -136,6 +155,12 @@ struct ChoosePromptView: View {
                 }
             }
         }
+        .onAppear {
+            // Pre-select the first unanswered prompt for smoother UX
+            if selectedPrompt == nil {
+                selectedPrompt = displayedPrompts.first(where: { !answeredQuestions.contains($0.question) })
+            }
+        }
     }
 }
 
@@ -170,16 +195,32 @@ struct CategoryPill: View {
 struct PromptCard: View {
     let prompt: StoryPrompt
     let isSelected: Bool
+    let isAnswered: Bool
     let action: () -> Void
+
+    init(prompt: StoryPrompt, isSelected: Bool, isAnswered: Bool = false, action: @escaping () -> Void) {
+        self.prompt = prompt
+        self.isSelected = isSelected
+        self.isAnswered = isAnswered
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(prompt.question)
-                    .font(SL.body(16))
-                    .foregroundColor(SL.textPrimary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top) {
+                    Text(prompt.question)
+                        .font(SL.body(16))
+                        .foregroundColor(isAnswered ? SL.textSecondary : SL.textPrimary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    if isAnswered {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(SL.textAccent.opacity(0.6))
+                    }
+                }
 
                 HStack(spacing: 4) {
                     Text(prompt.category)
@@ -191,7 +232,7 @@ struct PromptCard: View {
                             .foregroundColor(SL.textSecondary)
                         Text(era)
                             .font(SL.body(12))
-                            .foregroundColor(SL.accent)
+                            .foregroundColor(SL.textAccent)
                     }
                 }
             }
@@ -203,6 +244,7 @@ struct PromptCard: View {
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(isSelected ? SL.accent : SL.border, lineWidth: isSelected ? 2 : 1)
             )
+            .opacity(isAnswered && !isSelected ? 0.7 : 1.0)
         }
     }
 }

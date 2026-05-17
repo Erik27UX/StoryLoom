@@ -46,8 +46,7 @@ struct StoryDetailView: View {
 
     @ViewBuilder
     private var viewMode: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
 
                     // Title + metadata
@@ -66,7 +65,7 @@ struct StoryDetailView: View {
                                         .foregroundColor(SL.textSecondary)
                                     Text(formatYear(year))
                                         .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(SL.accent)
+                                        .foregroundColor(SL.textAccent)
                                 }
                             }
 
@@ -74,7 +73,7 @@ struct StoryDetailView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 10))
-                                        .foregroundColor(SL.accent)
+                                        .foregroundColor(SL.textAccent)
                                     Text("Published")
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(SL.textPrimary)
@@ -153,31 +152,28 @@ struct StoryDetailView: View {
                         .fill(SL.border)
                         .frame(height: 1)
 
-                    // Image thumbnail + Comments & Questions side by side
-                    HStack(alignment: .top, spacing: 12) {
-
-                        // Tappable image thumbnail on the left — only if story has an image
-                        if story.imageFileName != nil {
-                            Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
-                                ZStack(alignment: .bottomTrailing) {
-                                    StoryImageView(story: story, height: 80)
-                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                        .font(.system(size: 9, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .padding(5)
-                                        .background(Color.black.opacity(0.3))
-                                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                                        .padding(6)
-                                }
-                                .frame(width: 68)
-                                .frame(maxHeight: .infinity)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                    // Full-width story image — shown by default, tap to expand
+                    if story.imageFileName != nil {
+                        Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isImageExpanded = true } }) {
+                            ZStack(alignment: .bottomTrailing) {
+                                StoryImageView(story: story, height: 220)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .padding(6)
+                                    .background(Color.black.opacity(0.35))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .padding(10)
                             }
-                            .buttonStyle(.plain)
                         }
+                        .buttonStyle(.plain)
+                    }
 
-                        // Comments & Questions stacked on the right (full width when no image)
+                    // Comments & Questions
+                    HStack(alignment: .top, spacing: 12) {
+                        // Comments & Questions stacked (full width)
                         VStack(spacing: 10) {
                             // Comments: available unless disabled in settings
                             NavigationLink(destination: CommentsView(story: story)) {
@@ -250,7 +246,7 @@ struct StoryDetailView: View {
                             }
                             .disabled(!questionsUnlocked)
                         }
-                        .frame(maxWidth: story.imageFileName != nil ? nil : .infinity)
+                        .frame(maxWidth: .infinity)
                     }
 
                     // Narration player — show if story has a recording
@@ -458,7 +454,6 @@ struct StoryDetailView: View {
                         }
                     }
                 }
-            }
         }
     }
 

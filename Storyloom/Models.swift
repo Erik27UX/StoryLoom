@@ -312,31 +312,29 @@ struct StoryPrompt: Identifiable, Equatable {
 }
 
 enum PromptCategory: String, CaseIterable, Identifiable {
-    case all = "All"
-    case coreMemory = "Core Memory"
-    case love = "Love"
-    case work = "Work"
-    case family = "Family"
-    case money = "Money"
-    case adventure = "Adventure"
-    case childhood = "Childhood"
-    case wisdom = "Wisdom"
-    case home = "Home"
+    case all          = "All"
+    case coreMemory   = "Core Memory"
+    case love         = "Love"
+    case work         = "Work"
+    case family       = "Family & Friends"
+    case adventure    = "Adventure"
+    case childhood    = "Childhood"
+    case wisdom       = "Wisdom"
+    case funny        = "Funny"
 
     var id: String { rawValue }
 
     var icon: String {
         switch self {
         case .all:        return "line.3.horizontal.decrease.circle"
-        case .coreMemory: return "star.fill"
+        case .coreMemory: return "sparkles"
         case .love:       return "heart.fill"
         case .work:       return "briefcase.fill"
         case .family:     return "person.2.fill"
-        case .money:      return "dollarsign.circle"
         case .adventure:  return "airplane"
-        case .childhood:  return "house.fill"
+        case .childhood:  return "figure.run"
         case .wisdom:     return "lightbulb.fill"
-        case .home:       return "building.2.fill"
+        case .funny:      return "face.smiling.fill"
         }
     }
 }
@@ -411,7 +409,7 @@ struct SampleData {
             StoryEntry(
                 title: "Letters from your mother",
                 content: "She wrote every Sunday without fail. Even when the news was small, the letters arrived like clockwork. I still have the box tied with twine sitting in the hall closet.",
-                category: "Family",
+                category: "Family & Friends",
                 promptQuestion: "",
                 isInVault: true,
                 year: 1980,
@@ -444,7 +442,7 @@ struct SampleData {
             StoryEntry(
                 title: "The day our first child was born",
                 content: "Waiting in that hospital room felt like time had stopped. When they placed her in my arms, everything I thought I knew about love changed in an instant.",
-                category: "Family",
+                category: "Family & Friends",
                 promptQuestion: "What was the happiest day of your life?",
                 isInVault: true,
                 year: 1988,

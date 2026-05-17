@@ -31,8 +31,17 @@ struct StoryReadyView: View {
     @FocusState private var yearFocused: Bool
 
     @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
+    @AppStorage("answeredPromptQuestions") private var answeredJSON: String = "[]"
+
     private var currentTier: SubscriptionTier {
         SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free
+    }
+
+    private func markPromptAnswered(_ question: String) {
+        var answered = (try? JSONDecoder().decode([String].self, from: Data(answeredJSON.utf8))) ?? []
+        guard !answered.contains(question) else { return }
+        answered.append(question)
+        answeredJSON = (try? String(data: JSONEncoder().encode(answered), encoding: .utf8)) ?? answeredJSON
     }
 
     /// True when the user has neither typed text nor recorded narration — prevent saving an empty story.
@@ -438,16 +447,19 @@ struct StoryReadyView: View {
                 // Publish / draft
                 VStack(spacing: 10) {
                     Button(action: {
-                        if StoryLimitChecker.isAtLimit(stories: allStories, tier: currentTier) {
+                        // Free tier: cannot share — must upgrade to at least Pro
+                        if currentTier == .free {
+                            showLimitSheet = true
+                        } else if StoryLimitChecker.isAtLimit(stories: allStories, tier: currentTier) {
                             showLimitSheet = true
                         } else {
                             saveStory(publish: true)
                         }
                     }) {
                         HStack(spacing: 8) {
-                            Image(systemName: "lock.open.fill")
+                            Image(systemName: currentTier == .free ? "lock.fill" : "lock.open.fill")
                                 .font(.system(size: 15))
-                            Text("Publish to vault")
+                            Text(currentTier == .free ? "Upgrade to publish" : "Publish to vault")
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .foregroundColor(Color(hex: "FDF9F0"))
@@ -585,6 +597,10 @@ struct StoryReadyView: View {
             )
             modelContext.insert(entry)
             SyncManager.shared.pushStory(entry)
+            // Mark this prompt as answered so it moves to the back of the daily list
+            if let question = prompt?.question {
+                markPromptAnswered(question)
+            }
             confirmedEntry = entry
             confirmedIsPublished = publish
             isSaving = false

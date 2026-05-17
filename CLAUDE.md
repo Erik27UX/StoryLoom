@@ -24,6 +24,7 @@ These must be triggered manually at the right moments. Remind the user proactive
 **Xcode — one-time setup:**
 - [ ] Add **Associated Domains** capability → `applinks:storyloom.live`
   - (AASA file already deployed at `storyloom.live/.well-known/apple-app-site-association` — no web change needed)
+  - ⚠️ **Removed for simulator testing** — personal teams don't support this capability. Re-add it once enrolled in Apple Developer Program.
 - [ ] Add **Push Notifications** capability (one checkbox in Signing & Capabilities)
 
 **Apple Developer portal:**

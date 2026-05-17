@@ -98,6 +98,7 @@ struct StoryImageView: View {
     let story: StoryEntry
     var height: CGFloat = 130
     @State private var image: UIImage? = nil
+    @State private var isLoading = false
 
     var body: some View {
         Group {
@@ -108,8 +109,18 @@ struct StoryImageView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: height)
                     .clipped()
+            } else if story.imageFileName != nil {
+                // Placeholder while the JPEG loads off the main thread
+                Rectangle()
+                    .fill(SL.surface)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: height)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.system(size: 28, weight: .light))
+                            .foregroundColor(SL.border)
+                    )
             }
-            // No fallback — renders nothing when no image (preserves previous layout behaviour)
         }
         .task(id: story.imageFileName) {
             guard let name = story.imageFileName else { image = nil; return }

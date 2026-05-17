@@ -10,6 +10,9 @@ struct SL {
     static let textPrimary = Color(hex: "1C1917")
     static let textSecondary = Color(hex: "7A6A4A")
     static let textMuted = Color(hex: "A8926A")
+    /// Warm amber used as *readable text* — higher contrast than `accent` on cream backgrounds.
+    /// Use this wherever `accent` appears as a text label (prices, plan names, badges).
+    static let textAccent = Color(hex: "7A5B1E")
 
     // MARK: - Typography
     static func heading(_ size: CGFloat) -> Font {

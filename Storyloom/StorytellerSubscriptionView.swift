@@ -21,7 +21,7 @@ struct StorytellerSubscriptionView: View {
                                     .foregroundColor(SL.textSecondary)
                                 Text(authManager.currentUser?.subscriptionTier.displayName ?? "Free")
                                     .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(SL.accent)
+                                    .foregroundColor(SL.textAccent)
                             }
                             Spacer()
                             if authManager.currentUser?.subscriptionTier == .premium || authManager.currentUser?.subscriptionTier == .family {
@@ -31,7 +31,7 @@ struct StorytellerSubscriptionView: View {
                                     Text("Active")
                                         .font(.system(size: 14, weight: .medium))
                                 }
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                             }
                         }
                     }
@@ -45,22 +45,22 @@ struct StorytellerSubscriptionView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(SL.textPrimary)
 
-                        // Pro plan
+                        // Free plan — shown to inform, not selectable
                         VStack(spacing: 12) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Pro")
+                                    Text("Free")
                                         .font(.system(size: 17, weight: .semibold))
                                         .foregroundColor(SL.textPrimary)
-                                    Text("$4.99/month")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(SL.accent)
+                                    Text("3 stories total, forever")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(SL.textSecondary)
                                 }
                                 Spacer()
-                                if authManager.currentUser?.subscriptionTier == .premium {
+                                if authManager.currentUser?.subscriptionTier == .free {
                                     Text("Current plan")
                                         .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(SL.accent)
+                                        .foregroundColor(SL.textAccent)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
                                         .background(SL.accent.opacity(0.1))
@@ -68,10 +68,44 @@ struct StorytellerSubscriptionView: View {
                                 }
                             }
                             VStack(alignment: .leading, spacing: 6) {
-                                FeatureItem("Share with up to 50 people")
-                                FeatureItem("Comments & reactions")
-                                FeatureItem("Audio speed controls")
-                                FeatureItem("Priority support")
+                                FeatureItem("Write up to 3 stories total", included: true)
+                                FeatureItem("Private — not shareable with family", included: false)
+                                FeatureItem("Voice narration", included: false)
+                                FeatureItem("Questions from readers", included: false)
+                            }
+                        }
+                        .padding(12)
+                        .background(SL.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+
+                        // Pro plan
+                        VStack(spacing: 12) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Pro")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(SL.textPrimary)
+                                    Text("$18.99/month")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(SL.textAccent)
+                                }
+                                Spacer()
+                                if authManager.currentUser?.subscriptionTier == .premium {
+                                    Text("Current plan")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(SL.textAccent)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(SL.accent.opacity(0.1))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            VStack(alignment: .leading, spacing: 6) {
+                                FeatureItem("3 stories per day", included: true)
+                                FeatureItem("Share with family (unlimited readers)", included: true)
+                                FeatureItem("Voice narration", included: true)
+                                FeatureItem("Questions from readers", included: false)
                             }
                             if authManager.currentUser?.subscriptionTier != .premium {
                                 NavigationLink(destination: UpgradeView()) {
@@ -88,6 +122,7 @@ struct StorytellerSubscriptionView: View {
                         .padding(12)
                         .background(SL.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
 
                         // Story Legend plan
                         VStack(spacing: 12) {
@@ -96,15 +131,15 @@ struct StorytellerSubscriptionView: View {
                                     Text("Story Legend")
                                         .font(.system(size: 17, weight: .semibold))
                                         .foregroundColor(SL.textPrimary)
-                                    Text("$9.99/month")
+                                    Text("$24.99/month")
                                         .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(SL.accent)
+                                        .foregroundColor(SL.textAccent)
                                 }
                                 Spacer()
                                 if authManager.currentUser?.subscriptionTier == .family {
                                     Text("Current plan")
                                         .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(SL.accent)
+                                        .foregroundColor(SL.textAccent)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
                                         .background(SL.accent.opacity(0.1))
@@ -113,21 +148,21 @@ struct StorytellerSubscriptionView: View {
                                     HStack(spacing: 4) {
                                         Image(systemName: "star.fill")
                                             .font(.system(size: 10))
-                                        Text("Best value")
+                                        Text("Most features")
                                             .font(.system(size: 11, weight: .semibold))
                                     }
                                     .foregroundColor(Color(hex: "FDF9F0"))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Color.orange)
+                                    .background(SL.primary)
                                     .clipShape(Capsule())
                                 }
                             }
                             VStack(alignment: .leading, spacing: 6) {
-                                FeatureItem("Share with unlimited people")
-                                FeatureItem("Create team libraries")
-                                FeatureItem("Advanced privacy controls")
-                                FeatureItem("Story Legend support")
+                                FeatureItem("5 stories per day", included: true)
+                                FeatureItem("Share with family (unlimited readers)", included: true)
+                                FeatureItem("Voice narration", included: true)
+                                FeatureItem("Questions from readers", included: true)
                             }
                             if authManager.currentUser?.subscriptionTier != .family {
                                 NavigationLink(destination: UpgradeView()) {
@@ -144,6 +179,7 @@ struct StorytellerSubscriptionView: View {
                         .padding(12)
                         .background(SL.surface)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.accent.opacity(0.4), lineWidth: 1.5))
                     }
 
                     // Management
@@ -213,23 +249,27 @@ struct StorytellerSubscriptionView: View {
 
 struct FeatureItem: View {
     let feature: String
+    let included: Bool
 
-    init(_ feature: String) {
+    init(_ feature: String, included: Bool = true) {
         self.feature = feature
+        self.included = included
     }
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "checkmark")
+            Image(systemName: included ? "checkmark" : "xmark")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(SL.accent)
+                .foregroundColor(included ? SL.textAccent : SL.textSecondary.opacity(0.6))
             Text(feature)
                 .font(SL.body(13))
-                .foregroundColor(SL.textPrimary)
+                .foregroundColor(included ? SL.textPrimary : SL.textSecondary)
         }
     }
 }
 
 #Preview {
-    StorytellerSubscriptionView()
+    NavigationStack {
+        StorytellerSubscriptionView()
+    }
 }
