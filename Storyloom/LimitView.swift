@@ -77,7 +77,7 @@ struct FreeLimitView: View {
                             .foregroundColor(SL.textPrimary)
                             .multilineTextAlignment(.center)
 
-                        Text("The free plan includes 3 private stories. Upgrade to Pro ($18.99/mo) to publish and share with your family, or go Story Legend ($24.99/mo) for 5 stories a day and reader questions.")
+                        Text("The free plan includes 3 private stories. Upgrade to Pro ($14.99/mo) to publish and share with your family, or go Story Legend ($19.99/mo) for 5 stories a day and reader questions.")
                             .font(SL.body(15))
                             .foregroundColor(SL.textSecondary)
                             .multilineTextAlignment(.center)

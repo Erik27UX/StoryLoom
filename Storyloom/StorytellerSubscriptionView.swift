@@ -86,7 +86,7 @@ struct StorytellerSubscriptionView: View {
                                     Text("Pro")
                                         .font(.system(size: 17, weight: .semibold))
                                         .foregroundColor(SL.textPrimary)
-                                    Text("$18.99/month")
+                                    Text("$14.99/month")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(SL.textAccent)
                                 }
@@ -131,7 +131,7 @@ struct StorytellerSubscriptionView: View {
                                     Text("Story Legend")
                                         .font(.system(size: 17, weight: .semibold))
                                         .foregroundColor(SL.textPrimary)
-                                    Text("$24.99/month")
+                                    Text("$19.99/month")
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(SL.textAccent)
                                 }
