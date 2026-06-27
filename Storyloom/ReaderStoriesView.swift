@@ -280,6 +280,8 @@ struct ReaderStoriesView: View {
             .navigationDestination(for: UUID.self) { storyId in
                 if let story = stories.first(where: { $0.uuid == storyId }) {
                     StoryReadingView(story: story)
+                } else {
+                    ContentUnavailableView("Story not found", systemImage: "book.closed")
                 }
             }
         }

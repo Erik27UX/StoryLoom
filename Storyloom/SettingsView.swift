@@ -542,7 +542,7 @@ struct ReaderSettingsContent: View {
                         Text("Become a Storyteller")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(SL.textPrimary)
-                        Text("Free trial for 7 days")
+                        Text("Unlock storytelling & sharing")
                             .font(SL.body(13))
                             .foregroundColor(SL.textSecondary)
                     }

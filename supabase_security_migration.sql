@@ -524,6 +524,16 @@ END $$;
 
 
 -- ============================================================
+-- 13. PUSH NOTIFICATIONS — add push_token column to profiles
+--     Required for APNs (Phase 1 of pre-launch checklist).
+--     Safe to run if column already exists (IF NOT EXISTS guard).
+-- ============================================================
+
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS push_token text;
+
+
+-- ============================================================
 -- DONE. Verify with:
 --   SELECT policyname, cmd, roles FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;
 --   SELECT conname, contype FROM pg_constraint WHERE conrelid IN ('public.comments'::regclass, 'public.questions'::regclass, 'public.stories'::regclass, 'public.story_access'::regclass);

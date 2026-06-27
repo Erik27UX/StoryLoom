@@ -227,9 +227,9 @@ struct StoryReadyView: View {
                                 Spacer()
                                 Button(action: { AudioManager.shared.stopRecording() }) {
                                     HStack(spacing: 6) {
-                                        Image(systemName: "stop.fill")
+                                        Image(systemName: "checkmark")
                                             .font(.system(size: 12))
-                                        Text("Stop")
+                                        Text("Done")
                                             .font(.system(size: 14, weight: .medium))
                                     }
                                     .foregroundColor(.white)

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Speech
 
 struct WriteYourOwnView: View {
     @Environment(\.dismiss) private var dismiss
@@ -8,7 +9,17 @@ struct WriteYourOwnView: View {
     @State private var title: String = ""
     @State private var content: String = ""
     @State private var pendingNarrationFileName: String? = nil
+    @State private var transcriptionState: TranscriptionState = .idle
+    @State private var transcribedText: String = ""
     @State private var showMicDeniedAlert = false
+
+    enum TranscriptionState {
+        case idle
+        case available
+        case transcribing
+        case done
+        case failed
+    }
 
     private var canContinue: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -103,10 +114,10 @@ struct WriteYourOwnView: View {
                                     Spacer()
                                     Button(action: stopRecording) {
                                         HStack(spacing: 6) {
-                                            Image(systemName: "stop.fill")
-                                                .font(.system(size: 12))
-                                            Text("Stop")
-                                                .font(.system(size: 14, weight: .medium))
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 12, weight: .semibold))
+                                            Text("Done")
+                                                .font(.system(size: 14, weight: .semibold))
                                         }
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 16)
@@ -122,6 +133,7 @@ struct WriteYourOwnView: View {
 
                             } else if pendingNarrationFileName != nil {
                                 // Has a recording
+                                VStack(spacing: 10) {
                                 HStack(spacing: 12) {
                                     Button(action: togglePlayback) {
                                         ZStack {
@@ -178,6 +190,10 @@ struct WriteYourOwnView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
 
+                                // Speech-to-text offer
+                                transcriptionSection
+                                } // end VStack
+
                             } else {
                                 // No recording yet
                                 Button(action: startRecording) {
@@ -193,6 +209,11 @@ struct WriteYourOwnView: View {
                                 Text("Tap to record")
                                     .font(SL.body(13))
                                     .foregroundColor(SL.accent)
+                                Text("You can transcribe your recording to text afterwards")
+                                    .font(SL.body(12))
+                                    .foregroundColor(SL.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -293,6 +314,166 @@ struct WriteYourOwnView: View {
         if let pending = pendingNarrationFileName {
             AudioManager.shared.deleteRecording(fileName: pending)
             pendingNarrationFileName = nil
+        }
+        transcriptionState = .idle
+        transcribedText = ""
+    }
+
+    // MARK: - Speech-to-Text
+
+    @ViewBuilder
+    private var transcriptionSection: some View {
+        switch transcriptionState {
+        case .idle, .available:
+            Button(action: transcribeRecording) {
+                HStack(spacing: 8) {
+                    Image(systemName: "text.bubble")
+                        .font(.system(size: 14))
+                        .foregroundColor(SL.textAccent)
+                    Text("Transcribe to text (optional)")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(SL.textPrimary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(SL.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.accent.opacity(0.5), lineWidth: 1))
+            }
+
+        case .transcribing:
+            HStack(spacing: 10) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: SL.accent))
+                    .scaleEffect(0.85)
+                Text("Transcribing your recording…")
+                    .font(SL.body(14))
+                    .foregroundColor(SL.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(SL.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+        case .done:
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "text.bubble.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(SL.textAccent)
+                    Text("Transcription ready")
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(0.4)
+                        .textCase(.uppercase)
+                        .foregroundColor(SL.textAccent)
+                }
+                ScrollView {
+                    Text(transcribedText)
+                        .font(SL.body(14))
+                        .foregroundColor(SL.textPrimary)
+                        .lineSpacing(4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 120)
+
+                HStack(spacing: 8) {
+                    Button(action: {
+                        content = transcribedText
+                        transcriptionState = .idle
+                    }) {
+                        Text("Use this text")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "FDF9F0"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(SL.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    Button(action: {
+                        transcriptionState = .idle
+                        transcribedText = ""
+                    }) {
+                        Text("Ignore")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(SL.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(SL.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(SL.border, lineWidth: 1))
+                    }
+                }
+            }
+            .padding(14)
+            .background(SL.accent.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.accent.opacity(0.25), lineWidth: 1))
+
+        case .failed:
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 14))
+                    .foregroundColor(SL.textSecondary)
+                Text("Transcription unavailable — type your story below.")
+                    .font(SL.body(13))
+                    .foregroundColor(SL.textSecondary)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(SL.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private func transcribeRecording() {
+        guard let fileName = pendingNarrationFileName else { return }
+        let url = AudioManager.narrationURL(fileName: fileName)
+        transcriptionState = .transcribing
+        Task {
+            let authStatus = SFSpeechRecognizer.authorizationStatus()
+            if authStatus == .notDetermined {
+                let granted = await withCheckedContinuation { cont in
+                    SFSpeechRecognizer.requestAuthorization { status in
+                        cont.resume(returning: status == .authorized)
+                    }
+                }
+                guard granted else {
+                    await MainActor.run { transcriptionState = .failed }
+                    return
+                }
+            } else if authStatus != .authorized {
+                await MainActor.run { transcriptionState = .failed }
+                return
+            }
+            guard let recognizer = SFSpeechRecognizer(locale: Locale.current),
+                  recognizer.isAvailable else {
+                await MainActor.run { transcriptionState = .failed }
+                return
+            }
+            let request = SFSpeechURLRecognitionRequest(url: url)
+            request.shouldReportPartialResults = false
+            do {
+                let result = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<SFSpeechRecognitionResult, Error>) in
+                    recognizer.recognitionTask(with: request) { result, error in
+                        if let result = result, result.isFinal {
+                            cont.resume(returning: result)
+                        } else if let error = error {
+                            cont.resume(throwing: error)
+                        }
+                    }
+                }
+                let text = result.bestTranscription.formattedString
+                await MainActor.run {
+                    if text.trimmingCharacters(in: .whitespaces).isEmpty {
+                        transcriptionState = .failed
+                    } else {
+                        transcribedText = text
+                        transcriptionState = .done
+                    }
+                }
+            } catch {
+                await MainActor.run { transcriptionState = .failed }
+            }
         }
     }
 }

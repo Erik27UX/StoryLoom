@@ -23,6 +23,7 @@ struct EditStoryView: View {
     @State private var isVault: Bool
     @State private var pendingNarrationFileName: String? = nil
     @State private var showDeleteConfirm: Bool = false
+    @State private var isSaving: Bool = false
     @State private var pickerItem: PhotosPickerItem? = nil
     @State private var selectedUIImage: UIImage? = nil  // New image picked but not yet saved
     @State private var existingImage: UIImage? = nil    // Loaded async from disk
@@ -392,9 +393,9 @@ struct EditStoryView: View {
                     Spacer()
                     Button(action: { AudioManager.shared.stopRecording() }) {
                         HStack(spacing: 6) {
-                            Image(systemName: "stop.fill")
+                            Image(systemName: "checkmark")
                                 .font(.system(size: 12))
-                            Text("Stop")
+                            Text("Done")
                                 .font(.system(size: 14, weight: .medium))
                         }
                         .foregroundColor(.white)
@@ -547,6 +548,8 @@ struct EditStoryView: View {
     }
 
     private func saveChanges() {
+        guard !isSaving else { return }
+        isSaving = true
         audio.stop()
         if let story {
             story.content = storyText

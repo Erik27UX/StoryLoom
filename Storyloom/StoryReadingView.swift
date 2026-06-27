@@ -43,8 +43,8 @@ struct StoryReadingView: View {
     @State private var isSubmittingComment = false
     @State private var isSubmittingQuestion = false
 
-    private let maxCommentLength = 500
-    private let maxQuestionLength = 500
+    private let maxCommentLength = 2000
+    private let maxQuestionLength = 1000
 
     private var questionsUnlocked: Bool {
         story.authorSubscriptionTier == .family && questionsEnabled

@@ -364,10 +364,14 @@ struct AnswerView: View {
                         .foregroundColor(SL.textAccent)
                 }
 
-                Text(transcribedText)
-                    .font(SL.body(14))
-                    .foregroundColor(SL.textPrimary)
-                    .lineSpacing(4)
+                ScrollView {
+                    Text(transcribedText)
+                        .font(SL.body(14))
+                        .foregroundColor(SL.textPrimary)
+                        .lineSpacing(4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 120)
 
                 HStack(spacing: 8) {
                     Button(action: {
