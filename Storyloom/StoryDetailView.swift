@@ -372,6 +372,8 @@ struct StoryDetailView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
                 .padding(.bottom, 40)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .background(SL.background)
             .navigationBarBackButtonHidden(true)

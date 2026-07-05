@@ -89,6 +89,8 @@ struct FolderManagerView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
                 .padding(.bottom, 32)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .background(SL.background)
             .navigationBarBackButtonHidden(true)
@@ -120,7 +122,7 @@ struct FolderManagerView: View {
     }
 
     private func createFolder() {
-        let trimmed = newFolderName.trimmingCharacters(in: .whitespaces)
+        let trimmed = String(newFolderName.trimmingCharacters(in: .whitespaces).prefix(50))
         guard !trimmed.isEmpty else { return }
 
         let folder = Folder(name: trimmed)

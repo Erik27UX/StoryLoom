@@ -122,6 +122,7 @@ struct ReaderActivityView: View {
         .padding(.horizontal, 20)
         .padding(.top, 16)
         .padding(.bottom, 40)
+        .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

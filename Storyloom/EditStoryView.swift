@@ -24,6 +24,8 @@ struct EditStoryView: View {
     @State private var pendingNarrationFileName: String? = nil
     @State private var showDeleteConfirm: Bool = false
     @State private var isSaving: Bool = false
+    @State private var showNewFolderAlert: Bool = false
+    @State private var newFolderName: String = ""
     @State private var pickerItem: PhotosPickerItem? = nil
     @State private var selectedUIImage: UIImage? = nil  // New image picked but not yet saved
     @State private var existingImage: UIImage? = nil    // Loaded async from disk
@@ -175,12 +177,18 @@ struct EditStoryView: View {
                                             }
                                         }
                                     }
+                                    Divider()
+                                    Button(action: { newFolderName = ""; showNewFolderAlert = true }) {
+                                        Label("New Folder…", systemImage: "folder.badge.plus")
+                                    }
                                 } label: {
                                     HStack {
                                         Image(systemName: "folder.fill")
                                             .font(.system(size: 14))
                                         Text(selectedFolder?.name ?? "Unfiled")
                                             .font(SL.body(15))
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
                                         Spacer()
                                         Image(systemName: "chevron.down")
                                             .font(.system(size: 12, weight: .medium))
@@ -259,6 +267,8 @@ struct EditStoryView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
                 .padding(.bottom, 32)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -299,6 +309,23 @@ struct EditStoryView: View {
         } message: {
             Text("This will permanently remove the story and cannot be undone.")
         }
+        .alert("New Folder", isPresented: $showNewFolderAlert) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Create") { createAndSelectFolder() }
+            Button("Cancel", role: .cancel) { newFolderName = "" }
+        } message: {
+            Text("Enter a name for your new folder")
+        }
+    }
+
+    private func createAndSelectFolder() {
+        let trimmed = String(newFolderName.trimmingCharacters(in: .whitespaces).prefix(50))
+        guard !trimmed.isEmpty else { return }
+        let folder = Folder(name: trimmed)
+        modelContext.insert(folder)
+        SyncManager.shared.pushFolder(folder)
+        selectedFolder = folder
+        newFolderName = ""
     }
 
     // MARK: - Image Section

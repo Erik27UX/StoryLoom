@@ -262,6 +262,8 @@ struct ReaderStoriesView: View {
                     }
                 }
                 .padding(.top, 4)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
             .refreshable {
                 await SyncManager.shared.pullAllUserDataAsync()

@@ -28,6 +28,8 @@ struct StoryReadyView: View {
     @State private var confirmedIsPublished: Bool = false
     @State private var showLimitSheet = false
     @State private var isSaving = false
+    @State private var showNewFolderAlert: Bool = false
+    @State private var newFolderName: String = ""
     @FocusState private var yearFocused: Bool
 
     @AppStorage("subscriptionTier") private var subscriptionTierRaw = SubscriptionTier.free.rawValue
@@ -434,6 +436,10 @@ struct StoryReadyView: View {
                                     }
                                 }
                             }
+                            Divider()
+                            Button(action: { newFolderName = ""; showNewFolderAlert = true }) {
+                                Label("New Folder…", systemImage: "folder.badge.plus")
+                            }
                         } label: {
                             menuLabel(icon: "folder.fill", text: selectedFolder?.name ?? "Unfiled")
                         }
@@ -496,9 +502,18 @@ struct StoryReadyView: View {
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 40)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
         }
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
+        .alert("New Folder", isPresented: $showNewFolderAlert) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Create") { createAndSelectFolder() }
+            Button("Cancel", role: .cancel) { newFolderName = "" }
+        } message: {
+            Text("Enter a name for your new folder")
+        }
         .fullScreenCover(isPresented: $showConfirmation) {
             saveConfirmationView
         }
@@ -543,6 +558,8 @@ struct StoryReadyView: View {
             Text(text)
                 .font(SL.body(15))
                 .foregroundColor(SL.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
             Spacer()
             Image(systemName: "chevron.down")
                 .font(.system(size: 12, weight: .medium))
@@ -606,6 +623,16 @@ struct StoryReadyView: View {
             isSaving = false
             showConfirmation = true
         }
+    }
+
+    private func createAndSelectFolder() {
+        let trimmed = String(newFolderName.trimmingCharacters(in: .whitespaces).prefix(50))
+        guard !trimmed.isEmpty else { return }
+        let folder = Folder(name: trimmed)
+        modelContext.insert(folder)
+        SyncManager.shared.pushFolder(folder)
+        selectedFolder = folder
+        newFolderName = ""
     }
 
     private func deriveTitle(from text: String) -> String {

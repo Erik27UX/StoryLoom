@@ -214,6 +214,8 @@ struct LoginView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 32)
                 .padding(.bottom, 40)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView()
@@ -281,9 +283,11 @@ struct LoginView: View {
 
         if message.contains("invalid login credentials") || message.contains("invalid_credentials") {
             return "Email or password is incorrect"
+        } else if message.contains("email not confirmed") || message.contains("email_not_confirmed") {
+            return "Please confirm your email first — check your inbox for the link we sent."
         } else if message.contains("email already") || message.contains("already registered") {
             return "This email is already registered. Sign in instead."
-        } else if message.contains("rate limit") {
+        } else if message.contains("rate limit") || message.contains("over_email_send_rate_limit") {
             return "Too many attempts. Wait a moment and try again."
         } else if message.contains("network") || message.contains("connection") {
             return "Check your internet connection"
@@ -291,7 +295,7 @@ struct LoginView: View {
             return "Password must be at least 6 characters"
         } else if message.contains("unable to validate email") || message.contains("invalid email") {
             return "Enter a valid email address"
-        } else if message.contains("user") {
+        } else if message.contains("user not found") || message.contains("user_not_found") {
             return "Account not found"
         }
         return "Something went wrong. Try again."
