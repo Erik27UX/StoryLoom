@@ -72,7 +72,7 @@ struct ReadersView: View {
                                     }
                                     Text("Invite")
                                         .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(SL.accent)
+                                        .foregroundColor(SL.textAccent)
                                 }
                             }
 

@@ -59,7 +59,9 @@ struct SettingsView: View {
                                         .foregroundColor(SL.textPrimary)
                                         .multilineTextAlignment(.center)
                                     Button(action: {
-                                        authManager.updateUserProfile(name: editedName, birthYear: authManager.currentUser?.birthYear, profilePhotoURL: authManager.currentUser?.profilePhotoURL)
+                                        let trimmed = editedName.trimmingCharacters(in: .whitespaces)
+                                        guard !trimmed.isEmpty, trimmed.count <= 100 else { return }
+                                        authManager.updateUserProfile(name: trimmed, birthYear: authManager.currentUser?.birthYear, profilePhotoURL: authManager.currentUser?.profilePhotoURL)
                                         isEditingName = false
                                     }) {
                                         Image(systemName: "checkmark.circle.fill")
@@ -410,7 +412,7 @@ struct StorytellerSettingsContent: View {
                         if authManager.currentUser?.subscriptionTier == .premium || authManager.currentUser?.subscriptionTier == .family {
                             Text("Active")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(SL.accent.opacity(0.12))
@@ -469,7 +471,7 @@ struct StorytellerSettingsContent: View {
                         if authManager.currentUser?.subscriptionTier != .family {
                             Text("Requires Story Legend plan")
                                 .font(SL.body(11))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                         }
                     }
                     Spacer()
