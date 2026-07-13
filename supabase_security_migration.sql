@@ -522,6 +522,18 @@ DO $$ BEGIN
     END IF;
 END $$;
 
+-- Folders (mirrors the 50-char client-side cap added when folder creation
+-- from the story editor shipped)
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'folders_name_length' AND conrelid = 'public.folders'::regclass
+    ) THEN
+        ALTER TABLE public.folders
+        ADD CONSTRAINT folders_name_length CHECK (char_length(name) BETWEEN 1 AND 50);
+    END IF;
+END $$;
+
 
 -- ============================================================
 -- 13. PUSH NOTIFICATIONS — add push_token column to profiles
@@ -531,6 +543,67 @@ END $$;
 
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS push_token text;
+
+
+-- ============================================================
+-- 14. STORAGE — lock down story-audio and story-images buckets
+--     These buckets hold narration audio and story photos, uploaded by
+--     SyncManager.uploadAudio()/uploadImage() and downloaded by
+--     downloadAudio()/downloadImage(). Without these policies, bucket
+--     access depends entirely on whether the bucket is marked Public in
+--     the dashboard — if so, ANYONE with a story's UUID can fetch its
+--     audio/image directly via the public CDN URL, bypassing the
+--     stories/story_access RLS entirely, even for unpublished stories.
+--
+--     Run this AFTER confirming both buckets exist and are set to
+--     Private in Dashboard → Storage → (bucket) → Configuration.
+-- ============================================================
+
+DROP POLICY IF EXISTS "Story media readable by owner or granted readers" ON storage.objects;
+DROP POLICY IF EXISTS "Story media writable by owner only" ON storage.objects;
+DROP POLICY IF EXISTS "Story media updatable by owner only" ON storage.objects;
+
+-- SELECT (download): story owner, or a reader granted story_access
+CREATE POLICY "Story media readable by owner or granted readers"
+ON storage.objects FOR SELECT TO authenticated
+USING (
+    bucket_id IN ('story-audio', 'story-images')
+    AND EXISTS (
+        SELECT 1 FROM public.stories s
+        WHERE s.id::text = split_part(storage.objects.name, '.', 1)
+          AND (
+            s.owner_id = auth.uid()
+            OR EXISTS (
+                SELECT 1 FROM public.story_access sa
+                WHERE sa.story_id = s.id AND sa.user_id = auth.uid()
+            )
+          )
+    )
+);
+
+-- INSERT (upload): only the story's owner
+CREATE POLICY "Story media writable by owner only"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+    bucket_id IN ('story-audio', 'story-images')
+    AND EXISTS (
+        SELECT 1 FROM public.stories s
+        WHERE s.id::text = split_part(storage.objects.name, '.', 1)
+          AND s.owner_id = auth.uid()
+    )
+);
+
+-- UPDATE (re-upload / upsert): only the story's owner
+CREATE POLICY "Story media updatable by owner only"
+ON storage.objects FOR UPDATE TO authenticated
+USING (
+    bucket_id IN ('story-audio', 'story-images')
+    AND EXISTS (
+        SELECT 1 FROM public.stories s
+        WHERE s.id::text = split_part(storage.objects.name, '.', 1)
+          AND s.owner_id = auth.uid()
+    )
+);
 
 
 -- ============================================================
