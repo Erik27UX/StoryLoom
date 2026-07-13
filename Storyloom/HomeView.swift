@@ -137,6 +137,7 @@ struct HomeView: View {
                         Text(todaysPrompt?.question ?? "What's a memory you return to often?")
                             .font(SL.serifMedium(20))
                             .foregroundColor(Color(hex: "FDF9F0"))
+                            .lineSpacing(6)
                             .fixedSize(horizontal: false, vertical: true)
 
                     }
@@ -336,6 +337,7 @@ struct RecentStoryCard: View {
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(SL.border, lineWidth: 1)
             )
+            .contentShape(Rectangle())
         }
     }
 }

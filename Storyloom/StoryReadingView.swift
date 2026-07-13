@@ -300,6 +300,11 @@ struct StoryReadingView: View {
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
         .onAppear { isLiked = LikeManager.shared.isLiked(story.uuid) }
+        .onDisappear {
+            if audio.currentFileName == story.narrationFileName {
+                audio.pause()
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: { dismiss() }) {

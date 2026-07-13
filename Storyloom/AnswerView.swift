@@ -51,6 +51,7 @@ struct AnswerView: View {
                             Text(prompt.question)
                                 .font(SL.serifMedium(18))
                                 .foregroundColor(Color(hex: "FDF9F0"))
+                                .lineSpacing(6)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(20)

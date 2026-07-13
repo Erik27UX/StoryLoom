@@ -490,6 +490,9 @@ struct StorytellerSettingsContent: View {
             }
         }
 
+        // Display
+        DisplaySettingsCard()
+
         // Notifications
         SectionCard(title: "Notifications") {
             VStack(spacing: 12) {
@@ -623,6 +626,9 @@ struct ReaderSettingsContent: View {
             }
         }
 
+        // Display
+        DisplaySettingsCard()
+
         // Notifications
         SectionCard(title: "Notifications") {
             VStack(spacing: 12) {
@@ -715,6 +721,27 @@ struct NotificationPermissionRow: View {
 
         @unknown default:
             EmptyView()
+        }
+    }
+}
+
+// MARK: - Display Settings (Text Size)
+
+struct DisplaySettingsCard: View {
+    @ObservedObject private var textSizeManager = TextSizeManager.shared
+
+    var body: some View {
+        SectionCard(title: "Display") {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Text Size")
+                    .font(SL.body(15))
+                    .foregroundColor(SL.textPrimary)
+                Picker("Text Size", selection: $textSizeManager.isLarge) {
+                    Text("Normal").tag(false)
+                    Text("Large").tag(true)
+                }
+                .pickerStyle(.segmented)
+            }
         }
     }
 }

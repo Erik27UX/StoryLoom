@@ -15,20 +15,22 @@ struct SL {
     static let textAccent = Color(hex: "7A5B1E")
 
     // MARK: - Typography
+    private static var scale: CGFloat { TextSizeManager.shared.scale }
+
     static func heading(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .medium, design: .default)
+        .system(size: size * scale, weight: .medium, design: .default)
     }
 
     static func body(_ size: CGFloat = 16) -> Font {
-        .system(size: size, weight: .regular, design: .default)
+        .system(size: size * scale, weight: .regular, design: .default)
     }
 
     static func serif(_ size: CGFloat = 16) -> Font {
-        .custom("Georgia", size: size)
+        .custom("Georgia", size: size * scale)
     }
 
     static func serifMedium(_ size: CGFloat = 16) -> Font {
-        .custom("Georgia-Bold", size: size)
+        .custom("Georgia-Bold", size: size * scale)
     }
 }
 

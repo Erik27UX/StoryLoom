@@ -221,6 +221,7 @@ struct ReaderStoryCard: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(SL.border, lineWidth: 1)
         )
+        .contentShape(Rectangle())
     }
 
     private func formatCardYear(_ year: Int) -> String {

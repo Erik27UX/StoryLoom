@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var coordinator = AppCoordinator.shared
     @StateObject private var networkMonitor = NetworkMonitor.shared
     @StateObject private var syncManager = SyncManager.shared
+    @StateObject private var textSizeManager = TextSizeManager.shared
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) var scenePhase
     @State private var tabIds: [Int: UUID] = [0: UUID(), 1: UUID(), 2: UUID(), 3: UUID()]

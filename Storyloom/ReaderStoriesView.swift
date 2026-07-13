@@ -363,6 +363,7 @@ struct StoryCardForReader: View {
         .background(SL.surface)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(SL.border, lineWidth: 1))
+        .contentShape(Rectangle())
     }
 }
 

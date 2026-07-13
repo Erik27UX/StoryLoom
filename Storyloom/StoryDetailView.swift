@@ -380,6 +380,11 @@ struct StoryDetailView: View {
             .onAppear {
                 isLiked = LikeManager.shared.isLiked(story.uuid)
             }
+            .onDisappear {
+                if audio.currentFileName == story.narrationFileName {
+                    audio.pause()
+                }
+            }
             .onChange(of: isImageExpanded) { _, expanded in
                 guard expanded, let name = story.imageFileName else { return }
                 Task.detached(priority: .userInitiated) {
