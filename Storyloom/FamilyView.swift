@@ -163,75 +163,35 @@ struct ReadersView: View {
     }
 
     private func fetchReaders() {
-        guard let uid = AuthManager.shared.supabaseUserId else { return }
+        guard AuthManager.shared.supabaseUserId != nil else { return }
         isLoadingReaders = true
         Task {
             do {
-                // Fetch story IDs for this storyteller
-                struct StoryIdRow: Decodable {
-                    let id: UUID
-                }
-                let stories: [StoryIdRow] = try await SupabaseManager.shared.client
-                    .from("stories")
-                    .select("id")
-                    .eq("owner_id", value: uid.uuidString)
-                    .execute()
-                    .value
-
-                let storyIds = stories.map { $0.id.uuidString }
-                guard !storyIds.isEmpty else {
-                    await MainActor.run { isLoadingReaders = false }
-                    return
-                }
-
-                // Fetch story_access rows for those stories + profile info
-                struct AccessRow: Decodable {
-                    let userId: UUID
-                    let dateGranted: Date
-                    enum CodingKeys: String, CodingKey {
-                        case userId = "user_id"
-                        case dateGranted = "date_granted"
-                    }
-                }
-                let accessRows: [AccessRow] = try await SupabaseManager.shared.client
-                    .from("story_access")
-                    .select("user_id, date_granted")
-                    .in("story_id", values: storyIds)
-                    .execute()
-                    .value
-
-                // Collect unique user IDs
-                var seenIds = Set<UUID>()
-                var uniqueAccess: [AccessRow] = []
-                for row in accessRows {
-                    if !seenIds.contains(row.userId) {
-                        seenIds.insert(row.userId)
-                        uniqueAccess.append(row)
-                    }
-                }
-
-                // Fetch profiles for those user IDs
-                struct ProfileRow: Decodable {
+                // Single server-side call — get_my_readers() returns one row per
+                // reader (id, name, email, earliest grant date) scoped to stories
+                // owned by the caller. Avoids the self-only profiles RLS that would
+                // otherwise block reading other users' profiles from the client.
+                struct ReaderRow: Decodable {
                     let id: UUID
                     let name: String?
                     let email: String?
+                    let dateGranted: Date
+                    enum CodingKeys: String, CodingKey {
+                        case id, name, email
+                        case dateGranted = "date_granted"
+                    }
                 }
-                let profileIds = uniqueAccess.map { $0.userId.uuidString }
-                let profiles: [ProfileRow] = profileIds.isEmpty ? [] : try await SupabaseManager.shared.client
-                    .from("profiles")
-                    .select("id, name, email")
-                    .in("id", values: profileIds)
+                let rows: [ReaderRow] = try await SupabaseManager.shared.client
+                    .rpc("get_my_readers")
                     .execute()
                     .value
 
-                let profileById = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0) })
-                let result: [RealReader] = uniqueAccess.compactMap { access in
-                    guard let profile = profileById[access.userId] else { return nil }
-                    return RealReader(
-                        id: access.userId,
-                        name: profile.name ?? profile.email ?? "Reader",
-                        email: profile.email ?? "",
-                        joinedDate: access.dateGranted
+                let result: [RealReader] = rows.map { row in
+                    RealReader(
+                        id: row.id,
+                        name: row.name ?? row.email ?? "Reader",
+                        email: row.email ?? "",
+                        joinedDate: row.dateGranted
                     )
                 }
 

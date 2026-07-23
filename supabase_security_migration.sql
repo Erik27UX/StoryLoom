@@ -607,6 +607,32 @@ USING (
 
 
 -- ============================================================
+-- 15. GET_MY_READERS RPC — storyteller reads their own readers
+--     The profiles SELECT policy is self-only (auth.uid() = id), which is
+--     correct for privacy but blocks ReadersView.fetchReaders() from looking
+--     up reader names/emails — leaving the Readers tab empty.
+--     This SECURITY DEFINER function returns ONLY id/name/email/join-date,
+--     and ONLY for users who have access to the calling storyteller's stories.
+--     Preferred over a broad profiles SELECT policy, which would also expose
+--     readers' push_token and any future profile columns.
+--     One row per reader (earliest grant = join date).
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.get_my_readers()
+RETURNS TABLE (id uuid, name text, email text, date_granted timestamptz)
+LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+    SELECT p.id, p.name, p.email, MIN(sa.date_granted) AS date_granted
+    FROM public.story_access sa
+    JOIN public.stories  s ON s.id = sa.story_id
+    JOIN public.profiles p ON p.id = sa.user_id
+    WHERE s.owner_id = auth.uid()
+    GROUP BY p.id, p.name, p.email;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_my_readers() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_my_readers() TO authenticated;
+
+
+-- ============================================================
 -- DONE. Verify with:
 --   SELECT policyname, cmd, roles FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;
 --   SELECT conname, contype FROM pg_constraint WHERE conrelid IN ('public.comments'::regclass, 'public.questions'::regclass, 'public.stories'::regclass, 'public.story_access'::regclass);
