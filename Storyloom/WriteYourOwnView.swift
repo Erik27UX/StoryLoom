@@ -452,6 +452,11 @@ struct WriteYourOwnView: View {
             }
             let request = SFSpeechURLRecognitionRequest(url: url)
             request.shouldReportPartialResults = false
+            // Keep personal story audio on-device when supported (falls back to
+            // Apple's servers only on devices/locales without on-device support).
+            if recognizer.supportsOnDeviceRecognition {
+                request.requiresOnDeviceRecognition = true
+            }
             do {
                 let result = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<SFSpeechRecognitionResult, Error>) in
                     recognizer.recognitionTask(with: request) { result, error in
