@@ -138,7 +138,7 @@ struct ReaderActivityView: View {
             Spacer()
             Text("\(count) new")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundColor(SL.accent)
+                .foregroundColor(SL.textAccent)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
                 .background(SL.accent.opacity(0.1))

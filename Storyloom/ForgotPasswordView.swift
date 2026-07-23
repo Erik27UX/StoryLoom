@@ -21,7 +21,7 @@ struct ForgotPasswordView: View {
                                 .font(.system(size: 16, weight: .medium))
                             Text("Back")
                         }
-                        .foregroundColor(SL.accent)
+                        .foregroundColor(SL.textAccent)
                     }
                     Spacer()
                 }
@@ -75,7 +75,7 @@ struct ForgotPasswordView: View {
                                 }) {
                                     Text("Try again")
                                         .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(SL.accent)
+                                        .foregroundColor(SL.textAccent)
                                 }
                             }
                             .frame(maxWidth: .infinity)

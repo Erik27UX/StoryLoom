@@ -147,7 +147,7 @@ struct ReadersView: View {
                     Button(action: { showManageSheet = true }) {
                         Text("Manage Readers")
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(SL.accent)
+                            .foregroundColor(SL.textAccent)
                     }
                 }
             }
@@ -275,7 +275,7 @@ struct ManageReadersSheet: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Invite a new reader")
                                     .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(SL.accent)
+                                    .foregroundColor(SL.textAccent)
                                 Text("Share a private link to grant access")
                                     .font(SL.body(12))
                                     .foregroundColor(SL.textSecondary)

@@ -73,7 +73,7 @@ struct StoryReadingView: View {
                                 .foregroundColor(SL.textSecondary)
                             Text(formatYear(year))
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                         }
                         if let author = story.authorName {
                             Text("·")
@@ -313,7 +313,7 @@ struct StoryReadingView: View {
                             .font(.system(size: 16, weight: .medium))
                         Text("Back")
                     }
-                    .foregroundColor(SL.accent)
+                    .foregroundColor(SL.textAccent)
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {

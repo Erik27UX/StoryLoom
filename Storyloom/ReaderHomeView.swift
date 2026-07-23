@@ -174,7 +174,7 @@ struct ReaderStoryCard: View {
                         .foregroundColor(SL.accent)
                     Text(folderName)
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(SL.accent)
+                        .foregroundColor(SL.textAccent)
                 }
             }
 

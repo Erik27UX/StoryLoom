@@ -177,7 +177,7 @@ struct QuestionCard: View {
                             .foregroundColor(SL.accent)
                         Text("Answered")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(SL.accent)
+                            .foregroundColor(SL.textAccent)
                         Spacer()
                     }
 
@@ -350,7 +350,7 @@ struct AskQuestionSheet: View {
                             Image(systemName: "waveform.circle.fill").font(.system(size: 16))
                             Text("Record audio question (optional)").font(.system(size: 14, weight: .medium))
                         }
-                        .foregroundColor(SL.accent).frame(maxWidth: .infinity).padding(12)
+                        .foregroundColor(SL.textAccent).frame(maxWidth: .infinity).padding(12)
                         .background(SL.accent.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
@@ -523,7 +523,7 @@ struct AnswerQuestionSheet: View {
                             Image(systemName: "waveform.circle.fill").font(.system(size: 16))
                             Text("Record audio answer (optional)").font(.system(size: 14, weight: .medium))
                         }
-                        .foregroundColor(SL.accent).frame(maxWidth: .infinity).padding(12)
+                        .foregroundColor(SL.textAccent).frame(maxWidth: .infinity).padding(12)
                         .background(SL.accent.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }

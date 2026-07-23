@@ -149,7 +149,7 @@ struct LoginView: View {
                                     Button(action: { showForgotPassword = true }) {
                                         Text("Forgot password?")
                                             .font(.system(size: 13, weight: .medium))
-                                            .foregroundColor(SL.accent)
+                                            .foregroundColor(SL.textAccent)
                                     }
                                 }
                             }
@@ -204,7 +204,7 @@ struct LoginView: View {
                         }) {
                             Text(isSignup ? "Sign in" : "Create one")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)

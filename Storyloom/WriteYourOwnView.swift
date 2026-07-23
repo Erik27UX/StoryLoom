@@ -46,7 +46,7 @@ struct WriteYourOwnView: View {
                                 .foregroundColor(SL.textPrimary)
                             Text("required")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 2)
                                 .background(SL.accent.opacity(0.12))
@@ -208,7 +208,7 @@ struct WriteYourOwnView: View {
                                 }
                                 Text("Tap to record")
                                     .font(SL.body(13))
-                                    .foregroundColor(SL.accent)
+                                    .foregroundColor(SL.textAccent)
                                 Text("You can transcribe your recording to text afterwards")
                                     .font(SL.body(12))
                                     .foregroundColor(SL.textSecondary)
@@ -277,7 +277,7 @@ struct WriteYourOwnView: View {
                             .font(.system(size: 16, weight: .medium))
                         Text("Back")
                     }
-                    .foregroundColor(SL.accent)
+                    .foregroundColor(SL.textAccent)
                 }
             }
         }

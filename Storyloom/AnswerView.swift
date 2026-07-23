@@ -207,7 +207,7 @@ struct AnswerView: View {
                             }
                             Text("Tap to record")
                                 .font(SL.body(13))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                             Text("You can transcribe your recording to text afterwards")
                                 .font(SL.body(12))
                                 .foregroundColor(SL.textSecondary)
@@ -273,7 +273,7 @@ struct AnswerView: View {
                             .font(.system(size: 16, weight: .medium))
                         Text("Back")
                     }
-                    .foregroundColor(SL.accent)
+                    .foregroundColor(SL.textAccent)
                 }
             }
         }

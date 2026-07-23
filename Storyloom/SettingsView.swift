@@ -680,7 +680,7 @@ struct NotificationPermissionRow: View {
                         .foregroundColor(SL.accent)
                     Text("Enable notifications")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(SL.accent)
+                        .foregroundColor(SL.textAccent)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12))

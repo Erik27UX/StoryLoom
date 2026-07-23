@@ -102,7 +102,7 @@ struct FolderManagerView: View {
                                 .font(.system(size: 16, weight: .medium))
                             Text("Back")
                         }
-                        .foregroundColor(SL.accent)
+                        .foregroundColor(SL.textAccent)
                     }
                 }
             }

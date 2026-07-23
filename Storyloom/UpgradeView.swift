@@ -136,7 +136,7 @@ struct UpgradeView: View {
                             .font(.system(size: 16, weight: .medium))
                         Text("Back")
                     }
-                    .foregroundColor(SL.accent)
+                    .foregroundColor(SL.textAccent)
                 }
             }
         }
@@ -159,7 +159,7 @@ struct PlanCard: View {
                         HStack(spacing: 4) {
                             Text(plan.price)
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(SL.accent)
+                                .foregroundColor(SL.textAccent)
                             Text(plan.duration)
                                 .font(SL.body(13))
                                 .foregroundColor(SL.textSecondary)
