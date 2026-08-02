@@ -633,6 +633,95 @@ GRANT EXECUTE ON FUNCTION public.get_my_readers() TO authenticated;
 
 
 -- ============================================================
+-- 16. NOTIFY_ACTIVITY_WEBHOOK — bypasses the broken Database Webhooks
+--     dashboard feature. This project is missing the internal
+--     "supabase_functions" schema that dashboard feature depends on
+--     (confirmed via: SELECT nspname FROM pg_namespace WHERE nspname =
+--     'supabase_functions' — returns no rows). Both the "Supabase Edge
+--     Functions" and plain "HTTP Request" webhook types in the dashboard
+--     fail with a 400 on trigger-create as a result.
+--
+--     This works around it by calling net.http_post() directly from a
+--     plain Postgres trigger — pg_net is a standard, fully-supported
+--     extension, and this achieves the exact same effect as a Database
+--     Webhook would have.
+--
+--     ONE-TIME SETUP REQUIRED before running this section:
+--     1. Ensure pg_net is enabled:
+--          CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+--     2. Store the shared secret in Vault (run once, with the REAL value
+--        — do not commit the real value to this file):
+--          select vault.create_secret(
+--            '<REPLACE_WITH_REAL_WEBHOOK_SECRET>',
+--            'notify_activity_webhook_secret',
+--            'Shared secret checked by the notify-activity edge function'
+--          );
+--        This must match the WEBHOOK_SECRET value set via
+--        `supabase secrets set WEBHOOK_SECRET=...` for the Edge Function
+--        (see supabase/functions/notify-activity/README.md).
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.notify_activity_webhook()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+    v_secret  text;
+    v_payload jsonb;
+BEGIN
+    SELECT decrypted_secret INTO v_secret
+    FROM vault.decrypted_secrets
+    WHERE name = 'notify_activity_webhook_secret';
+
+    v_payload := jsonb_build_object(
+        'type', TG_OP,
+        'table', TG_TABLE_NAME,
+        'record', to_jsonb(NEW)
+    );
+    IF TG_OP = 'UPDATE' THEN
+        v_payload := v_payload || jsonb_build_object('old_record', to_jsonb(OLD));
+    END IF;
+
+    PERFORM net.http_post(
+        url := 'https://snczqjrrlymkzgkjxbce.supabase.co/functions/v1/notify-activity',
+        body := v_payload,
+        headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'x-webhook-secret', v_secret
+        ),
+        timeout_milliseconds := 5000
+    );
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS notify_activity_on_comment_insert ON public.comments;
+CREATE TRIGGER notify_activity_on_comment_insert
+AFTER INSERT ON public.comments
+FOR EACH ROW EXECUTE FUNCTION public.notify_activity_webhook();
+
+DROP TRIGGER IF EXISTS notify_activity_on_question_insert ON public.questions;
+CREATE TRIGGER notify_activity_on_question_insert
+AFTER INSERT ON public.questions
+FOR EACH ROW EXECUTE FUNCTION public.notify_activity_webhook();
+
+DROP TRIGGER IF EXISTS notify_activity_on_question_update ON public.questions;
+CREATE TRIGGER notify_activity_on_question_update
+AFTER UPDATE ON public.questions
+FOR EACH ROW EXECUTE FUNCTION public.notify_activity_webhook();
+
+DROP TRIGGER IF EXISTS notify_activity_on_story_insert ON public.stories;
+CREATE TRIGGER notify_activity_on_story_insert
+AFTER INSERT ON public.stories
+FOR EACH ROW EXECUTE FUNCTION public.notify_activity_webhook();
+
+DROP TRIGGER IF EXISTS notify_activity_on_story_update ON public.stories;
+CREATE TRIGGER notify_activity_on_story_update
+AFTER UPDATE ON public.stories
+FOR EACH ROW EXECUTE FUNCTION public.notify_activity_webhook();
+
+
+-- ============================================================
 -- DONE. Verify with:
 --   SELECT policyname, cmd, roles FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;
 --   SELECT conname, contype FROM pg_constraint WHERE conrelid IN ('public.comments'::regclass, 'public.questions'::regclass, 'public.stories'::regclass, 'public.story_access'::regclass);

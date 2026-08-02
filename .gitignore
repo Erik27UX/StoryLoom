@@ -14,3 +14,6 @@ DerivedData/
 
 # macOS
 .DS_Store
+
+# Supabase CLI local project link cache
+supabase/.temp/

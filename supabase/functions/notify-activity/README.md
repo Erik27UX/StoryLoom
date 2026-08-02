@@ -63,25 +63,49 @@ supabase secrets set APNS_ENV=sandbox
 
 Switch it back to `production` (or unset it) before shipping.
 
-### 5. Configure Database Webhooks
+### 5. Wire up the triggers
 
-In **Supabase Dashboard → Database → Webhooks → Create a new webhook**,
-create three webhooks, all pointing at:
+⚠️ **The dashboard's Database Webhooks feature does not work on this
+project** — this project is missing the internal `supabase_functions`
+schema it depends on (confirmed: `SELECT nspname FROM pg_namespace WHERE
+nspname = 'supabase_functions'` returns no rows). Both the "Supabase Edge
+Functions" and plain "HTTP Request" options in **Database → Webhooks →
+Create a new webhook** fail with a 400 on trigger creation. Don't use that
+UI — use section 16 of `supabase_security_migration.sql` instead, which
+calls `net.http_post()` directly from a plain Postgres trigger (same
+effect, doesn't depend on the missing schema).
 
-```
-https://snczqjrrlymkzgkjxbce.supabase.co/functions/v1/notify-activity
-```
+Before running section 16:
 
-For each one, add a custom HTTP header:
-```
-x-webhook-secret: <the same value you set as WEBHOOK_SECRET above>
-```
+1. Make sure `pg_net` is enabled:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+   ```
+2. Store the shared secret in **Vault** (run once yourself with the real
+   value — never commit the real value to this file or to
+   `supabase_security_migration.sql`):
+   ```sql
+   select vault.create_secret(
+     '<the value you set as WEBHOOK_SECRET above>',
+     'notify_activity_webhook_secret',
+     'Shared secret checked by the notify-activity edge function'
+   );
+   ```
+3. Run section 16 of `supabase_security_migration.sql`. It creates one
+   trigger function (`public.notify_activity_webhook()`) and 5 triggers:
 
-| # | Table     | Events           |
-|---|-----------|------------------|
-| 1 | comments  | Insert           |
-| 2 | questions | Insert, Update   |
-| 3 | stories   | Insert, Update   |
+   | # | Table     | Event  |
+   |---|-----------|--------|
+   | 1 | comments  | Insert |
+   | 2 | questions | Insert |
+   | 3 | questions | Update |
+   | 4 | stories   | Insert |
+   | 5 | stories   | Update |
+
+To sanity-check the pipeline without touching real data, call
+`net.http_post()` directly with a synthetic payload and check
+`net._http_response` for a `200`/`"ok"` — see this function's git history
+for the exact diagnostic query used during setup.
 
 That's it — no changes needed on the iOS app side. `NotificationManager`
 already uploads the device's push token to `profiles.push_token` once the
