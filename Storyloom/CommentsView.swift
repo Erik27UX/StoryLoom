@@ -55,9 +55,12 @@ struct CommentsView: View {
                             Text("No comments yet")
                                 .font(SL.heading(18))
                                 .foregroundColor(SL.textPrimary)
-                            Text("Be the first to leave a comment")
+                            Text(isStoryteller
+                                 ? "Start the conversation, or reply when your readers comment"
+                                 : "Be the first to leave a comment")
                                 .font(SL.body(14))
                                 .foregroundColor(SL.textSecondary)
+                                .multilineTextAlignment(.center)
                         }
                         .padding(40)
                     } else {
@@ -112,11 +115,11 @@ struct CommentsView: View {
                                 }
                             }
                         }
-                        .padding(.bottom, isStoryteller ? 16 : 72)
+                        .padding(.bottom, 72)
                     }
                 }
 
-                if !isStoryteller {
+                Group {
                     Divider().background(SL.border)
                     VStack(spacing: 4) {
                         HStack(spacing: 12) {
@@ -161,7 +164,8 @@ struct CommentsView: View {
     private func postComment() {
         guard !newComment.isEmpty else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        let comment = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? "Reader", text: newComment)
+        let fallbackName = isStoryteller ? "Storyteller" : "Reader"
+        let comment = StoryComment(storyId: story.uuid, userName: authManager.currentUser?.name ?? fallbackName, text: newComment)
         modelContext.insert(comment)
         SyncManager.shared.pushComment(comment)
         newComment = ""

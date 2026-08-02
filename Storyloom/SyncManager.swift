@@ -24,14 +24,35 @@ final class SyncManager: ObservableObject {
 
     private init() {}
 
-    /// Called internally on sync failure. Posts the error message for 4 seconds, then clears.
+    /// Consecutive failed sync attempts. A single failure is usually a transient
+    /// blip — the app syncs on every foreground, so waking the phone on a weak
+    /// connection would otherwise flash an alarming banner for no real problem.
+    /// Only surface the banner once a sync has failed repeatedly.
+    @MainActor private var consecutiveSyncFailures = 0
+
+    /// Called internally on sync failure. Stays silent for the first failure and
+    /// only shows the banner if syncing keeps failing, so users aren't warned
+    /// about problems that resolve themselves a second later.
     @MainActor
     private func reportError(_ message: String) {
+        consecutiveSyncFailures += 1
+        guard consecutiveSyncFailures >= 2 else {
+            logger.debug("sync failed once — staying silent, will retry on next foreground")
+            return
+        }
         syncErrorMessage = message
         Task {
             try? await Task.sleep(for: .seconds(4))
             syncErrorMessage = nil
         }
+    }
+
+    /// Called after any successful sync so a recovered connection clears the
+    /// failure streak (and any visible banner) immediately.
+    @MainActor
+    private func reportSyncSuccess() {
+        consecutiveSyncFailures = 0
+        if syncErrorMessage != nil { syncErrorMessage = nil }
     }
 
     // MARK: - Configure
@@ -155,6 +176,7 @@ final class SyncManager: ObservableObject {
                         }
                     }
                 }
+                await MainActor.run { self.reportSyncSuccess() }
             } catch {
                 logger.error("pullAllUserData failed: \(error.localizedDescription, privacy: .private)")
                 await MainActor.run { self.reportError("Couldn't sync — check your connection") }
@@ -230,6 +252,7 @@ final class SyncManager: ObservableObject {
                     }
                 }
             }
+            reportSyncSuccess()
         } catch {
             logger.error("pullAllUserDataAsync failed: \(error.localizedDescription, privacy: .private)")
             reportError("Couldn't sync — check your connection")

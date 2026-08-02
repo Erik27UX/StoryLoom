@@ -92,7 +92,7 @@ struct ReaderHomeView: View {
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13, weight: .medium))
                             }
-                            .foregroundColor(SL.accent)
+                            .foregroundColor(SL.textAccent)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
                             .background(SL.surface)
@@ -200,18 +200,29 @@ struct ReaderStoryCard: View {
                 .foregroundColor(SL.textSecondary)
                 .lineLimit(2)
 
-            HStack {
+            HStack(spacing: 6) {
+                if let author = story.authorName {
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(SL.textSecondary)
+                    Text(author)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(SL.textSecondary)
+                        .lineLimit(1)
+                    Text("·")
+                        .foregroundColor(SL.textSecondary)
+                }
                 Text(story.dateFormatted)
                     .font(SL.body(13))
                     .foregroundColor(SL.textSecondary)
-                Spacer()
+                Spacer(minLength: 8)
                 HStack(spacing: 4) {
                     Text("Read")
                         .font(.system(size: 14, weight: .medium))
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .medium))
                 }
-                .foregroundColor(SL.accent)
+                .foregroundColor(SL.textAccent)
             }
         }
         .padding(16)

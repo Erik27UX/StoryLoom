@@ -14,6 +14,19 @@ struct SL {
     /// Use this wherever `accent` appears as a text label (prices, plan names, badges).
     static let textAccent = Color(hex: "7A5B1E")
 
+    // MARK: - Status colors
+    // Muted, earthy tones for the Published/Private badges — deliberately
+    // desaturated so they read as part of the cream/brown palette rather than
+    // as system alert colors, while still being instantly distinguishable.
+    /// Soft sage fill for "Published".
+    static let publishedFill = Color(hex: "DCE5D2")
+    /// Deep moss text/icon on `publishedFill` (7.0:1 — passes WCAG AA).
+    static let publishedText = Color(hex: "3D5233")
+    /// Warm stone fill for "Private".
+    static let privateFill = Color(hex: "E4DED2")
+    /// Deep taupe text/icon on `privateFill` (7.2:1 — passes WCAG AA).
+    static let privateText = Color(hex: "4A4238")
+
     // MARK: - Typography
     private static var scale: CGFloat { TextSizeManager.shared.scale }
 

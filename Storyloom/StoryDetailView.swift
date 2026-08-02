@@ -69,28 +69,7 @@ struct StoryDetailView: View {
                                 }
                             }
 
-                            if story.isInVault {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(SL.textAccent)
-                                    Text("Published")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(SL.textPrimary)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(SL.accent.opacity(0.1))
-                                .clipShape(Capsule())
-                            } else {
-                                Text("Private")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(SL.textSecondary)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(SL.surface)
-                                    .clipShape(Capsule())
-                            }
+                            StoryStatusBadge(isPublished: story.isInVault)
 
                             Spacer()
 

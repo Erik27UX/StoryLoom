@@ -374,7 +374,7 @@ struct EditStoryView: View {
                     Text(displayImage == nil ? "Add image from library" : "Replace image")
                         .font(.system(size: 14, weight: .medium))
                 }
-                .foregroundColor(SL.accent)
+                .foregroundColor(SL.textAccent)
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
                 .background(SL.accent.opacity(0.07))
@@ -527,7 +527,7 @@ struct EditStoryView: View {
                         Text("Record narration")
                             .font(.system(size: 15, weight: .medium))
                     }
-                    .foregroundColor(SL.accent)
+                    .foregroundColor(SL.textAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
                     .background(SL.surface)

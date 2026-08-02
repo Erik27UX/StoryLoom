@@ -423,7 +423,7 @@ struct InviteReadersSheet: View {
                             .foregroundColor(SL.textSecondary)
                         Button("Try again") { generateInviteCode() }
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(SL.accent)
+                            .foregroundColor(SL.textAccent)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(20)

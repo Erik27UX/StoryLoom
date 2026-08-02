@@ -6,8 +6,12 @@ struct ReaderStoriesView: View {
     @Query(sort: \Folder.dateCreated, order: .reverse) private var folders: [Folder]
     @StateObject private var coordinator = AppCoordinator.shared
     @State private var navigationPath = NavigationPath()
-    @State private var selectedAuthors = Set<String>()
-    @State private var hasInitialized = false
+    /// The single storyteller currently being viewed. Readers browse one
+    /// storyteller at a time — there is no combined "All" feed, so a story's
+    /// author is always unambiguous. Persisted so the tab reopens where they left off.
+    @AppStorage("reader.lastViewedAuthor") private var selectedAuthor: String = ""
+    /// Selected category chip. nil = All; `CategoryFilterChips.unfiledID` = no folder.
+    @State private var selectedFolderID: UUID?
     @State private var sortBy: SortOption = .created
     @State private var showAddVault = false
     @State private var searchText = ""
@@ -15,68 +19,84 @@ struct ReaderStoriesView: View {
     @State private var debouncedSearch = ""
 
     var uniqueAuthors: [String] {
-        let authors = stories.compactMap { $0.authorName ?? "Your Stories" }
+        let authors = stories.filter { $0.isInVault }.map { $0.authorName ?? "Your Stories" }
         return Array(Set(authors)).sorted()
     }
 
-    var groupedFilteredStories: [(folder: Folder?, stories: [StoryEntry])] {
-        let activeAuthors = selectedAuthors.isEmpty ? Set(uniqueAuthors) : selectedAuthors
+    /// The author actually being shown — falls back to the first available one
+    /// if the stored choice is empty or that storyteller is no longer followed.
+    var activeAuthor: String? {
+        if !selectedAuthor.isEmpty, uniqueAuthors.contains(selectedAuthor) { return selectedAuthor }
+        return uniqueAuthors.first
+    }
 
-        let baseFiltered = stories.filter { story in
-            let author = story.authorName ?? "Your Stories"
-            return story.isInVault && activeAuthors.contains(author)
-        }
+    /// Folders that actually contain visible stories from the active storyteller.
+    /// Readers share one local folder table with every vault they've joined, so
+    /// the chips must be scoped to the storyteller currently being viewed.
+    var authorFolders: [Folder] {
+        let ids = Set(authorStories.compactMap { $0.folder?.id })
+        return folders.filter { ids.contains($0.id) }
+    }
 
-        // Apply search filter against the debounced text so full-content
-        // scans only run after the user pauses typing, not on every keystroke.
-        let filtered = debouncedSearch.isEmpty ? baseFiltered : baseFiltered.filter { story in
+    /// Published stories belonging to the active storyteller, before search/category filters.
+    private var authorStories: [StoryEntry] {
+        guard let activeAuthor else { return [] }
+        return stories.filter { $0.isInVault && ($0.authorName ?? "Your Stories") == activeAuthor }
+    }
+
+    private var filteredStories: [StoryEntry] {
+        let searched = debouncedSearch.isEmpty ? authorStories : authorStories.filter { story in
             story.title.localizedCaseInsensitiveContains(debouncedSearch) ||
             story.content.localizedCaseInsensitiveContains(debouncedSearch)
         }
 
-        // Year sort: flatten all folders into one chronological list so sorting
-        // works across the entire library, not just within each folder bucket.
-        if sortBy == .year {
-            let sorted = filtered.sorted { ($0.year ?? 0) < ($1.year ?? 0) }
+        guard let selectedFolderID else { return searched }
+        if selectedFolderID == CategoryFilterChips.unfiledID {
+            return searched.filter { $0.folder == nil }
+        }
+        return searched.filter { $0.folder?.id == selectedFolderID }
+    }
+
+    /// "Newest first" and "Story year" are flat chronological orders — folder
+    /// grouping is deliberately ignored for them, otherwise the ordering would
+    /// only apply within each folder bucket rather than across the whole list.
+    private var isFlatSort: Bool {
+        sortBy == .created || sortBy == .year
+    }
+
+    var groupedFilteredStories: [(folder: Folder?, stories: [StoryEntry])] {
+        let filtered = filteredStories
+
+        if isFlatSort {
+            let sorted: [StoryEntry]
+            switch sortBy {
+            case .year:
+                sorted = filtered.sorted { ($0.year ?? 0) < ($1.year ?? 0) }
+            default:
+                sorted = filtered.sorted { $0.dateCreated > $1.dateCreated }
+            }
             return [(folder: nil, stories: sorted)]
         }
 
-        // Group by folder
         var grouped: [UUID?: [StoryEntry]] = [:]
         for story in filtered {
             let key = story.folder?.id
             if grouped[key] == nil { grouped[key] = [] }
             grouped[key]?.append(story)
         }
-
-        // Sort stories within each group
         for key in grouped.keys {
-            grouped[key]?.sort { lhs, rhs in
-                switch sortBy {
-                case .created:
-                    return lhs.dateCreated > rhs.dateCreated
-                case .draft, .published:
-                    return lhs.dateCreated > rhs.dateCreated
-                case .year:
-                    return (lhs.year ?? 0) < (rhs.year ?? 0) // unreachable — handled above
-                }
-            }
+            grouped[key]?.sort { $0.dateCreated > $1.dateCreated }
         }
 
         var result: [(folder: Folder?, stories: [StoryEntry])] = []
-
-        // Named folders first (in folder creation order)
         for folder in folders {
             if let folderStories = grouped[folder.id], !folderStories.isEmpty {
                 result.append((folder, folderStories))
             }
         }
-
-        // Unfiled stories at the bottom
         if let unfiledStories = grouped[nil], !unfiledStories.isEmpty {
             result.append((nil, unfiledStories))
         }
-
         return result
     }
 
@@ -143,10 +163,11 @@ struct ReaderStoriesView: View {
                     .padding(.top, 8)
                     .padding(.horizontal, 20)
 
-                    // Author filter pills (only if 2+ storytellers)
+                    // Storyteller picker (only if following 2+ storytellers).
+                    // Single-select: a reader views one storyteller at a time.
                     if showAuthorFilter {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Filter by storyteller")
+                            Text("Storyteller")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(SL.textSecondary)
                                 .tracking(0.5)
@@ -155,51 +176,31 @@ struct ReaderStoriesView: View {
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    // "All" pill — active when selectedAuthors is empty
-                                    Button(action: { selectedAuthors.removeAll() }) {
-                                        HStack(spacing: 6) {
-                                            Text("All")
-                                                .font(.system(size: 13, weight: .medium))
-                                            if selectedAuthors.isEmpty {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .font(.system(size: 12))
-                                            }
-                                        }
-                                        .foregroundColor(selectedAuthors.isEmpty ? .white : SL.textSecondary)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 8)
-                                        .background(selectedAuthors.isEmpty ? SL.accent : SL.surface)
-                                        .clipShape(Capsule())
-                                        .overlay(
-                                            Capsule().stroke(
-                                                selectedAuthors.isEmpty ? SL.accent : SL.border,
-                                                lineWidth: 1
-                                            )
-                                        )
-                                    }
-
                                     ForEach(uniqueAuthors, id: \.self) { author in
-                                        Button(action: { toggleAuthor(author) }) {
+                                        let isSelected = activeAuthor == author
+                                        Button(action: {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                selectedAuthor = author
+                                                selectedFolderID = nil  // reset category when switching
+                                            }
+                                        }) {
                                             HStack(spacing: 6) {
+                                                Image(systemName: "person.crop.circle.fill")
+                                                    .font(.system(size: 12))
                                                 Text(author)
                                                     .font(.system(size: 13, weight: .medium))
-                                                if selectedAuthors.contains(author) {
-                                                    Image(systemName: "checkmark.circle.fill")
-                                                        .font(.system(size: 12))
-                                                }
+                                                    .lineLimit(1)
                                             }
-                                            .foregroundColor(selectedAuthors.contains(author) ? .white : SL.textSecondary)
+                                            .foregroundColor(isSelected ? Color(hex: "FDF9F0") : SL.textSecondary)
                                             .padding(.horizontal, 14)
                                             .padding(.vertical, 8)
-                                            .background(selectedAuthors.contains(author) ? SL.accent : SL.surface)
+                                            .background(isSelected ? SL.primary : SL.surface)
                                             .clipShape(Capsule())
                                             .overlay(
-                                                Capsule().stroke(
-                                                    selectedAuthors.contains(author) ? SL.accent : SL.border,
-                                                    lineWidth: 1
-                                                )
+                                                Capsule().stroke(isSelected ? Color.clear : SL.border, lineWidth: 1)
                                             )
                                         }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                                 .padding(.horizontal, 20)
@@ -207,6 +208,15 @@ struct ReaderStoriesView: View {
                             }
                         }
                         .padding(.top, 4)
+                    }
+
+                    // Category chips for the active storyteller's folders
+                    if !authorFolders.isEmpty {
+                        CategoryFilterChips(
+                            folders: authorFolders,
+                            selection: $selectedFolderID,
+                            hasUnfiled: authorStories.contains { $0.folder == nil }
+                        )
                     }
 
                     // Stories grouped by folder
@@ -228,8 +238,9 @@ struct ReaderStoriesView: View {
                         LazyVStack(alignment: .leading, spacing: 24) {
                             ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
                                 VStack(alignment: .leading, spacing: 12) {
-                                    // Folder section header — suppressed when year sort flattens everything
-                                    if sortBy != .year {
+                                    // Folder section header — suppressed when a flat sort
+                                    // ignores grouping, or a single category is selected
+                                    if !isFlatSort && selectedFolderID == nil {
                                         HStack(spacing: 6) {
                                             Image(systemName: group.folder != nil ? "folder.fill" : "tray.fill")
                                                 .font(.system(size: 11))
@@ -297,16 +308,11 @@ struct ReaderStoriesView: View {
             AddStoryVaultView()
         }
         .onAppear {
-            // selectedAuthors starts empty = "All" is active, which is correct
-            hasInitialized = true
-        }
-    }
-
-    private func toggleAuthor(_ author: String) {
-        if selectedAuthors.contains(author) {
-            selectedAuthors.remove(author)
-        } else {
-            selectedAuthors.insert(author)
+            // Pin the resolved author so the stored value stays valid even if the
+            // reader later joins another vault (activeAuthor falls back to first).
+            if selectedAuthor.isEmpty, let first = uniqueAuthors.first {
+                selectedAuthor = first
+            }
         }
     }
 }
@@ -345,18 +351,29 @@ struct StoryCardForReader: View {
                 .foregroundColor(SL.textSecondary)
                 .lineLimit(2)
 
-            HStack {
+            HStack(spacing: 6) {
+                if let author = story.authorName {
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(SL.textSecondary)
+                    Text(author)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(SL.textSecondary)
+                        .lineLimit(1)
+                    Text("·")
+                        .foregroundColor(SL.textSecondary)
+                }
                 Text(story.dateFormatted)
                     .font(SL.body(13))
                     .foregroundColor(SL.textSecondary)
-                Spacer()
+                Spacer(minLength: 8)
                 HStack(spacing: 4) {
                     Text("Read")
                         .font(.system(size: 14, weight: .medium))
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .medium))
                 }
-                .foregroundColor(SL.accent)
+                .foregroundColor(SL.textAccent)
             }
         }
         .padding(16)

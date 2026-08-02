@@ -20,8 +20,14 @@ struct QuestionsView: View {
 
     var filteredQuestions: [StoryQuestion] { questions }
 
+    /// Questions are gated on the *storyteller's* tier, never the reader's —
+    /// any reader can ask, as long as the story's author is on Story Legend.
     var isQuestionsLocked: Bool {
         story.authorSubscriptionTier != .family
+    }
+
+    var isStorytellerView: Bool {
+        authManager.currentUser?.role == .storyteller
     }
 
     var body: some View {
@@ -30,26 +36,35 @@ struct QuestionsView: View {
 
             VStack(spacing: 0) {
                 ScrollView {
-                    if authManager.currentUser?.role == .storyteller && isQuestionsLocked {
-                        VStack(spacing: 12) {
+                    if isStorytellerView && isQuestionsLocked {
+                        VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
                                 Image(systemName: "lock.fill")
                                     .font(.system(size: 16))
-                                    .foregroundColor(SL.accent)
+                                    .foregroundColor(SL.textAccent)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("Questions not enabled")
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundColor(SL.textPrimary)
-                                    Text("Upgrade to Story Legend plan to let readers ask you questions about your stories.")
+                                    Text("Upgrade to Story Legend to let your readers ask questions about your stories.")
                                         .font(SL.body(12))
                                         .foregroundColor(SL.textSecondary)
                                 }
                             }
-                            .padding(14)
-                            .background(SL.surface)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
+                            NavigationLink(destination: UpgradeView()) {
+                                Text("Upgrade to Story Legend")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(Color(hex: "FDF9F0"))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(SL.primary)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
                         }
+                        .padding(14)
+                        .background(SL.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.border, lineWidth: 1))
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
                     }
@@ -62,16 +77,21 @@ struct QuestionsView: View {
                             Text("No questions yet")
                                 .font(SL.heading(18))
                                 .foregroundColor(SL.textPrimary)
-                            Text("Ask the storyteller anything about their story")
+                            Text(isStorytellerView
+                                 ? (isQuestionsLocked
+                                    ? "Story Legend lets your readers ask questions about this story"
+                                    : "When your readers ask about this story, you'll be able to answer here")
+                                 : "Ask the storyteller anything about their story")
                                 .font(SL.body(14))
                                 .foregroundColor(SL.textSecondary)
+                                .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                         .padding(40)
                     } else {
                         VStack(spacing: 12) {
                             ForEach(filteredQuestions) { question in
-                                QuestionCard(question: question, isStorytellerView: authManager.currentUser?.role == .storyteller)
+                                QuestionCard(question: question, isStorytellerView: isStorytellerView)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -212,7 +232,7 @@ struct QuestionCard: View {
                             .font(.system(size: 13, weight: .medium))
                         Spacer()
                     }
-                    .foregroundColor(SL.accent)
+                    .foregroundColor(SL.textAccent)
                     .padding(10)
                     .background(SL.accent.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: 12))

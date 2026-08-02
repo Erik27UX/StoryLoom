@@ -12,9 +12,11 @@ struct StoriesLibraryView: View {
     /// Debounced copy — updated 250 ms after the user stops typing.
     /// Using this in groupedStories prevents an O(n) full-content scan on every keystroke.
     @State private var debouncedSearch = ""
+    /// Selected category chip. nil = All; `CategoryFilterChips.unfiledID` = stories with no folder.
+    @State private var selectedFolderID: UUID?
 
-    private var groupedStories: [(folder: Folder?, stories: [StoryEntry])] {
-        // Filter stories based on sort option
+    /// Stories after status, search, and category-chip filtering — before grouping.
+    private var filteredStories: [StoryEntry] {
         let sortFiltered: [StoryEntry]
         switch sortBy {
         case .published:
@@ -27,58 +29,61 @@ struct StoriesLibraryView: View {
 
         // Apply search filter against the debounced text so full-content
         // scans only run after the user pauses typing, not on every keystroke.
-        let filtered = debouncedSearch.isEmpty ? sortFiltered : sortFiltered.filter { story in
+        let searched = debouncedSearch.isEmpty ? sortFiltered : sortFiltered.filter { story in
             story.title.localizedCaseInsensitiveContains(debouncedSearch) ||
             story.content.localizedCaseInsensitiveContains(debouncedSearch)
         }
 
-        // Year sort: flatten all folders into one chronological list so sorting
-        // works across the entire library, not just within each folder bucket.
-        if sortBy == .year {
-            let sorted = filtered.sorted { ($0.year ?? 0) < ($1.year ?? 0) }
+        // Category chip filter
+        guard let selectedFolderID else { return searched }
+        if selectedFolderID == CategoryFilterChips.unfiledID {
+            return searched.filter { $0.folder == nil }
+        }
+        return searched.filter { $0.folder?.id == selectedFolderID }
+    }
+
+    /// True when the current sort is a flat chronological order rather than
+    /// folder groups. "Newest first" and "Story year" both mean the user wants
+    /// to see everything in order, so folder grouping is deliberately ignored —
+    /// otherwise ordering only applies *within* each folder bucket.
+    private var isFlatSort: Bool {
+        sortBy == .created || sortBy == .year
+    }
+
+    private var groupedStories: [(folder: Folder?, stories: [StoryEntry])] {
+        let filtered = filteredStories
+
+        if isFlatSort {
+            let sorted: [StoryEntry]
+            switch sortBy {
+            case .year:
+                sorted = filtered.sorted { ($0.year ?? 0) < ($1.year ?? 0) }
+            default:
+                sorted = filtered.sorted { $0.dateCreated > $1.dateCreated }
+            }
             return [(folder: nil, stories: sorted)]
         }
 
-        // Create a dictionary grouped by folder
+        // Grouped by folder (Published / Draft filters)
         var grouped: [UUID?: [StoryEntry]] = [:]
-
         for story in filtered {
             let key = story.folder?.id
-            if grouped[key] == nil {
-                grouped[key] = []
-            }
+            if grouped[key] == nil { grouped[key] = [] }
             grouped[key]?.append(story)
         }
-
-        // Sort stories within each group
         for key in grouped.keys {
-            grouped[key]?.sort { lhs, rhs in
-                switch sortBy {
-                case .created:
-                    return lhs.dateCreated > rhs.dateCreated
-                case .draft, .published:
-                    return lhs.dateCreated > rhs.dateCreated
-                case .year:
-                    return (lhs.year ?? 0) < (rhs.year ?? 0) // unreachable — handled above
-                }
-            }
+            grouped[key]?.sort { $0.dateCreated > $1.dateCreated }
         }
 
-        // Create result array with folder objects
         var result: [(folder: Folder?, stories: [StoryEntry])] = []
-
-        // Add folders with stories first
         for folder in folders {
             if let stories = grouped[folder.id], !stories.isEmpty {
                 result.append((folder, stories))
             }
         }
-
-        // Add unfiled stories at the end
         if let unfiledStories = grouped[nil], !unfiledStories.isEmpty {
             result.append((nil, unfiledStories))
         }
-
         return result
     }
 
@@ -152,14 +157,26 @@ struct StoriesLibraryView: View {
                         }
                     }
 
+                    // Category chips — only worth showing once folders exist
+                    if !folders.isEmpty && !allStories.isEmpty {
+                        CategoryFilterChips(
+                            folders: folders,
+                            selection: $selectedFolderID,
+                            hasUnfiled: allStories.contains { $0.folder == nil }
+                        )
+                        .padding(.horizontal, -20)
+                    }
+
                     if allStories.isEmpty {
                         LibraryEmptyState()
                     } else {
                         // Display grouped stories
                         ForEach(groupedStories, id: \.folder?.id) { folder, stories in
                             VStack(alignment: .leading, spacing: 12) {
-                                // Folder header — suppressed when year sort flattens everything
-                                if sortBy != .year {
+                                // Folder header — suppressed when a flat sort (newest /
+                                // year) intentionally ignores folder grouping, and when a
+                                // single category is already selected via the chips.
+                                if !isFlatSort && selectedFolderID == nil {
                                     Text(folder?.name ?? "Unfiled")
                                         .font(.system(size: 13, weight: .semibold))
                                         .tracking(1)
@@ -175,6 +192,14 @@ struct StoriesLibraryView: View {
                                     .buttonStyle(.plain)
                                 }
                             }
+                        }
+
+                        if filteredStories.isEmpty {
+                            Text("No stories in this category yet")
+                                .font(SL.body(14))
+                                .foregroundColor(SL.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 32)
                         }
                     }
 
@@ -272,28 +297,7 @@ struct StoryLibraryCard: View {
                     .lineLimit(2)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
-                    if story.isInVault {
-                        HStack(spacing: 3) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(SL.textAccent)
-                            Text("Published")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(SL.textPrimary)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(SL.accent.opacity(0.1))
-                        .clipShape(Capsule())
-                    } else {
-                        Text("Private")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(SL.textSecondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(SL.border.opacity(0.5))
-                            .clipShape(Capsule())
-                    }
+                    StoryStatusBadge(isPublished: story.isInVault)
                     if let year = story.year {
                         Text(formatYear(year))
                             .font(.system(size: 11, weight: .medium))

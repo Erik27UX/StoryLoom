@@ -132,7 +132,7 @@ struct ChoosePromptView: View {
                         Text("Back")
                             .font(.system(size: 16))
                     }
-                    .foregroundColor(SL.accent)
+                    .foregroundColor(SL.textAccent)
                 }
             }
         }
