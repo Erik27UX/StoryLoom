@@ -298,11 +298,20 @@ final class AuthManager: ObservableObject {
 
         guard let uid = supabaseUserId else { return }
         Task {
-            try? await SupabaseManager.shared.client
-                .from("profiles")
-                .update(ProfileNameUpdate(name: name, birthYear: birthYear))
-                .eq("id", value: uid.uuidString)
-                .execute()
+            do {
+                try await SupabaseManager.shared.client
+                    .from("profiles")
+                    .update(ProfileNameUpdate(
+                        name: name,
+                        birthYear: birthYear,
+                        profilePhotoURL: profilePhotoURL
+                    ))
+                    .eq("id", value: uid.uuidString)
+                    .execute()
+                logger.debug("profile updated successfully")
+            } catch {
+                logger.error("profile update failed: \(error.localizedDescription, privacy: .private)")
+            }
         }
     }
 

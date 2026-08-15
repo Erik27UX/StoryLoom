@@ -270,11 +270,13 @@ struct EditStoryView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
             }
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
         }
         .background(SL.background)
+        // Tap-away and swipe-down dismissal. This screen already supplies its own
+        // keyboard toolbar (for the year field), so it deliberately doesn't use
+        // dismissKeyboardAnyGesture() — that would add a second, competing Done.
+        .dismissKeyboardOnTap()
+        .scrollDismissesKeyboard(.interactively)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {

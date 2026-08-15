@@ -138,6 +138,7 @@ struct ForgotPasswordView: View {
             }
         }
         .navigationBarHidden(true)
+        .dismissKeyboardAnyGesture()
     }
 
     private func sendReset() {

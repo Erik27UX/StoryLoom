@@ -134,6 +134,7 @@ struct QuestionsView: View {
         }
         .navigationTitle("Questions")
         .navigationBarTitleDisplayMode(.inline)
+        .dismissKeyboardAnyGesture()
         .sheet(isPresented: $showAskQuestion) {
             AskQuestionSheet(isPresented: $showAskQuestion, story: story, authManager: authManager)
         }

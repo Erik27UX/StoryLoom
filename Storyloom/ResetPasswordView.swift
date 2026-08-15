@@ -163,6 +163,7 @@ struct ResetPasswordView: View {
             }
         }
         .navigationBarHidden(true)
+        .dismissKeyboardAnyGesture()
     }
 
     private func updatePassword() {

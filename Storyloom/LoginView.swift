@@ -221,6 +221,7 @@ struct LoginView: View {
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView()
         }
+        .dismissKeyboardAnyGesture()
     }  // end formView
 
     // MARK: - Submit

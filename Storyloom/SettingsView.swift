@@ -186,6 +186,7 @@ struct SettingsView: View {
             .background(SL.background)
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
+            .dismissKeyboardAnyGesture()
             .toolbarBackground(SL.background, for: .navigationBar)
             .task(id: authManager.currentUser?.profilePhotoURL) {
                 guard let fileName = authManager.currentUser?.profilePhotoURL else {
@@ -200,17 +201,8 @@ struct SettingsView: View {
         .sheet(isPresented: $showImagePicker) {
             EditProfileImageSheet(isPresented: $showImagePicker, authManager: authManager)
         }
-        .confirmationDialog(
-            "Delete your account?",
-            isPresented: $showDeleteConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Delete account", role: .destructive) {
-                authManager.deleteAccount()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This permanently deletes your account and all your stories. This cannot be undone.")
+        .sheet(isPresented: $showDeleteConfirm) {
+            DeleteAccountView(isPresented: $showDeleteConfirm, authManager: authManager)
         }
         .alert("Couldn't delete account", isPresented: Binding(
             get: { authManager.deleteAccountError != nil },

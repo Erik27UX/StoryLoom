@@ -234,10 +234,15 @@ struct ProfileRoleUpdate: Encodable {
 struct ProfileNameUpdate: Encodable {
     let name: String
     let birthYear: Int?
+    /// Filename of the locally-stored avatar. Must be included here — it was
+    /// previously omitted, so a saved profile photo only lived in memory and
+    /// vanished on the next launch when the profile was re-fetched.
+    let profilePhotoURL: String?
 
     enum CodingKeys: String, CodingKey {
         case name
         case birthYear = "birth_year"
+        case profilePhotoURL = "profile_photo_url"
     }
 }
 

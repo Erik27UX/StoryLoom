@@ -93,6 +93,7 @@ struct FolderManagerView: View {
                 .frame(maxWidth: .infinity)
             }
             .background(SL.background)
+            .dismissKeyboardAnyGesture()
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

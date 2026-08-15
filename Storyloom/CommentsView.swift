@@ -159,6 +159,7 @@ struct CommentsView: View {
         }
         .navigationTitle("Comments")
         .navigationBarTitleDisplayMode(.inline)
+        .dismissKeyboardAnyGesture()
     }
 
     private func postComment() {

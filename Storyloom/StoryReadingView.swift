@@ -299,6 +299,7 @@ struct StoryReadingView: View {
         }
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
+        .dismissKeyboardAnyGesture()
         .onAppear { isLiked = LikeManager.shared.isLiked(story.uuid) }
         .onDisappear {
             if audio.currentFileName == story.narrationFileName {

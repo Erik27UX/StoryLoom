@@ -253,6 +253,7 @@ struct WriteYourOwnView: View {
         }
         .background(SL.background)
         .navigationBarBackButtonHidden(true)
+        .dismissKeyboardAnyGesture()
         .alert("Microphone Access Required", isPresented: $showMicDeniedAlert) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {

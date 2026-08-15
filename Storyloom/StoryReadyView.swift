@@ -506,6 +506,10 @@ struct StoryReadyView: View {
             .frame(maxWidth: .infinity)
         }
         .background(SL.background)
+        // Tap-away and swipe-down only — this screen already has its own keyboard
+        // toolbar for the year field, so adding another Done would conflict.
+        .dismissKeyboardOnTap()
+        .scrollDismissesKeyboard(.interactively)
         .navigationBarBackButtonHidden(true)
         .alert("New Folder", isPresented: $showNewFolderAlert) {
             TextField("Folder name", text: $newFolderName)

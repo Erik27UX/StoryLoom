@@ -130,6 +130,7 @@ struct AddStoryVaultView: View {
             .padding(24)
             .background(SL.background)
             .navigationBarHidden(true)
+            .dismissKeyboardAnyGesture()
         }
         .sheet(isPresented: $showWelcome, onDismiss: { dismiss() }) {
             if let ownerName = joinedOwnerName {
