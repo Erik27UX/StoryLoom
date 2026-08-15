@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 struct LoginView: View {
     @ObservedObject var authManager = AuthManager.shared
@@ -278,27 +279,64 @@ struct LoginView: View {
 
     // MARK: - Error Formatting
 
+    /// Maps an auth failure to a message that tells the user what actually went
+    /// wrong and what to do about it.
+    ///
+    /// Matches on the SDK's structured `AuthError.errorCode` and on `URLError`
+    /// rather than substring-matching `localizedDescription`. String matching
+    /// silently misclassified whole categories of failure — most importantly a
+    /// server outage or dropped connection fell through to "Something went
+    /// wrong", which reads like a bug in the app and gives no way forward.
     private func friendlyError(_ error: Error) -> String {
-        let message = error.localizedDescription.lowercased()
-
-        if message.contains("invalid login credentials") || message.contains("invalid_credentials") {
-            return "Email or password is incorrect"
-        } else if message.contains("email not confirmed") || message.contains("email_not_confirmed") {
-            return "Please confirm your email first — check your inbox for the link we sent."
-        } else if message.contains("email already") || message.contains("already registered") {
-            return "This email is already registered. Sign in instead."
-        } else if message.contains("rate limit") || message.contains("over_email_send_rate_limit") {
-            return "Too many attempts. Wait a moment and try again."
-        } else if message.contains("network") || message.contains("connection") {
-            return "Check your internet connection"
-        } else if message.contains("password") {
-            return "Password must be at least 6 characters"
-        } else if message.contains("unable to validate email") || message.contains("invalid email") {
-            return "Enter a valid email address"
-        } else if message.contains("user not found") || message.contains("user_not_found") {
-            return "Account not found"
+        // Connectivity and server-reachability problems.
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+                return "You're offline. Check your connection and try again."
+            case .timedOut:
+                return "The server took too long to respond. Try again in a moment."
+            case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+                return "Can't reach Storyloom's servers right now. Try again shortly."
+            default:
+                return "Connection problem. Check your internet and try again."
+            }
         }
-        return "Something went wrong. Try again."
+
+        if let authError = error as? AuthError {
+            switch authError.errorCode {
+            case .invalidCredentials:
+                return "Email or password is incorrect"
+            case .emailNotConfirmed:
+                return "Please confirm your email first — check your inbox for the link we sent."
+            case .emailExists, .userAlreadyExists:
+                return "This email is already registered. Sign in instead."
+            case .userNotFound:
+                return "No account found with that email"
+            case .weakPassword:
+                return "Please choose a stronger password (at least 6 characters)"
+            case .samePassword:
+                return "That's already your current password"
+            case .overRequestRateLimit, .overEmailSendRateLimit:
+                return "Too many attempts. Wait a minute and try again."
+            case .userBanned:
+                return "This account has been suspended. Contact support."
+            case .signupDisabled, .emailProviderDisabled:
+                return "Sign-ups are currently unavailable. Try again later."
+            case .validationFailed:
+                return "Enter a valid email address"
+            default:
+                break
+            }
+
+            // Fall back to the server's own message when it's specific enough to
+            // be useful, rather than replacing it with something generic.
+            let message = authError.message
+            if !message.isEmpty, message.lowercased() != "unknown" {
+                return message
+            }
+        }
+
+        return "Couldn't sign in right now. Try again in a moment."
     }
 }
 

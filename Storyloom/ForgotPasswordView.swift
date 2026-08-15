@@ -148,9 +148,13 @@ struct ForgotPasswordView: View {
 
         Task {
             do {
+                // Route through the website rather than straight to the custom
+                // scheme: mail clients frequently strip or refuse to open
+                // non-https links, which left users tapping a dead link. The
+                // page at /reset immediately hands the token off to the app.
                 try await SupabaseManager.shared.client.auth.resetPasswordForEmail(
                     trimmed,
-                    redirectTo: URL(string: "storyloom://auth/callback")
+                    redirectTo: URL(string: "https://storyloom.live/reset")
                 )
                 await MainActor.run {
                     wasSent = true
@@ -158,11 +162,45 @@ struct ForgotPasswordView: View {
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "Couldn't send the reset link. Check the email and try again."
+                    errorMessage = resetErrorMessage(error)
                     isSending = false
                 }
             }
         }
+    }
+
+    /// Same rationale as LoginView.friendlyError — report what actually failed
+    /// instead of a single catch-all, so a rate limit or an outage isn't
+    /// mistaken for a wrong email address.
+    private func resetErrorMessage(_ error: Error) -> String {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+                return "You're offline. Check your connection and try again."
+            case .timedOut:
+                return "The server took too long to respond. Try again in a moment."
+            case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+                return "Can't reach Storyloom's servers right now. Try again shortly."
+            default:
+                return "Connection problem. Check your internet and try again."
+            }
+        }
+
+        if let authError = error as? AuthError {
+            switch authError.errorCode {
+            case .overEmailSendRateLimit, .overRequestRateLimit:
+                return "Too many reset emails requested. Wait a few minutes and try again."
+            case .validationFailed:
+                return "Enter a valid email address"
+            case .emailProviderDisabled:
+                return "Password reset is temporarily unavailable. Try again later."
+            default:
+                let message = authError.message
+                if !message.isEmpty, message.lowercased() != "unknown" { return message }
+            }
+        }
+
+        return "Couldn't send the reset link right now. Try again in a moment."
     }
 }
 

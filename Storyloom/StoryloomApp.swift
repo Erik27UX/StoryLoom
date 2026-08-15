@@ -69,46 +69,22 @@ struct StoryloomApp: App {
             .prefix(6))
     }
 
-    private func handleDeepLink(_ url: URL) {
-        logger.debug("received deep link scheme: \(url.scheme ?? "unknown")")
-
-        // Handle Universal Links: https://storyloom.live/join/CODE
-        if url.scheme == "https" && url.host == "storyloom.live" {
-            let pathComponents = url.pathComponents.filter { $0 != "/" }
-            if pathComponents.first == "join", let raw = pathComponents.dropFirst().first, !raw.isEmpty {
-                let code = sanitizeInviteCode(raw)
-                guard !code.isEmpty else { return }
-                logger.debug("Universal Link invite code received")
-                NotificationCenter.default.post(
-                    name: .storyloomJoinCode,
-                    object: nil,
-                    userInfo: ["code": code]
-                )
-            }
-            return
+    /// True when a URL carries Supabase auth material — either a PKCE `code`
+    /// query parameter or an implicit-flow fragment (`access_token`, `type=recovery`).
+    /// Password-reset and email-confirmation links can arrive either as the custom
+    /// scheme or as an https link on our own domain, depending on how Supabase's
+    /// Site URL is configured, so both paths have to be checked for auth material
+    /// before being treated as anything else.
+    private func containsAuthPayload(_ url: URL) -> Bool {
+        if let fragment = url.fragment,
+           fragment.contains("access_token") || fragment.contains("type=recovery") || fragment.contains("error") {
+            return true
         }
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        return query.contains { $0.name == "code" || $0.name == "token_hash" || $0.name == "error_description" }
+    }
 
-        guard url.scheme == "storyloom" else { return }
-
-        // Handle invite join links: storyloom://join/CODE (fallback custom scheme)
-        if url.host == "join" {
-            let raw = url.pathComponents.dropFirst().first ?? url.lastPathComponent
-            if !raw.isEmpty {
-                let code = sanitizeInviteCode(raw)
-                guard !code.isEmpty else { return }
-                logger.debug("invite code deep link received")
-                NotificationCenter.default.post(
-                    name: .storyloomJoinCode,
-                    object: nil,
-                    userInfo: ["code": code]
-                )
-            }
-            return
-        }
-
-        // Handle auth callbacks: storyloom://auth/...
-        guard url.host == "auth" else { return }
-
+    private func handleAuthCallback(_ url: URL) {
         logger.debug("processing auth callback")
         Task {
             do {
@@ -119,5 +95,50 @@ struct StoryloomApp: App {
                 logger.error("deep link session failed: \(error.localizedDescription, privacy: .private)")
             }
         }
+    }
+
+    private func postJoinCode(_ raw: String) {
+        let code = sanitizeInviteCode(raw)
+        guard !code.isEmpty else { return }
+        logger.debug("invite code deep link received")
+        NotificationCenter.default.post(
+            name: .storyloomJoinCode,
+            object: nil,
+            userInfo: ["code": code]
+        )
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        logger.debug("received deep link scheme: \(url.scheme ?? "unknown")")
+
+        // Auth material takes priority regardless of scheme or host — a recovery
+        // link may arrive as https://storyloom.live/...#access_token=... or as
+        // storyloom://auth/callback?code=...
+        if containsAuthPayload(url) {
+            handleAuthCallback(url)
+            return
+        }
+
+        // Universal Links: https://storyloom.live/join/CODE
+        if url.scheme == "https" && url.host == "storyloom.live" {
+            let pathComponents = url.pathComponents.filter { $0 != "/" }
+            if pathComponents.first == "join", let raw = pathComponents.dropFirst().first, !raw.isEmpty {
+                postJoinCode(raw)
+            }
+            return
+        }
+
+        guard url.scheme == "storyloom" else { return }
+
+        // Invite join links: storyloom://join/CODE (fallback custom scheme)
+        if url.host == "join" {
+            let raw = url.pathComponents.dropFirst().first ?? url.lastPathComponent
+            if !raw.isEmpty { postJoinCode(raw) }
+            return
+        }
+
+        // Auth callbacks with no detectable payload (e.g. storyloom://auth/callback)
+        guard url.host == "auth" else { return }
+        handleAuthCallback(url)
     }
 }
