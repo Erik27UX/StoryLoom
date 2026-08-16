@@ -411,13 +411,21 @@ struct WriteYourOwnView: View {
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.accent.opacity(0.25), lineWidth: 1))
 
         case .failed:
+            // Retry affordance — see AnswerView for rationale.
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 14))
                     .foregroundColor(SL.textSecondary)
-                Text("Transcription unavailable — type your story below.")
+                Text("Couldn't transcribe that — try again, or type your story below.")
                     .font(SL.body(13))
                     .foregroundColor(SL.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Button(action: transcribeRecording) {
+                    Text("Retry")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(SL.textAccent)
+                }
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -452,33 +460,49 @@ struct WriteYourOwnView: View {
                 return
             }
             let request = SFSpeechURLRecognitionRequest(url: url)
-            request.shouldReportPartialResults = false
+            // See TranscriptionAccumulator: partial results must stay ON, or an
+            // early isFinal callback silently truncates the transcript.
+            request.shouldReportPartialResults = true
             // Keep personal story audio on-device when supported (falls back to
             // Apple's servers only on devices/locales without on-device support).
             if recognizer.supportsOnDeviceRecognition {
                 request.requiresOnDeviceRecognition = true
             }
+
+            let text: String
             do {
-                let result = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<SFSpeechRecognitionResult, Error>) in
+                text = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
+                    let state = TranscriptionAccumulator()
                     recognizer.recognitionTask(with: request) { result, error in
-                        if let result = result, result.isFinal {
-                            cont.resume(returning: result)
-                        } else if let error = error {
-                            cont.resume(throwing: error)
+                        if let result {
+                            state.record(result.bestTranscription.formattedString)
+                            if result.isFinal, let value = state.finish() {
+                                cont.resume(returning: value)
+                            }
                         }
-                    }
-                }
-                let text = result.bestTranscription.formattedString
-                await MainActor.run {
-                    if text.trimmingCharacters(in: .whitespaces).isEmpty {
-                        transcriptionState = .failed
-                    } else {
-                        transcribedText = text
-                        transcriptionState = .done
+                        if let error {
+                            if let value = state.finish() {
+                                if value.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    cont.resume(throwing: error)
+                                } else {
+                                    cont.resume(returning: value)
+                                }
+                            }
+                        }
                     }
                 }
             } catch {
                 await MainActor.run { transcriptionState = .failed }
+                return
+            }
+
+            await MainActor.run {
+                if text.trimmingCharacters(in: .whitespaces).isEmpty {
+                    transcriptionState = .failed
+                } else {
+                    transcribedText = text
+                    transcriptionState = .done
+                }
             }
         }
     }

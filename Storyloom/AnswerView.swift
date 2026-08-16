@@ -411,13 +411,23 @@ struct AnswerView: View {
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(SL.accent.opacity(0.25), lineWidth: 1))
 
         case .failed:
+            // Offer a retry — transcription can fail transiently (recogniser
+            // busy, momentary network blip on non-on-device locales), and
+            // without this the only way to try again was to re-record.
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 14))
                     .foregroundColor(SL.textSecondary)
-                Text("Transcription unavailable — type your answer below.")
+                Text("Couldn't transcribe that — try again, or type your answer below.")
                     .font(SL.body(13))
                     .foregroundColor(SL.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Button(action: transcribeRecording) {
+                    Text("Retry")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(SL.textAccent)
+                }
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -457,34 +467,58 @@ struct AnswerView: View {
             }
 
             let request = SFSpeechURLRecognitionRequest(url: url)
-            request.shouldReportPartialResults = false
+            // Partial results must stay ON. With them off, the recogniser can
+            // deliver an isFinal result covering only part of the audio, and
+            // everything transcribed before it is thrown away — which is why
+            // transcripts were losing the beginning, or coming back empty.
+            // Keeping the running best transcription means the longest text we
+            // ever saw survives even if the final callback is truncated.
+            request.shouldReportPartialResults = true
             // Keep personal story audio on-device when supported (falls back to
             // Apple's servers only on devices/locales without on-device support).
             if recognizer.supportsOnDeviceRecognition {
                 request.requiresOnDeviceRecognition = true
             }
 
+            let text: String
             do {
-                let result = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<SFSpeechRecognitionResult, Error>) in
+                text = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<String, Error>) in
+                    // recognitionTask's handler fires repeatedly. `hasResumed`
+                    // guards the continuation, which must be resumed exactly
+                    // once — resuming twice traps at runtime.
+                    let state = TranscriptionAccumulator()
                     recognizer.recognitionTask(with: request) { result, error in
-                        if let result = result, result.isFinal {
-                            cont.resume(returning: result)
-                        } else if let error = error {
-                            cont.resume(throwing: error)
+                        if let result {
+                            state.record(result.bestTranscription.formattedString)
+                            if result.isFinal, let value = state.finish() {
+                                cont.resume(returning: value)
+                            }
                         }
-                    }
-                }
-                let text = result.bestTranscription.formattedString
-                await MainActor.run {
-                    if text.trimmingCharacters(in: .whitespaces).isEmpty {
-                        transcriptionState = .failed
-                    } else {
-                        transcribedText = text
-                        transcriptionState = .done
+                        if let error {
+                            // A late error after we already captured usable text
+                            // shouldn't discard it — prefer the text.
+                            if let value = state.finish() {
+                                if value.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    cont.resume(throwing: error)
+                                } else {
+                                    cont.resume(returning: value)
+                                }
+                            }
+                        }
                     }
                 }
             } catch {
                 await MainActor.run { transcriptionState = .failed }
+                return
+            }
+
+            await MainActor.run {
+                if text.trimmingCharacters(in: .whitespaces).isEmpty {
+                    transcriptionState = .failed
+                } else {
+                    transcribedText = text
+                    transcriptionState = .done
+                }
             }
         }
     }

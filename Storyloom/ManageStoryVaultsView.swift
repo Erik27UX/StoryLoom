@@ -11,12 +11,18 @@ struct ManageStoryVaultsView: View {
     @State private var showConfirmAlert = false
 
     /// Unique storytellers derived from local story records, with story counts.
+    ///
+    /// The signed-in user is deliberately excluded. A user who both writes and
+    /// reads has their own stories in the same local store, so they were being
+    /// listed as one of their own "story vaults" — complete with a Remove button
+    /// that would have deleted their own work.
     private var storytellers: [(name: String, count: Int)] {
+        let ownName = AuthManager.shared.currentUser?.name
         var counts: [String: Int] = [:]
         for story in stories {
-            if let name = story.authorName {
-                counts[name, default: 0] += 1
-            }
+            guard let name = story.authorName else { continue }
+            if let ownName, name == ownName { continue }
+            counts[name, default: 0] += 1
         }
         return counts
             .map { (name: $0.key, count: $0.value) }

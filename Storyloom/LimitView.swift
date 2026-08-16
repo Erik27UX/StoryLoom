@@ -89,6 +89,10 @@ struct FreeLimitView: View {
                 Spacer()
 
                 VStack(spacing: 12) {
+                    // No simultaneousGesture calling dismiss() here: it tore down
+                    // the covering sheet at the same moment the link tried to
+                    // push, so the push never landed and the button appeared to
+                    // do nothing. The link now navigates normally.
                     NavigationLink(destination: UpgradeView()) {
                         HStack(spacing: 8) {
                             Image(systemName: "star.fill")
@@ -102,7 +106,6 @@ struct FreeLimitView: View {
                         .background(SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .simultaneousGesture(TapGesture().onEnded { dismiss() })
 
                     Button(action: { dismiss() }) {
                         Text("Not now")
@@ -189,7 +192,6 @@ struct ProLimitView: View {
                         .background(SL.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .simultaneousGesture(TapGesture().onEnded { dismiss() })
 
                     Button(action: { dismiss() }) {
                         Text("Got it")

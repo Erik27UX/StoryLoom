@@ -120,26 +120,27 @@ struct SettingsView: View {
                                         )
                                 }
                             } else {
-                                if authManager.currentUser?.subscriptionTier != .free {
-                                    Button(action: { authManager.updateUserRole(.storyteller) }) {
-                                        Text("Switch to Storyteller")
-                                            .font(.system(size: 15, weight: .medium))
-                                            .foregroundColor(Color(hex: "FDF9F0"))
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 46)
-                                            .background(SL.primary)
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    }
-                                } else {
-                                    NavigationLink(destination: UpgradeView()) {
-                                        Text("Upgrade to Storyteller")
-                                            .font(.system(size: 15, weight: .medium))
-                                            .foregroundColor(Color(hex: "FDF9F0"))
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 46)
-                                            .background(SL.primary)
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    }
+                                // Free users can switch to Storyteller freely. The free
+                                // tier already includes writing 3 private stories, so the
+                                // role itself isn't paid — only sharing is, and that's
+                                // gated at the point of publishing. Previously this sent
+                                // free users to the upgrade screen on every switch, which
+                                // read as a paywall on something they already had.
+                                Button(action: { authManager.updateUserRole(.storyteller) }) {
+                                    Text("Switch to Storyteller")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(Color(hex: "FDF9F0"))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 46)
+                                        .background(SL.primary)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                }
+
+                                if authManager.currentUser?.subscriptionTier == .free {
+                                    Text("Free plan: write up to 3 private stories. Upgrade any time to share them.")
+                                        .font(SL.body(12))
+                                        .foregroundColor(SL.textSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }

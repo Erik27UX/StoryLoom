@@ -24,26 +24,62 @@ final class SyncManager: ObservableObject {
 
     private init() {}
 
-    /// Consecutive failed sync attempts. A single failure is usually a transient
-    /// blip — the app syncs on every foreground, so waking the phone on a weak
-    /// connection would otherwise flash an alarming banner for no real problem.
-    /// Only surface the banner once a sync has failed repeatedly.
+    /// Consecutive failed sync attempts. The app syncs on every foreground, so a
+    /// single failure is usually a transient blip (waking the phone, weak signal,
+    /// a backend cold start) that resolves on its own.
     @MainActor private var consecutiveSyncFailures = 0
 
-    /// Called internally on sync failure. Stays silent for the first failure and
-    /// only shows the banner if syncing keeps failing, so users aren't warned
-    /// about problems that resolve themselves a second later.
+    /// Guards against stacking retries when several sync paths fail at once.
+    @MainActor private var isRetryScheduled = false
+
+    /// Number of silent retries before the user is told anything. Testers hit the
+    /// banner mid-story while writing — an interruption they could neither act on
+    /// nor dismiss meaningfully, for a problem that fixed itself moments later.
+    private let silentRetryLimit = 3
+
+    /// Called internally on sync failure.
+    ///
+    /// Rather than immediately alarming the user, this retries quietly in the
+    /// background with a growing delay, and only surfaces the banner once the
+    /// problem has persisted across several attempts — i.e. when it's real and
+    /// there's something worth telling them.
     @MainActor
     private func reportError(_ message: String) {
         consecutiveSyncFailures += 1
-        guard consecutiveSyncFailures >= 2 else {
-            logger.debug("sync failed once — staying silent, will retry on next foreground")
+
+        guard consecutiveSyncFailures >= silentRetryLimit else {
+            logger.debug("sync failed (attempt \(self.consecutiveSyncFailures)) — retrying quietly")
+            scheduleSilentRetry()
             return
         }
+
+        // Don't claim a connection problem while offline — the offline banner in
+        // ContentView already covers that case and is more accurate.
+        guard NetworkMonitor.shared.isConnected else {
+            logger.debug("sync failing while offline — offline banner covers this")
+            return
+        }
+
         syncErrorMessage = message
         Task {
             try? await Task.sleep(for: .seconds(4))
             syncErrorMessage = nil
+        }
+    }
+
+    /// Retries the pull after a short backoff. Keeps the user out of the loop —
+    /// most failures recover here without anything appearing on screen.
+    @MainActor
+    private func scheduleSilentRetry() {
+        guard !isRetryScheduled else { return }
+        isRetryScheduled = true
+        let attempt = consecutiveSyncFailures
+        Task { [weak self] in
+            // 2s, then 4s, then 8s.
+            let delay = UInt64(pow(2.0, Double(attempt)))
+            try? await Task.sleep(for: .seconds(min(delay, 8)))
+            await MainActor.run { self?.isRetryScheduled = false }
+            self?.pullAllUserData()
         }
     }
 
