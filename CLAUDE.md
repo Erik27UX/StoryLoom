@@ -1,5 +1,30 @@
 # Storyloom — Claude Code Reference
 
+## 🔴 BLOCKER — Supabase free tier auto-pauses (fix before any real testing)
+
+**Supabase pauses free-tier projects after ~1 week of inactivity.** When paused,
+the entire backend is offline: no auth, no data, no sync. The app cannot work
+around this — there is nothing to retry against.
+
+**This has already caused real failures twice:**
+- Login and password reset failed completely; reset emails were never sent.
+- A TestFlight tester hit it mid-session and reported "can't see old stories"
+  plus the red sync banner. Those were *not* app bugs — the backend was down.
+
+**Why it matters more with testers than with just you:** you can notice and
+resume the project in the dashboard. Testers can't. To them the app simply looks
+broken, with no way to fix it, and they stop testing.
+
+**Fix:** Supabase **Pro plan, $25/month** — paid projects never auto-pause. There
+is no reliable free workaround. Can be downgraded again after the testing period.
+
+- [ ] **Upgrade to Supabase Pro before onboarding family/external testers**
+- Until then: manually confirm the project is running at
+  `supabase.com/dashboard` immediately before any testing session, and expect
+  to resume it if it's been quiet for a few days.
+
+---
+
 ## ⚠️ Security Checkpoints — DO NOT FORGET
 These must be triggered manually at the right moments. Remind the user proactively.
 
@@ -18,8 +43,22 @@ These must be triggered manually at the right moments. Remind the user proactive
 
 ## 🚀 Pre-Launch Checklist — Step-by-Step
 
-### PHASE 1 — Apple Developer Program ($99/yr)
-**When:** As soon as enrolled at developer.apple.com
+### PHASE 0 — Before each TestFlight round
+**When:** Every time before inviting or re-engaging testers
+
+- [ ] **Confirm Supabase is running** (`supabase.com/dashboard`) — see the
+      auto-pause blocker at the top of this file. A paused project makes the app
+      look broken to testers.
+- [ ] Bump `CURRENT_PROJECT_VERSION` in `project.pbxproj` (Apple rejects a
+      re-used build number). Both Debug and Release configs.
+- [ ] Archive (Product → Archive, destination "Any iOS Device") → Distribute App
+      → App Store Connect → Upload
+- [ ] Wait for Apple processing (~10–60 min); automatic distribution is enabled
+      for the Internal testers group, so no manual assignment is needed
+
+### PHASE 1 — Apple Developer Program ($99/yr) — ✅ DONE
+**Completed:** enrolled, capabilities added, APNs key downloaded, Edge Function
+deployed and verified end-to-end. Kept below for reference.
 
 **Xcode — one-time setup:**
 - [ ] Add **Associated Domains** capability → `applinks:storyloom.live`
